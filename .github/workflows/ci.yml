@@ -25,15 +25,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      # Speed up apt-get operations by caching packages and disabling unnecessary man-db auto-update
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            /var/cache/apt/archives/*.deb
-          key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/ci.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
+      # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
@@ -157,15 +149,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      # Speed up apt-get operations by caching packages and disabling unnecessary man-db auto-update
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            /var/cache/apt/archives/*.deb
-          key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/ci.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
+      # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
