@@ -25,6 +25,21 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
+      # Cache apt packages for faster builds
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/ci.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      # Install system dependencies for Linux printing
+      - name: Install CUPS development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev pkg-config clang
+
       # Setup Rust toolchain for building native library
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
