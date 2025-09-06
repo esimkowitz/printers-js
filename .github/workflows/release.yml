@@ -3,6 +3,7 @@ name: Release
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 jobs:
   build-native:
@@ -40,10 +41,22 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # Speed up apt-get operations by disabling unnecessary man-db auto-update
+      - name: Disable man-db auto-update
+        if: runner.os == 'Linux'
+        run: |
+          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+
+      - name: Install system dependencies for Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev pkg-config
+
       - name: Install cross-compilation tools (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
