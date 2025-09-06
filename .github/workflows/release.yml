@@ -118,19 +118,21 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: Organize binaries
         run: |
           mkdir -p target/release
 
           # Copy and rename binaries with architecture suffixes
-          cp x86_64-unknown-linux-gnu/libdeno_printers-linux-amd64.so target/release/libdeno_printers.so
-          cp aarch64-unknown-linux-gnu/libdeno_printers-linux-arm64.so target/release/libdeno_printers-arm64.so
-          cp x86_64-pc-windows-msvc/deno_printers-windows-amd64.dll target/release/deno_printers.dll
-          cp aarch64-pc-windows-msvc/deno_printers-windows-arm64.dll target/release/deno_printers-arm64.dll
-          cp aarch64-apple-darwin/libdeno_printers-macos-arm64.dylib target/release/libdeno_printers.dylib
+          cp artifacts/x86_64-unknown-linux-gnu/libdeno_printers-linux-amd64.so target/release/libdeno_printers.so
+          cp artifacts/aarch64-unknown-linux-gnu/libdeno_printers-linux-arm64.so target/release/libdeno_printers-arm64.so
+          cp artifacts/x86_64-pc-windows-msvc/deno_printers-windows-amd64.dll target/release/deno_printers.dll
+          cp artifacts/aarch64-pc-windows-msvc/deno_printers-windows-arm64.dll target/release/deno_printers-arm64.dll
+          cp artifacts/aarch64-apple-darwin/libdeno_printers-macos-arm64.dylib target/release/libdeno_printers.dylib
 
           ls -la target/release/
 
       - name: Publish to JSR
-        run: deno publish
+        run: deno publish --allow-dirty

@@ -30,3 +30,6 @@ target
 
 # Claude Code Assistant
 /.claude
+
+# Release artifacts
+/artifacts
