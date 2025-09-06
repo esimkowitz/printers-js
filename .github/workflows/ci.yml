@@ -91,7 +91,7 @@ jobs:
       # Run Cargo tests with JUnit output
       - name: Generate Cargo test JUnit report
         run: |
-          cargo test --message-format=json | cargo2junit > reports/cargo.xml
+          RUSTC_BOOTSTRAP=1 cargo test -- -Z unstable-options --format json --report-time | cargo2junit > reports/cargo.xml
 
       # Build the native library (required before Deno tests)
       - name: Build Rust library
