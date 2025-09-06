@@ -25,7 +25,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      # Cache apt packages for faster builds
+      # Speed up apt-get operations by caching packages and disabling unnecessary man-db auto-update
       - name: Cache apt packages
         uses: actions/cache@v4
         with:
@@ -34,8 +34,6 @@ jobs:
           key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/ci.yml') }}
           restore-keys: |
             ${{ runner.os }}-apt-
-
-      # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
@@ -159,7 +157,15 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      # Speed up apt-get operations by disabling unnecessary man-db auto-update
+      # Speed up apt-get operations by caching packages and disabling unnecessary man-db auto-update
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives/*.deb
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/ci.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
       - name: Disable man-db auto-update
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
@@ -192,27 +198,30 @@ jobs:
       - name: Setup LCOV
         uses: hrishikesh-kadam/setup-lcov@v1
 
-      - name: Report combined code coverage
-        uses: zgosalvez/github-actions-report-lcov@v4
-        with:
-          coverage-files: coverage/combined.lcov
-          artifact-name: combined-coverage-report
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          update-comment: true
-
       # Also report individual coverage for debugging
       - name: Report Rust code coverage
         uses: zgosalvez/github-actions-report-lcov@v4
         with:
+          title-prefix: "[Rust]"
           coverage-files: coverage/rust.lcov
           artifact-name: rust-coverage-report
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          update-comment: false
+          update-comment: true
 
       - name: Report Deno code coverage
         uses: zgosalvez/github-actions-report-lcov@v4
         with:
+          title-prefix: "[Deno]"
           coverage-files: coverage/deno.lcov
           artifact-name: deno-coverage-report
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          update-comment: false
+          update-comment: true
+
+      - name: Report Combined code coverage
+        uses: zgosalvez/github-actions-report-lcov@v4
+        with:
+          title-prefix: "[Combined]"
+          coverage-files: coverage/combined.lcov
+          artifact-name: combined-coverage-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          update-comment: true
