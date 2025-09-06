@@ -121,17 +121,26 @@ deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
 Set the `DENO_PRINTERS_SIMULATE=true` environment variable to enable simulation
 mode, which prevents actual printing while testing all functionality:
 
+**Unix/Linux/macOS:**
+
+```bash
+DENO_PRINTERS_SIMULATE=true deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+```
+
 **Windows:**
+
+Command Prompt:
 
 ```cmd
 set DENO_PRINTERS_SIMULATE=true
 deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
 ```
 
-**Unix/Linux/macOS:**
+PowerShell:
 
-```bash
-DENO_PRINTERS_SIMULATE=true deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+```powershell
+$env:DENO_PRINTERS_SIMULATE="true"
+deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
 ```
 
 ### Running Tests
