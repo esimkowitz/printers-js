@@ -83,10 +83,15 @@ jobs:
       - run: mkdir -p reports
       - run: mkdir -p coverage
 
-      # Run Cargo tests with coverage and JUnit output
+      # Run Cargo tests with coverage
       - name: Run Cargo tests with coverage
         run: |
-          cargo llvm-cov --all-features --workspace --lcov --output-path coverage/rust.lcov test --message-format=json | cargo2junit > reports/cargo.xml
+          cargo llvm-cov --all-features --workspace --lcov --output-path coverage/rust.lcov test
+
+      # Run Cargo tests with JUnit output
+      - name: Generate Cargo test JUnit report
+        run: |
+          cargo test --message-format=json | cargo2junit > reports/cargo.xml
 
       # Build the native library (required before Deno tests)
       - name: Build Rust library
