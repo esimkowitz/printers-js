@@ -37,8 +37,8 @@ jobs:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         run: |
-          sudo debconf-set man-db/auto-update false
-          sudo rm /var/lib/man-db/auto-update
+          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
 
       # Install system dependencies for Linux printing
       - name: Install CUPS development libraries
@@ -159,8 +159,8 @@ jobs:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         run: |
-          sudo debconf-set man-db/auto-update false
-          sudo rm /var/lib/man-db/auto-update
+          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
 
       - uses: denoland/setup-deno@v2
         with:
