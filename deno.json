@@ -32,7 +32,13 @@
   "fmt": {
     "exclude": [
       "reports/",
-      "coverage/"
+      "coverage/",
+      "target/",
+      ".claude/",
+      "LICENSE",
+      "*.rs",
+      "Cargo.toml",
+      "Cargo.lock"
     ]
   },
   "publish": {
