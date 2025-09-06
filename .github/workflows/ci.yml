@@ -156,6 +156,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
+      # Speed up apt-get operations by disabling unnecessary man-db auto-update
+      - name: Disable man-db auto-update
+        run: |
+          sudo debconf-set man-db/auto-update false
+          sudo rm /var/lib/man-db/auto-update
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x # Run with latest stable Deno.
