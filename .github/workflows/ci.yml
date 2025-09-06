@@ -34,6 +34,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-
 
+      # Speed up apt-get operations by disabling unnecessary man-db auto-update
+      - name: Disable man-db auto-update
+        run: |
+          sudo debconf-set man-db/auto-update false
+          sudo rm /var/lib/man-db/auto-update
+
       # Install system dependencies for Linux printing
       - name: Install CUPS development libraries
         run: |
