@@ -1,207 +1,230 @@
-# deno-printers
+# @esimkowitz/printers
 
-A cross-platform Deno library that provides access to system printers through
-FFI bindings to the Rust `printers` crate.
+A cross-platform Deno library for interacting with system printers via FFI to a native Rust library.
 
 ## Features
 
-- Get all available printer names
-- Check if a specific printer exists
-- Find a printer by name
-- **Print files to printers** with async job tracking
-- Cross-platform support (Windows, macOS, Linux)
+- 🖨️ **Cross-platform printing** - Works on Windows, macOS, and Linux
+- 🦀 **Native performance** - Powered by Rust's `printers` crate via FFI
+- 🏗️ **Multi-architecture support** - AMD64 and ARM64 binaries included
+- 🔒 **Safe testing** - Built-in simulation mode prevents accidental printing
+- ⚡ **Async job tracking** - Non-blocking print jobs with status monitoring
+- 📊 **Comprehensive API** - List printers, check status, manage print jobs
 
-## ⚠️ Important Safety Notice
+## Quick Start
 
-**This library can send real print jobs to your physical printers!**
+```typescript
+import { getAllPrinters, Printer } from "@esimkowitz/printers";
 
-- **Default mode**: When you run tests with `deno task test`, it uses
-  **simulation mode** and won't actually print anything
-- **Real printing**: Use `deno task test:real` if you want to test with actual
-  printers
-- **Environment variable**: Set `DENO_PRINTERS_SIMULATE=true` to force
-  simulation mode in your own code
+// List all available printers
+const printers = getAllPrinters();
+console.log("Available printers:", printers.map(p => p.getName()));
+
+// Get a specific printer
+const printer = printers[0];
+
+// Print a file (returns a Promise)
+try {
+  await printer.printFile("/path/to/document.pdf", {
+    copies: "2",
+    orientation: "landscape"
+  });
+  console.log("Print job completed!");
+} catch (error) {
+  console.error("Print failed:", error.message);
+}
+```
 
 ## Installation
 
-Add this to your `deno.json` imports:
-
-```json
-{
-  "imports": {
-    "@esimkowitz/printers": "jsr:@esimkowitz/printers"
-  }
-}
-```
-
-## Usage
-
-```typescript
-import {
-  getAllPrinterNames,
-  getAllPrinters,
-  getPrinterByName,
-  Printer,
-  printerExists,
-} from "@esimkowitz/printers";
-
-// Get all available printers as Printer objects
-const printers = getAllPrinters();
-console.log("Available printers:", printers.map((p) => p.toString()));
-
-// Get all printer names as strings
-const printerNames = getAllPrinterNames();
-console.log("Printer names:", printerNames);
-
-// Check if a specific printer exists
-const exists = printerExists("Microsoft Print to PDF");
-console.log("Printer exists:", exists);
-
-// Get a printer by name (returns Printer object)
-const printer = getPrinterByName("Microsoft Print to PDF");
-if (printer) {
-  console.log("Found printer:", printer.getName());
-  console.log("Printer exists:", printer.exists());
-  console.log("Printer string:", printer.toString());
-} else {
-  console.log("Printer not found");
-}
-
-// Working with Printer objects
-if (printers.length > 0) {
-  const firstPrinter = printers[0];
-  console.log(`Printer name: ${firstPrinter.getName()}`);
-  console.log(`Printer exists: ${firstPrinter.exists()}`);
-
-  // Print a file
-  try {
-    await firstPrinter.printFile("document.pdf", {
-      copies: "2",
-      orientation: "portrait",
-      quality: "high",
-    });
-    console.log("Print job submitted successfully");
-  } catch (error) {
-    console.error("Print job failed:", error.message);
-  }
-}
-```
-
-## Requirements
-
-This library uses Deno's FFI (Foreign Function Interface) to call native Rust
-code. You need to run your Deno script with the following flags:
-
 ```bash
-deno run --allow-ffi --unstable-ffi your-script.ts
+deno add @esimkowitz/printers
 ```
-
-## Development
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/) (for building the native library)
-- [Deno](https://deno.com/) (for running TypeScript)
-
-### Building
-
-```bash
-# Build the Rust library
-deno task build
-
-# Run the example
-deno task dev
-
-# Run tests
-deno task test
-```
-
-### Project Structure
-
-- `src/lib.rs` - Rust library implementing printer functionality
-- `mod.ts` - TypeScript FFI bindings and main exports
-- `types.d.ts` - TypeScript type definitions
-- `mod.test.ts` - Tests for the functionality
 
 ## API Reference
 
-### `Printer` Class
-
-The main class representing a printer with various methods.
-
-#### Constructor
-
-- `new Printer(name: string)` - Creates a new Printer instance
-
-#### Methods
-
-- `getName(): string` - Returns the printer name
-- `exists(): boolean` - Checks if the printer exists on the system
-- `toString(): string` - Returns the printer name as a string
-- `equals(other: Printer): boolean` - Checks if two printers are the same
-- `toJSON(): { name: string }` - Returns a JSON representation of the printer
-- `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` -
-  Prints a file with optional job properties
-
 ### Functions
 
-### `getAllPrinters(): Printer[]`
+#### `getAllPrinters(): Printer[]`
+Returns an array of all available system printers.
 
-Returns an array of all available printers as Printer objects.
+#### `getAllPrinterNames(): string[]`
+Returns an array of printer names.
 
-### `getAllPrinterNames(): string[]`
+#### `getPrinterByName(name: string): Printer | null`
+Find a printer by its exact name.
 
-Returns an array of all available printer names as strings.
+#### `printerExists(name: string): boolean`
+Check if a printer exists on the system.
 
-### `printerExists(name: string): boolean`
+#### `getJobStatus(jobId: number): JobStatus | null`
+Get the status of a print job by ID.
 
-Checks if a printer with the given name exists on the system.
+#### `cleanupOldJobs(maxAgeSeconds: number): number`
+Remove old completed/failed jobs and return the count removed.
 
-**Parameters:**
+### Classes
 
-- `name` - The name of the printer to check
+#### `Printer`
+Represents a system printer with methods for printing and status checking.
 
-**Returns:** `true` if the printer exists, `false` otherwise
+**Methods:**
+- `getName(): string` - Get the printer name
+- `exists(): boolean` - Check if printer is available
+- `toString(): string` - Get string representation
+- `equals(other: Printer): boolean` - Compare with another printer
+- `toJSON()` - Get JSON representation
+- `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` - Print a file
 
-### `getPrinterByName(name: string): Printer | null`
+### Interfaces
 
-Finds a printer by its exact name and returns a Printer object.
+#### `JobStatus`
+```typescript
+interface JobStatus {
+  id: number;
+  printer_name: string;
+  file_path: string;
+  status: "queued" | "printing" | "completed" | "failed";
+  error_message?: string;
+  age_seconds: number;
+}
+```
 
-**Parameters:**
+## Permissions
 
-- `name` - The exact name of the printer to find
+This library requires the following Deno permissions:
 
-**Returns:** A `Printer` object if found, `null` if not found
+```bash
+deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+```
 
-### Error Codes
+- `--allow-ffi` - Required for loading the native library
+- `--unstable-ffi` - Deno's FFI is currently unstable
+- `--allow-env` - Optional, for reading `DENO_PRINTERS_SIMULATE` environment variable
 
-The `printFile` method may reject with errors containing the following messages:
+## Testing & Safety
 
-- `"Invalid parameters"` - Null or invalid printer name/file path
-- `"Invalid printer name encoding"` - Printer name contains invalid characters
-- `"Invalid file path encoding"` - File path contains invalid characters
-- `"Invalid job properties JSON"` - Job properties object is malformed
-- `"Invalid job properties JSON encoding"` - Job properties contain invalid
-  characters
-- `"Printer not found"` - The specified printer doesn't exist on the system
-- `"File not found"` - The specified file doesn't exist
-- `"Unknown error (code: X)"` - Unexpected error with error code
+### Simulation Mode
 
-### Job Properties
+Set the `DENO_PRINTERS_SIMULATE=true` environment variable to enable simulation mode, which prevents actual printing while testing all functionality:
 
-The `printFile` method accepts an optional `jobProperties` parameter with the
-following common properties:
+**Windows:**
+```cmd
+set DENO_PRINTERS_SIMULATE=true
+deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+```
 
-- `copies` - Number of copies to print (e.g., "1", "2", "5")
-- `orientation` - Page orientation ("portrait" or "landscape")
-- `quality` - Print quality ("draft", "normal", "high")
-- `color` - Color mode ("color", "grayscale", "monochrome")
-- `paperSize` - Paper size ("A4", "Letter", "Legal", etc.)
-- `duplex` - Duplex printing ("none", "horizontal", "vertical")
+**Unix/Linux/macOS:**
+```bash
+DENO_PRINTERS_SIMULATE=true deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+```
 
-Note: Actual supported properties depend on the printer capabilities and driver.
+### Running Tests
+
+```bash
+# Safe tests (simulation mode)
+deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts
+
+# With explicit simulation
+DENO_PRINTERS_SIMULATE=true deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts
+```
+
+## Platform Support
+
+| Platform | Architecture | Binary |
+|----------|--------------|---------|
+| Windows  | AMD64        | `deno_printers.dll` |
+| Windows  | ARM64        | `deno_printers-arm64.dll` |
+| Linux    | AMD64        | `libdeno_printers.so` |
+| Linux    | ARM64        | `libdeno_printers-arm64.so` |
+| macOS    | ARM64        | `libdeno_printers.dylib` |
+
+The library automatically detects your platform and architecture to load the correct binary.
+
+## Examples
+
+### Basic Printing
+```typescript
+import { getAllPrinters } from "@esimkowitz/printers";
+
+const printers = getAllPrinters();
+if (printers.length > 0) {
+  const printer = printers[0];
+  
+  try {
+    await printer.printFile("document.pdf");
+    console.log("✅ Print successful");
+  } catch (error) {
+    console.log("❌ Print failed:", error.message);
+  }
+}
+```
+
+### Advanced Job Tracking
+```typescript
+import { getAllPrinters, getJobStatus } from "@esimkowitz/printers";
+
+const printer = getAllPrinters()[0];
+
+// Start print job (non-blocking)
+const jobPromise = printer.printFile("large-document.pdf");
+
+// You can do other work while printing...
+console.log("Print job started, doing other work...");
+
+// Wait for completion
+try {
+  await jobPromise;
+  console.log("Print completed!");
+} catch (error) {
+  console.log("Print failed:", error.message);
+}
+```
+
+### Printer Management
+```typescript
+import { 
+  getAllPrinterNames, 
+  getPrinterByName, 
+  printerExists,
+  cleanupOldJobs 
+} from "@esimkowitz/printers";
+
+// List available printers
+console.log("Printers:", getAllPrinterNames());
+
+// Check if specific printer exists
+if (printerExists("My Printer")) {
+  const printer = getPrinterByName("My Printer");
+  console.log("Found printer:", printer?.getName());
+}
+
+// Clean up old print jobs (older than 1 hour)
+const cleaned = cleanupOldJobs(3600);
+console.log(`Cleaned up ${cleaned} old print jobs`);
+```
+
+## Architecture
+
+This library consists of:
+
+1. **Rust native library** (`src/lib.rs`) - Handles actual printer operations via the `printers` crate
+2. **TypeScript FFI layer** (`mod.ts`) - Provides JavaScript-friendly API via Deno's FFI
+3. **Multi-platform binaries** - Pre-compiled for all supported platforms and architectures
+
+The native library is built as a C dynamic library (cdylib) and loaded via Deno's FFI capabilities, providing near-native performance for printer operations.
+
+## Contributing
+
+This library is built with:
+- **Rust** - Native library with printer operations
+- **Deno** - TypeScript runtime and FFI host
+- **GitHub Actions** - CI/CD with multi-platform builds
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for
-details.
+MIT License - see LICENSE file for details.
+
+## Repository
+
+Source code: [github.com/esimkowitz/deno-printers](https://github.com/esimkowitz/deno-printers)

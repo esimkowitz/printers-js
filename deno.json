@@ -1,7 +1,21 @@
 {
   "name": "@esimkowitz/printers",
   "version": "0.1.0",
-  "description": "Cross-platform Deno library for interacting with system printers",
+  "description": "Cross-platform Deno library for interacting with system printers via FFI to native Rust library",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/esimkowitz/deno-printers.git"
+  },
+  "homepage": "https://github.com/esimkowitz/deno-printers",
+  "keywords": [
+    "printer",
+    "printing",
+    "cross-platform",
+    "ffi",
+    "rust",
+    "native"
+  ],
   "tasks": {
     "dev": "deno run --allow-ffi --unstable-ffi --watch mod.ts",
     "test": "deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts",
@@ -14,5 +28,28 @@
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
     "@std/path": "jsr:@std/path@1"
+  },
+  "publish": {
+    "include": [
+      "mod.ts",
+      "test-async.ts",
+      "test-print.ts",
+      "mod.test.ts",
+      "deno.json",
+      "README.md",
+      "LICENSE",
+      "CLAUDE.md",
+      "Cargo.toml",
+      "src/",
+      "target/release/"
+    ],
+    "exclude": [
+      "target/debug/",
+      "target/*/build/",
+      "target/*/deps/",
+      "target/*/incremental/",
+      ".git/",
+      ".github/"
+    ]
   }
 }

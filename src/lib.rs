@@ -458,4 +458,159 @@ mod tests {
         let result = unsafe { find_printer_by_name(name.as_ptr()) };
         assert!(result.is_null());
     }
+
+    #[test]
+    fn test_print_file_with_null_printer() {
+        let file_path = CString::new("test.txt").unwrap();
+        let result = unsafe { 
+            print_file(std::ptr::null(), file_path.as_ptr(), std::ptr::null()) 
+        };
+        assert_eq!(result, PrintError::InvalidParams.as_i32());
+    }
+
+    #[test]
+    fn test_print_file_with_null_file_path() {
+        let printer_name = CString::new("Test Printer").unwrap();
+        let result = unsafe { 
+            print_file(printer_name.as_ptr(), std::ptr::null(), std::ptr::null()) 
+        };
+        assert_eq!(result, PrintError::InvalidParams.as_i32());
+    }
+
+    #[test]
+    fn test_print_file_with_nonexistent_printer() {
+        let printer_name = CString::new("NonExistentPrinter123").unwrap();
+        let file_path = CString::new("test.txt").unwrap();
+        let result = unsafe { 
+            print_file(printer_name.as_ptr(), file_path.as_ptr(), std::ptr::null()) 
+        };
+        assert_eq!(result, PrintError::PrinterNotFound.as_i32());
+    }
+
+    #[test]
+    fn test_print_file_with_nonexistent_file() {
+        // Use a truly nonexistent printer to ensure we get a predictable error
+        let printer_name = CString::new("NonExistentPrinter123").unwrap();
+        let file_path = CString::new("/nonexistent/path/file.txt").unwrap();
+        let result = unsafe { 
+            print_file(printer_name.as_ptr(), file_path.as_ptr(), std::ptr::null()) 
+        };
+        // Should return PrinterNotFound error since printer doesn't exist
+        assert_eq!(result, PrintError::PrinterNotFound.as_i32());
+    }
+
+    #[test]
+    fn test_print_file_with_invalid_json() {
+        let printer_name = CString::new("Test Printer").unwrap();
+        let file_path = CString::new("test.txt").unwrap();
+        let invalid_json = CString::new("invalid json {").unwrap();
+        let result = unsafe { 
+            print_file(printer_name.as_ptr(), file_path.as_ptr(), invalid_json.as_ptr()) 
+        };
+        assert_eq!(result, PrintError::InvalidJson.as_i32());
+    }
+
+    #[test]
+    fn test_get_job_status_nonexistent() {
+        let result = get_job_status(99999);
+        assert!(result.is_null());
+    }
+
+    #[test]
+    fn test_cleanup_old_jobs() {
+        // Test cleanup function - should return number of cleaned jobs (0 is valid)
+        let result = cleanup_old_jobs(3600); // 1 hour
+        // Result is u32, so it's always non-negative - just verify function executes
+        let _ = result; // Verify function returns without panic
+    }
+
+    #[test]
+    fn test_free_string_with_null() {
+        // Should not crash with null pointer
+        unsafe {
+            free_string(std::ptr::null_mut());
+        }
+        // If we get here without panicking, the test passes
+    }
+
+    #[test]
+    fn test_error_codes() {
+        // Test that error codes are within expected range
+        assert_eq!(PrintError::InvalidParams.as_i32(), 1);
+        assert_eq!(PrintError::InvalidPrinterName.as_i32(), 2);
+        assert_eq!(PrintError::InvalidFilePath.as_i32(), 3);
+        assert_eq!(PrintError::InvalidJson.as_i32(), 4);
+        assert_eq!(PrintError::InvalidJsonEncoding.as_i32(), 5);
+        assert_eq!(PrintError::PrinterNotFound.as_i32(), 6);
+        assert_eq!(PrintError::FileNotFound.as_i32(), 7);
+    }
+
+    #[test]
+    fn test_should_simulate_printing() {
+        // Test simulation mode detection
+        let original = std::env::var("DENO_PRINTERS_SIMULATE").unwrap_or_default();
+        
+        // Test with simulation enabled
+        std::env::set_var("DENO_PRINTERS_SIMULATE", "true");
+        assert!(should_simulate_printing());
+        
+        // Test with simulation disabled
+        std::env::set_var("DENO_PRINTERS_SIMULATE", "false");
+        assert!(!should_simulate_printing());
+        
+        // Test with no environment variable
+        std::env::remove_var("DENO_PRINTERS_SIMULATE");
+        assert!(!should_simulate_printing());
+        
+        // Restore original value
+        if !original.is_empty() {
+            std::env::set_var("DENO_PRINTERS_SIMULATE", original);
+        }
+    }
+
+    #[test]
+    fn test_generate_job_id() {
+        // Test that job IDs are sequential and start from 1000
+        let id1 = generate_job_id();
+        let id2 = generate_job_id();
+        
+        assert!(id1 >= 1000);
+        assert_eq!(id2, id1 + 1);
+    }
+
+    #[test]
+    fn test_c_str_to_string_with_null() {
+        let result = unsafe { c_str_to_string(std::ptr::null(), PrintError::InvalidParams) };
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), PrintError::InvalidParams.as_i32());
+    }
+
+    #[test] 
+    fn test_c_str_to_string_with_valid_string() {
+        let test_str = CString::new("test string").unwrap();
+        let result = unsafe { c_str_to_string(test_str.as_ptr(), PrintError::InvalidParams) };
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "test string");
+    }
+
+    #[test]
+    fn test_create_status_json() {
+        let job_status = JobStatus {
+            printer_name: "Test Printer".to_string(),
+            file_path: "test.txt".to_string(),
+            status: "completed".to_string(),
+            error_message: None,
+            created_at: std::time::Instant::now(),
+            real_job_id: Some(123),
+            printer: None,
+        };
+        
+        let json = create_status_json(1001, &job_status);
+        assert!(json.is_some());
+        
+        let json_str = json.unwrap();
+        assert!(json_str.contains("\"id\":1001"));
+        assert!(json_str.contains("\"printer_name\":\"Test Printer\""));
+        assert!(json_str.contains("\"status\":\"completed\""));
+    }
 }

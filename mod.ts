@@ -23,22 +23,30 @@ export interface JobStatus {
   age_seconds: number;
 }
 
-// Library loading - simplified platform detection
+// Library loading - multi-platform binary selection
 const LIB_EXTENSIONS = { windows: "dll", darwin: "dylib" } as const;
-const libExtension =
-  LIB_EXTENSIONS[Deno.build.os as keyof typeof LIB_EXTENSIONS] ?? "so";
+
+function getLibraryName(): string {
+  const { os, arch } = Deno.build;
+  const extension = LIB_EXTENSIONS[os as keyof typeof LIB_EXTENSIONS] ?? "so";
+  
+  // Determine architecture suffix for multi-arch binaries
+  const archSuffix = arch === "aarch64" ? "-arm64" : "";
+  
+  // Construct library name based on platform
+  if (os === "windows") {
+    return `deno_printers${archSuffix}.${extension}`;
+  } else {
+    return `libdeno_printers${archSuffix}.${extension}`;
+  }
+}
 
 const currentDir = new URL(".", import.meta.url).pathname;
 const cleanDir = Deno.build.os === "windows" && currentDir.startsWith("/")
   ? currentDir.slice(1)
   : currentDir;
 
-const libPath = join(
-  cleanDir,
-  "target",
-  "release",
-  `deno_printers.${libExtension}`,
-);
+const libPath = join(cleanDir, "target", "release", getLibraryName());
 
 // FFI Utilities
 function toCString(str: string): Uint8Array {

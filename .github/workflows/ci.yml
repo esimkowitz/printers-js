@@ -1,0 +1,183 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DENO_PRINTERS_SIMULATE: true  # Force simulation mode for all tests
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout base branch
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/checkout@v5
+        
+      - name: Checkout merge commit
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      # Setup Rust toolchain for building native library
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      # Install cargo-llvm-cov for code coverage
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      # Install cargo2junit for JUnit XML output from Cargo tests
+      - name: Install cargo2junit
+        run: cargo install cargo2junit
+
+      # Cache Rust dependencies for faster builds
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # Setup Deno
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x # Run with latest stable Deno.
+          cache: true
+
+      # Rust code quality checks
+      - name: Check Rust formatting
+        run: cargo fmt --check
+        
+      - name: Run Rust linter (Clippy)
+        run: cargo clippy -- -D warnings
+
+      # Create directories for reports and coverage
+      - run: mkdir -p reports
+      - run: mkdir -p coverage
+
+      # Run Cargo tests with coverage and JUnit output
+      - name: Run Cargo tests with coverage
+        run: |
+          cargo llvm-cov --all-features --workspace --lcov --output-path coverage/rust.lcov test --message-format=json | cargo2junit > reports/cargo.xml
+
+      # Build the native library (required before Deno tests)
+      - name: Build Rust library
+        run: cargo build --release
+
+      # Deno code quality checks
+      - name: Check Deno formatting
+        run: deno fmt --check
+
+      # Scan the code for syntax errors and style issues
+      - name: Run Deno linter
+        run: deno lint
+
+      # Run all test files with proper permissions and simulation mode
+      - name: Run Deno tests
+        run: deno test --allow-ffi --unstable-ffi --allow-env --coverage=coverage/ --reporter=junit --junit-path=./reports/deno.xml
+        env:
+          DENO_PRINTERS_SIMULATE: true
+
+      # Generate Deno coverage report
+      - name: Generate Deno coverage report
+        run: deno coverage --lcov coverage/ > coverage/deno.lcov
+
+      # Combine coverage reports
+      - name: Combine coverage reports
+        run: |
+          echo "Combining Rust and Deno coverage reports..."
+          cat coverage/rust.lcov coverage/deno.lcov > coverage/combined.lcov
+
+      - name: Upload Test Reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: reports/*
+
+      - name: Upload Coverage Reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/*
+
+  report:
+    if: ${{ always() && github.event_name == 'pull_request_target' }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+      checks: write
+    steps:
+      - name: Checkout merge commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x # Run with latest stable Deno.
+          
+      - uses: actions/download-artifact@v5
+      
+      - name: Convert JUnit XML to CTRF
+        run: deno run -A npm:junit-to-ctrf "reports/*.xml" -o reports/junit.json
+        
+      - name: Publish Test Report
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          title: Deno Printers Test Report
+          report-path: "./reports/*.json"
+          pull-request-report: true
+          flaky-rate-report: true
+          pull-request: true
+          overwrite-comment: true
+          status-check: true
+          status-check-name: "Deno Printers Tests"
+          annotate: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup LCOV
+        uses: hrishikesh-kadam/setup-lcov@v1
+        
+      - name: Report combined code coverage
+        uses: zgosalvez/github-actions-report-lcov@v4
+        with:
+          coverage-files: coverage/combined.lcov
+          artifact-name: combined-coverage-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          update-comment: true
+
+      # Also report individual coverage for debugging
+      - name: Report Rust code coverage
+        uses: zgosalvez/github-actions-report-lcov@v4
+        with:
+          coverage-files: coverage/rust.lcov
+          artifact-name: rust-coverage-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          update-comment: false
+
+      - name: Report Deno code coverage  
+        uses: zgosalvez/github-actions-report-lcov@v4
+        with:
+          coverage-files: coverage/deno.lcov
+          artifact-name: deno-coverage-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          update-comment: false
