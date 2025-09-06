@@ -31,7 +31,7 @@ async function testAsyncPrinting() {
 }
 
 // Test job status polling (manual)
-async function testJobStatusPolling() {
+async function _testJobStatusPolling() {
   const printers = getAllPrinters();
   if (printers.length > 0) {
     const printer = printers[0];

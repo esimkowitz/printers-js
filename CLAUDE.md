@@ -112,3 +112,16 @@ All scripts using this library must run with:
 - **Deno dependencies** (in `deno.json`):
   - `@std/assert` - Testing assertions
   - `@std/path` - Path manipulation utilities
+
+## Code Quality Requirements
+
+ALWAYS run these commands after making code changes:
+
+- **After modifying TypeScript files**: Run `deno lint` to check for linting
+  issues
+- **After modifying Rust files**: Run `cargo clippy` to check for linting issues
+- **After modifying Rust or Cargo files**: Run `cargo fmt` to format Rust code
+- **After modifying any files**: Run `deno fmt` to format files (excludes files
+  in `deno.json` `fmt.exclude` field)
+
+These commands must pass before considering any changes complete.

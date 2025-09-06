@@ -181,7 +181,7 @@ export class Printer {
   equals(other: Printer): boolean {
     return this.name === other.name;
   }
-  toJSON() {
+  toJSON(): { name: string } {
     return { name: this.name };
   }
 
