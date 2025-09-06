@@ -1,0 +1,36 @@
+[[language]]
+name = "typescript"
+roots = ["deno.json", "deno.jsonc", "package.json"]
+file-types = ["ts", "tsx"]
+auto-format = true
+language-servers = ["deno-lsp"]
+
+[[language]]
+name = "javascript"
+roots = ["deno.json", "deno.jsonc", "package.json"]
+file-types = ["js", "jsx"]
+auto-format = true
+language-servers = ["deno-lsp"]
+
+[[language]]
+name = "json"
+file-types = ["json", "jsonc"]
+auto-format = true
+formatter = { command = "deno", args = ["fmt", "-", "--ext", "json"] }
+
+[[language]]
+name = "markdown"
+file-types = ["md", "markdown"]
+auto-format = true
+formatter = { command = "deno", args = ["fmt", "-", "--ext", "md"] }
+
+[[language]]
+name = "yaml"
+file-types = ["yaml", "yml"]
+auto-format = true
+formatter = { command = "deno", args = ["fmt", "-", "--ext", "yaml"] }
+
+[language-server.deno-lsp]
+command = "deno"
+args = ["lsp"]
+config.deno.enable = true

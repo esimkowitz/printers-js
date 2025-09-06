@@ -111,15 +111,17 @@ jobs:
       - name: Run Deno linter
         run: deno lint
 
+      - run: mkdir -p coverage-deno
+
       # Run all test files with proper permissions and simulation mode
       - name: Run Deno tests
-        run: deno test --allow-ffi --unstable-ffi --allow-env --coverage=coverage/ --reporter=junit --junit-path=./reports/deno.xml
+        run: deno test --allow-ffi --unstable-ffi --allow-env --coverage=coverage-deno/ --reporter=junit --junit-path=./reports/deno.xml
         env:
           DENO_PRINTERS_SIMULATE: true
 
       # Generate Deno coverage report
       - name: Generate Deno coverage report
-        run: deno coverage --lcov coverage/ > coverage/deno.lcov
+        run: deno coverage --lcov coverage-deno/ > coverage/deno.lcov
 
       # Combine coverage reports
       - name: Combine coverage reports

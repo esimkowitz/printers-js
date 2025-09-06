@@ -22,9 +22,11 @@ target
 
 
 # Added by cargo
-
 /target
 
-# Claude Code Assistant
+# Test output directories
+/coverage
+/reports
 
-.claude/
+# Claude Code Assistant
+/.claude

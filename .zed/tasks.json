@@ -1,0 +1,10 @@
+[
+  {
+    "label": "Run Deno Tests",
+    "command": "deno test -A $ZED_FILE",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  }
+]

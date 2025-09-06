@@ -1,0 +1,23 @@
+{
+  "deno.enable": true,
+  "deno.codeLens.test": true,
+  "deno.codeLens.testArgs": [
+    "--allow-all",
+    "--no-check",
+    "--trace-leaks"
+  ],
+  "editor.defaultFormatter": "denoland.vscode-deno",
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "modifications",
+  "editor.autoIndentOnPaste": true,
+  "debug.javascript.autoAttachFilter": "disabled",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/.vscode/extensions": true
+  },
+  "search.exclude": {
+    "**/coverage": true,
+    "**/.vscode/extensions": true
+  }
+}

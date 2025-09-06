@@ -1,0 +1,17 @@
+[
+  {
+    "adapter": "JavaScript",
+    "label": "Deno",
+    "request": "launch",
+    "type": "pwa-node",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "program": "mod.ts",
+    "runtimeExecutable": "deno",
+    "runtimeArgs": [
+      "run",
+      "--allow-all",
+      "--inspect-wait"
+    ],
+    "attachSimplePort": 9229
+  }
+]
