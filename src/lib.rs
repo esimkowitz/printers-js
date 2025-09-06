@@ -1,13 +1,13 @@
+use printers::common::base::job::{PrinterJobOptions, PrinterJobState};
+use printers::common::base::printer::Printer;
+use printers::get_printer_by_name;
+use std::collections::HashMap;
+use std::env;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
-use std::env;
-use printers::{get_printer_by_name};
-use printers::common::base::printer::Printer;
-use printers::common::base::job::{PrinterJobOptions, PrinterJobState};
 
 /// Error codes for the printing operations
 #[repr(i32)]
@@ -48,7 +48,7 @@ unsafe fn c_str_to_string(ptr: *const c_char, error_code: PrintError) -> Result<
     if ptr.is_null() {
         return Err(PrintError::InvalidParams.as_i32());
     }
-    
+
     match CStr::from_ptr(ptr).to_str() {
         Ok(s) => Ok(s.to_string()),
         Err(_) => Err(error_code.as_i32()),
@@ -62,7 +62,6 @@ fn generate_job_id() -> JobId {
     *next_id += 1;
     id
 }
-
 
 // Global job tracking
 lazy_static::lazy_static! {
@@ -91,15 +90,15 @@ fn create_status_json(job_id: JobId, job: &JobStatus) -> Option<String> {
         "error_message": job.error_message,
         "age_seconds": job.created_at.elapsed().as_secs()
     });
-    
+
     serde_json::to_string(&status_obj).ok()
 }
 
 /// Print a file to a specific printer (non-blocking)
-/// 
+///
 /// Returns positive job ID on success, negative error code on failure.
 /// Use `get_job_status()` to monitor progress.
-/// 
+///
 /// # Safety
 /// Caller must ensure valid null-terminated C strings for printer_name_ptr and file_path_ptr.
 /// job_properties_json_ptr can be null.
@@ -112,47 +111,45 @@ pub unsafe extern "C" fn print_file(
     if printer_name_ptr.is_null() || file_path_ptr.is_null() {
         return PrintError::InvalidParams.as_i32();
     }
-    
+
     let printer_name = match c_str_to_string(printer_name_ptr, PrintError::InvalidPrinterName) {
         Ok(s) => s,
         Err(code) => return code,
     };
-    
+
     let file_path = match c_str_to_string(file_path_ptr, PrintError::InvalidFilePath) {
         Ok(s) => s,
         Err(code) => return code,
     };
-    
+
     // Parse job properties if provided
     let _job_properties: Option<serde_json::Value> = if !job_properties_json_ptr.is_null() {
         match CStr::from_ptr(job_properties_json_ptr).to_str() {
-            Ok(json_str) => {
-                match serde_json::from_str(json_str) {
-                    Ok(props) => Some(props),
-                    Err(_) => return PrintError::InvalidJson.as_i32(),
-                }
-            }
+            Ok(json_str) => match serde_json::from_str(json_str) {
+                Ok(props) => Some(props),
+                Err(_) => return PrintError::InvalidJson.as_i32(),
+            },
             Err(_) => return PrintError::InvalidJsonEncoding.as_i32(),
         }
     } else {
         None
     };
-    
+
     // Check if printer exists
     let printers = printers::get_printers();
     let _printer = match printers.iter().find(|p| p.name == printer_name) {
         Some(p) => p,
         None => return PrintError::PrinterNotFound.as_i32(),
     };
-    
+
     // Check if file exists
     if !std::path::Path::new(&file_path).exists() {
         return PrintError::FileNotFound.as_i32();
     }
-    
+
     // Generate job ID
     let job_id = generate_job_id();
-    
+
     // Create job status
     let job_status = JobStatus {
         printer_name: printer_name.clone(),
@@ -163,18 +160,18 @@ pub unsafe extern "C" fn print_file(
         real_job_id: None,
         printer: None,
     };
-    
+
     // Store job in tracker
     {
         let mut tracker = JOB_TRACKER.lock().unwrap();
         tracker.insert(job_id, job_status);
     }
-    
+
     // Start printing in background thread
     let printer_name_bg = printer_name.clone();
     let file_path_bg = file_path.clone();
     let job_tracker = JOB_TRACKER.clone();
-    
+
     thread::spawn(move || {
         // Update status to printing
         {
@@ -183,12 +180,14 @@ pub unsafe extern "C" fn print_file(
                 job.status = "printing".to_string();
             }
         }
-        
+
         // Check if we should simulate printing
         if should_simulate_printing() {
             // Simulate printing time (1-3 seconds)
-            thread::sleep(Duration::from_millis(SIMULATION_BASE_TIME_MS + (job_id as u64 % SIMULATION_VARIABLE_TIME_MS)));
-            
+            thread::sleep(Duration::from_millis(
+                SIMULATION_BASE_TIME_MS + (job_id as u64 % SIMULATION_VARIABLE_TIME_MS),
+            ));
+
             // Simulate success/failure based on file name
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
@@ -201,7 +200,7 @@ pub unsafe extern "C" fn print_file(
             }
             return;
         }
-        
+
         // Real printing mode - get the printer instance
         let printer = match get_printer_by_name(&printer_name_bg) {
             Some(p) => p,
@@ -214,7 +213,7 @@ pub unsafe extern "C" fn print_file(
                 return;
             }
         };
-        
+
         // Store printer reference
         {
             let mut tracker = job_tracker.lock().unwrap();
@@ -222,18 +221,18 @@ pub unsafe extern "C" fn print_file(
                 job.printer = Some(printer.clone());
             }
         }
-        
+
         // Create print job options
         let file_name = std::path::Path::new(&file_path_bg)
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("print_job");
-        
+
         let job_options = PrinterJobOptions {
             name: Some(file_name),
             raw_properties: &[],
         };
-        
+
         // Submit print job
         match printer.print_file(&file_path_bg, job_options) {
             Ok(real_job_id) => {
@@ -244,28 +243,35 @@ pub unsafe extern "C" fn print_file(
                         job.real_job_id = Some(real_job_id);
                     }
                 }
-                
+
                 // Monitor job completion
                 loop {
                     thread::sleep(Duration::from_millis(JOB_MONITORING_INTERVAL_MS));
-                    
+
                     let active_jobs = printer.get_active_jobs();
                     let job_still_active = active_jobs.iter().any(|j| j.id == real_job_id);
-                    
+
                     if !job_still_active {
                         let job_history = printer.get_job_history();
                         let mut tracker = job_tracker.lock().unwrap();
                         if let Some(job) = tracker.get_mut(&job_id) {
-                            if let Some(finished_job) = job_history.iter().find(|j| j.id == real_job_id) {
+                            if let Some(finished_job) =
+                                job_history.iter().find(|j| j.id == real_job_id)
+                            {
                                 match finished_job.state {
-                                    PrinterJobState::COMPLETED => job.status = "completed".to_string(),
+                                    PrinterJobState::COMPLETED => {
+                                        job.status = "completed".to_string()
+                                    }
                                     PrinterJobState::CANCELLED => {
                                         job.status = "failed".to_string();
                                         job.error_message = Some("Job was cancelled".to_string());
-                                    },
+                                    }
                                     _ => {
                                         job.status = "failed".to_string();
-                                        job.error_message = Some(format!("Job ended with state: {:?}", finished_job.state));
+                                        job.error_message = Some(format!(
+                                            "Job ended with state: {:?}",
+                                            finished_job.state
+                                        ));
                                     }
                                 }
                             } else {
@@ -276,7 +282,7 @@ pub unsafe extern "C" fn print_file(
                         break;
                     }
                 }
-            },
+            }
             Err(error_msg) => {
                 let mut tracker = job_tracker.lock().unwrap();
                 if let Some(job) = tracker.get_mut(&job_id) {
@@ -286,7 +292,7 @@ pub unsafe extern "C" fn print_file(
             }
         }
     });
-    
+
     job_id as i32
 }
 
@@ -295,17 +301,15 @@ pub unsafe extern "C" fn print_file(
 #[no_mangle]
 pub extern "C" fn get_job_status(job_id: u32) -> *mut c_char {
     let tracker = JOB_TRACKER.lock().unwrap();
-    
+
     match tracker.get(&job_id) {
-        Some(job) => {
-            match create_status_json(job_id, job) {
-                Some(json) => match CString::new(json) {
-                    Ok(c_string) => c_string.into_raw(),
-                    Err(_) => std::ptr::null_mut(),
-                },
-                None => std::ptr::null_mut(),
-            }
-        }
+        Some(job) => match create_status_json(job_id, job) {
+            Some(json) => match CString::new(json) {
+                Ok(c_string) => c_string.into_raw(),
+                Err(_) => std::ptr::null_mut(),
+            },
+            None => std::ptr::null_mut(),
+        },
         None => std::ptr::null_mut(),
     }
 }
@@ -315,28 +319,28 @@ pub extern "C" fn get_job_status(job_id: u32) -> *mut c_char {
 pub extern "C" fn cleanup_old_jobs(max_age_seconds: u64) -> u32 {
     let mut tracker = JOB_TRACKER.lock().unwrap();
     let cutoff_time = Duration::from_secs(max_age_seconds);
-    
+
     let mut removed_count = 0;
     tracker.retain(|_, job| {
         let should_keep = match job.status.as_str() {
             "completed" | "failed" => job.created_at.elapsed() < cutoff_time,
             _ => true, // Keep active jobs
         };
-        
+
         if !should_keep {
             removed_count += 1;
         }
-        
+
         should_keep
     });
-    
+
     removed_count
 }
 
 /// Get a printer by its name
 /// Returns a pointer to a null-terminated string containing the printer name if found,
 /// or a null pointer if not found
-/// 
+///
 /// # Safety
 /// The caller must ensure that `name_ptr` is a valid null-terminated C string.
 #[no_mangle]
@@ -344,16 +348,16 @@ pub unsafe extern "C" fn find_printer_by_name(name_ptr: *const c_char) -> *mut c
     if name_ptr.is_null() {
         return std::ptr::null_mut();
     }
-    
+
     // Convert the C string to a Rust string
     let name = match CStr::from_ptr(name_ptr).to_str() {
         Ok(s) => s,
         Err(_) => return std::ptr::null_mut(),
     };
-    
+
     // Get all printers using the real printers crate
     let printers = printers::get_printers();
-    
+
     // Find the printer by name
     for printer in printers {
         if printer.name == name {
@@ -364,7 +368,7 @@ pub unsafe extern "C" fn find_printer_by_name(name_ptr: *const c_char) -> *mut c
             }
         }
     }
-    
+
     // Printer not found
     std::ptr::null_mut()
 }
@@ -375,10 +379,10 @@ pub unsafe extern "C" fn find_printer_by_name(name_ptr: *const c_char) -> *mut c
 pub extern "C" fn get_all_printer_names() -> *mut c_char {
     // Get all printers using the real printers crate
     let printers = printers::get_printers();
-    
+
     // Extract printer names
     let printer_names: Vec<&str> = printers.iter().map(|p| p.name.as_str()).collect();
-    
+
     // Serialize to JSON
     match serde_json::to_string(&printer_names) {
         Ok(json) => match CString::new(json) {
@@ -391,7 +395,7 @@ pub extern "C" fn get_all_printer_names() -> *mut c_char {
 
 /// Check if a printer exists by name
 /// Returns 1 if the printer exists, 0 otherwise
-/// 
+///
 /// # Safety
 /// The caller must ensure that `name_ptr` is a valid null-terminated C string.
 #[no_mangle]
@@ -399,13 +403,13 @@ pub unsafe extern "C" fn printer_exists(name_ptr: *const c_char) -> i32 {
     if name_ptr.is_null() {
         return 0;
     }
-    
+
     // Convert the C string to a Rust string
     let name = match CStr::from_ptr(name_ptr).to_str() {
         Ok(s) => s,
         Err(_) => return 0,
     };
-    
+
     // Check if printer exists using the real printers crate
     match get_printer_by_name(name) {
         Some(_) => 1,
@@ -414,7 +418,7 @@ pub unsafe extern "C" fn printer_exists(name_ptr: *const c_char) -> i32 {
 }
 
 /// Free a string allocated by this library
-/// 
+///
 /// # Safety
 /// The caller must ensure that `ptr` was allocated by this library and is not used after this call.
 #[no_mangle]
@@ -433,7 +437,7 @@ mod tests {
     fn test_get_all_printer_names() {
         let result = get_all_printer_names();
         assert!(!result.is_null());
-        
+
         // Clean up the allocated string
         unsafe {
             free_string(result);
@@ -462,18 +466,15 @@ mod tests {
     #[test]
     fn test_print_file_with_null_printer() {
         let file_path = CString::new("test.txt").unwrap();
-        let result = unsafe { 
-            print_file(std::ptr::null(), file_path.as_ptr(), std::ptr::null()) 
-        };
+        let result = unsafe { print_file(std::ptr::null(), file_path.as_ptr(), std::ptr::null()) };
         assert_eq!(result, PrintError::InvalidParams.as_i32());
     }
 
     #[test]
     fn test_print_file_with_null_file_path() {
         let printer_name = CString::new("Test Printer").unwrap();
-        let result = unsafe { 
-            print_file(printer_name.as_ptr(), std::ptr::null(), std::ptr::null()) 
-        };
+        let result =
+            unsafe { print_file(printer_name.as_ptr(), std::ptr::null(), std::ptr::null()) };
         assert_eq!(result, PrintError::InvalidParams.as_i32());
     }
 
@@ -481,9 +482,8 @@ mod tests {
     fn test_print_file_with_nonexistent_printer() {
         let printer_name = CString::new("NonExistentPrinter123").unwrap();
         let file_path = CString::new("test.txt").unwrap();
-        let result = unsafe { 
-            print_file(printer_name.as_ptr(), file_path.as_ptr(), std::ptr::null()) 
-        };
+        let result =
+            unsafe { print_file(printer_name.as_ptr(), file_path.as_ptr(), std::ptr::null()) };
         assert_eq!(result, PrintError::PrinterNotFound.as_i32());
     }
 
@@ -492,9 +492,8 @@ mod tests {
         // Use a truly nonexistent printer to ensure we get a predictable error
         let printer_name = CString::new("NonExistentPrinter123").unwrap();
         let file_path = CString::new("/nonexistent/path/file.txt").unwrap();
-        let result = unsafe { 
-            print_file(printer_name.as_ptr(), file_path.as_ptr(), std::ptr::null()) 
-        };
+        let result =
+            unsafe { print_file(printer_name.as_ptr(), file_path.as_ptr(), std::ptr::null()) };
         // Should return PrinterNotFound error since printer doesn't exist
         assert_eq!(result, PrintError::PrinterNotFound.as_i32());
     }
@@ -504,8 +503,12 @@ mod tests {
         let printer_name = CString::new("Test Printer").unwrap();
         let file_path = CString::new("test.txt").unwrap();
         let invalid_json = CString::new("invalid json {").unwrap();
-        let result = unsafe { 
-            print_file(printer_name.as_ptr(), file_path.as_ptr(), invalid_json.as_ptr()) 
+        let result = unsafe {
+            print_file(
+                printer_name.as_ptr(),
+                file_path.as_ptr(),
+                invalid_json.as_ptr(),
+            )
         };
         assert_eq!(result, PrintError::InvalidJson.as_i32());
     }
@@ -520,7 +523,7 @@ mod tests {
     fn test_cleanup_old_jobs() {
         // Test cleanup function - should return number of cleaned jobs (0 is valid)
         let result = cleanup_old_jobs(3600); // 1 hour
-        // Result is u32, so it's always non-negative - just verify function executes
+                                             // Result is u32, so it's always non-negative - just verify function executes
         let _ = result; // Verify function returns without panic
     }
 
@@ -549,19 +552,19 @@ mod tests {
     fn test_should_simulate_printing() {
         // Test simulation mode detection
         let original = std::env::var("DENO_PRINTERS_SIMULATE").unwrap_or_default();
-        
+
         // Test with simulation enabled
         std::env::set_var("DENO_PRINTERS_SIMULATE", "true");
         assert!(should_simulate_printing());
-        
+
         // Test with simulation disabled
         std::env::set_var("DENO_PRINTERS_SIMULATE", "false");
         assert!(!should_simulate_printing());
-        
+
         // Test with no environment variable
         std::env::remove_var("DENO_PRINTERS_SIMULATE");
         assert!(!should_simulate_printing());
-        
+
         // Restore original value
         if !original.is_empty() {
             std::env::set_var("DENO_PRINTERS_SIMULATE", original);
@@ -573,7 +576,7 @@ mod tests {
         // Test that job IDs are sequential and start from 1000
         let id1 = generate_job_id();
         let id2 = generate_job_id();
-        
+
         assert!(id1 >= 1000);
         assert_eq!(id2, id1 + 1);
     }
@@ -585,7 +588,7 @@ mod tests {
         assert_eq!(result.unwrap_err(), PrintError::InvalidParams.as_i32());
     }
 
-    #[test] 
+    #[test]
     fn test_c_str_to_string_with_valid_string() {
         let test_str = CString::new("test string").unwrap();
         let result = unsafe { c_str_to_string(test_str.as_ptr(), PrintError::InvalidParams) };
@@ -604,10 +607,10 @@ mod tests {
             real_job_id: Some(123),
             printer: None,
         };
-        
+
         let json = create_status_json(1001, &job_status);
         assert!(json.is_some());
-        
+
         let json_str = json.unwrap();
         assert!(json_str.contains("\"id\":1001"));
         assert!(json_str.contains("\"printer_name\":\"Test Printer\""));

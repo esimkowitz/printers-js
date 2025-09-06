@@ -29,10 +29,10 @@ const LIB_EXTENSIONS = { windows: "dll", darwin: "dylib" } as const;
 function getLibraryName(): string {
   const { os, arch } = Deno.build;
   const extension = LIB_EXTENSIONS[os as keyof typeof LIB_EXTENSIONS] ?? "so";
-  
+
   // Determine architecture suffix for multi-arch binaries
   const archSuffix = arch === "aarch64" ? "-arm64" : "";
-  
+
   // Construct library name based on platform
   if (os === "windows") {
     return `deno_printers${archSuffix}.${extension}`;
