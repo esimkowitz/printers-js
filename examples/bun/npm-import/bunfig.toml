@@ -1,0 +1,12 @@
+[install]
+# Configure Bun package manager behavior
+cache = true
+exact = false
+
+[run]
+# Environment variables for running scripts
+env = { PRINTERS_JS_SIMULATE = "true" }
+
+# NPM registry configuration
+[install.registry]
+npm = "https://registry.npmjs.org/"

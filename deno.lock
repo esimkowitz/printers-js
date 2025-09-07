@@ -32,6 +32,13 @@
       "jsr:@std/assert@1",
       "jsr:@std/path@1",
       "jsr:@std/semver@1"
-    ]
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:@napi-rs/cli@^2.18.4",
+        "npm:jest-junit@16",
+        "npm:jest@^29.7.0"
+      ]
+    }
   }
 }

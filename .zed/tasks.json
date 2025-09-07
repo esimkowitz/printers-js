@@ -1,10 +1,130 @@
 [
   {
-    "label": "Run Deno Tests",
-    "command": "deno test -A $ZED_FILE",
+    "label": "🔧 Build - Rust Library",
+    "command": "cargo build --release",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
+  },
+  {
+    "label": "🔧 Build - N-API Module",
+    "command": "npm run build",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
+  },
+  {
+    "label": "🔧 Build - All",
+    "command": "deno task build:all",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
+  },
+  {
+    "label": "🦕 Test - Deno (Safe)",
+    "command": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/universal.test.ts",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
     "hide": "never"
+  },
+  {
+    "label": "🦕 Test - Deno Universal",
+    "command": "PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env tests/universal.test.ts",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🟢 Test - Node.js",
+    "command": "PRINTERS_JS_SIMULATE=true node tests/node.test.js",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🚀 Test - Bun",
+    "command": "PRINTERS_JS_SIMULATE=true bun tests/bun.test.ts",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🧪 Test - All Runtimes",
+    "command": "deno task test:all",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "⚠️ Test - All Runtimes (REAL PRINTERS)",
+    "command": "deno task test:all:real",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🦕 Run - Deno Program",
+    "command": "PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env deno.ts",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🟢 Run - Node.js Program",
+    "command": "PRINTERS_JS_SIMULATE=true node node.js",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🚀 Run - Bun Program",
+    "command": "PRINTERS_JS_SIMULATE=true bun bun.js",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🌍 Run - Universal Index",
+    "command": "PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env index.ts",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🧹 Lint",
+    "command": "deno lint",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
+  },
+  {
+    "label": "📝 Format",
+    "command": "deno fmt",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
+  },
+  {
+    "label": "🔍 Check - TypeScript",
+    "command": "deno check mod.ts index.ts",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
   }
 ]

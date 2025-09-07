@@ -1,0 +1,89 @@
+{
+  "name": "Cross-Runtime Printers Dev Environment",
+  "dockerFile": "Dockerfile",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "vscode"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "ppa": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest",
+      "profile": "default"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "denoland.vscode-deno",
+        "oven.bun-vscode", 
+        "rust-lang.rust-analyzer",
+        "esbenp.prettier-vscode",
+        "editorconfig.editorconfig",
+        "ms-vscode.test-adapter-converter",
+        "orta.vscode-jest",
+        "swellaby.vscode-rust-test-adapter"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "deno.enable": true,
+        "deno.unstable": true,
+        "rust-analyzer.cargo.buildScripts.enable": true,
+        "rust-analyzer.procMacro.enable": true
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 8000, 9229],
+  "portsAttributes": {
+    "9229": {
+      "label": "Debug Port",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "mounts": [
+    // Mount CUPS socket for printer access on Linux/macOS hosts
+    {
+      "source": "/var/run/cups/cups.sock",
+      "target": "/var/run/cups/cups.sock",
+      "type": "bind"
+    },
+    // Mount CUPS configuration for printer discovery
+    {
+      "source": "/etc/cups",
+      "target": "/etc/cups",
+      "type": "bind"
+    }
+  ],
+
+  "runArgs": [
+    // Enable printer access capabilities
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW",
+    // Allow access to printer devices
+    "--device-cgroup-rule=c 180:* rmw",
+    // Network access for printer discovery
+    "--net=host"
+  ],
+
+  "postCreateCommand": ".devcontainer/setup.sh",
+  
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/deno-printers",
+
+  "containerEnv": {
+    "PRINTERS_JS_SIMULATE": "true"
+  }
+}

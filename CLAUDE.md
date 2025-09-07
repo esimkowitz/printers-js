@@ -3,211 +3,132 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
-## Development Commands
+## Project Overview
 
-### Building
+This is a **cross-runtime printer library** for JavaScript that supports
+**Deno**, **Bun**, and **Node.js** with a unified API. Each runtime uses
+different native bindings but exposes the same interface.
 
-```bash
-# Build the Rust library (required before running TypeScript code)
-deno task build
-# Equivalent to: cargo build --release
-```
+## Quick Start Commands
 
-### Running
+### Building and Testing
 
 ```bash
-# Run the main module with example usage
-deno task dev
-# Equivalent to: deno run --allow-ffi --unstable-ffi --watch mod.ts
+# Build all runtimes (recommended)
+./scripts/build-all.sh
+
+# Build individual runtimes
+deno task build          # Build FFI library (Deno/Bun)
+npm run build            # Build N-API module (Node.js)
+
+# Test all runtimes with comprehensive reporting
+./scripts/test-all.sh
+
+# Test individual runtimes
+deno task test           # Deno tests with universal.test.ts
+npm run test:jest        # Node.js Jest tests  
+bun test tests/bun.test.ts  # Bun tests
+
+# Run programs
+deno run --allow-ffi --allow-env deno.ts   # Deno
+bun bun.js                                  # Bun  
+node node.js                                # Node.js
+deno run --allow-ffi --allow-env index.ts  # Universal entrypoint
 ```
 
-### Testing
+### Development Workflow
 
 ```bash
-# Run safe tests (simulation mode, no actual printing)
-deno task test
-# Equivalent to: deno test --allow-ffi --unstable-ffi --allow-env test_safe.ts
+# Run comprehensive tests (generates JUnit XML + LCOV coverage)
+./scripts/test-all.sh
 
-# Run tests with real printer operations (⚠️ WARNING: WILL ACTUALLY PRINT!)
-deno task test:real
-# Equivalent to: deno test --allow-ffi --unstable-ffi mod.test.ts
+# Run CI locally with nektos/act
+./scripts/run-ci-local.sh --build
+
+# Format code
+deno fmt
+cargo fmt
+
+# Lint code
+deno lint
+cargo clippy
+
+# Type check all entry points
+deno task check:all
 ```
 
-### Manual Commands
+### Version Management
 
 ```bash
-# Build for release
-cargo build --release
-
-# Run individual TypeScript files
-deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+deno task bump:patch    # 0.1.4 -> 0.1.5
+deno task bump:minor    # 0.1.4 -> 0.2.0
+deno task bump:major    # 0.1.4 -> 1.0.0
 ```
 
-## Architecture
+## Architecture Summary
 
-This is a **Deno library** that provides **FFI (Foreign Function Interface)
-bindings** to a **Rust native library** for printer operations.
+- **`src/core.rs`**: Shared business logic for all runtimes
+- **`src/ffi.rs`**: FFI bindings for Deno/Bun
+- **`src/napi.rs`**: N-API bindings for Node.js
+- **`deno.ts`**: Deno entry point (native Deno API)
+- **`bun.js`**: Bun entry point (FFI-based)
+- **`node.js`**: Node.js wrapper around N-API module in `napi/` subdirectory
+- **`index.ts`**: Universal entry point - auto-detects runtime and loads appropriate implementation
+- **`tests/universal.test.ts`**: Cross-runtime test suite using universal entry point
+- **`tests/*.jest.js`**: Node.js-specific Jest tests with JUnit XML output
+- **`tests/bun.test.ts`**: Bun-specific tests with coverage
 
-### Core Components
+## Safety Reminders
 
-1. **Rust Native Library** (`src/lib.rs`)
-   - Built as a `cdylib` (C dynamic library)
-   - Uses the Rust `printers` crate for actual printer operations
-   - Exports C-compatible functions for FFI
-   - Handles job tracking with background threads
-   - Supports both real printing and simulation modes
+⚠️ **This library sends real print jobs to physical printers!**
 
-2. **TypeScript FFI Layer** (`mod.ts`)
-   - Uses Deno's `Deno.dlopen()` to load the compiled Rust library
-   - Provides JavaScript-friendly wrapper around C functions
-   - Includes the main `Printer` class and utility functions
-   - Handles C string conversion and memory management
-
-3. **TypeScript Type Definitions** (`types.d.ts`)
-   - Contains type definitions for public API
-   - Exports interfaces like `JobStatus` and enums like `PrintError`
-
-### Key Design Patterns
-
-- **FFI Bridge**: TypeScript calls native Rust functions through FFI
-- **Asynchronous Job Tracking**: Print jobs run in background threads with
-  polling-based status monitoring
-- **Simulation Mode**: Controlled by `DENO_PRINTERS_SIMULATE` environment
-  variable for safe testing
-- **Memory Safety**: Proper C string allocation/deallocation through
-  `free_string()` function
-
-### Platform Compatibility
-
-- Windows: Loads `deno_printers.dll`
-- macOS: Loads `deno_printers.dylib`
-- Linux: Loads `deno_printers.so`
-
-## Safety Considerations
-
-⚠️ **This library can send real print jobs to physical printers!**
-
-- Default test mode (`deno task test`) uses simulation and won't actually print
-- Set `DENO_PRINTERS_SIMULATE=true` environment variable to force simulation
-  mode
-- Use `deno task test:real` only when you intentionally want to test real
-  printing
-
-## Required Permissions
-
-All scripts using this library must run with:
-
-- `--allow-ffi` - Required for loading the native library
-- `--unstable-ffi` - Deno's FFI is still unstable
-- `--allow-env` - Optional, for reading `DENO_PRINTERS_SIMULATE` environment
-  variable
-
-## Dependencies
-
-- **Rust dependencies** (in `Cargo.toml`):
-  - `printers = "2.2.0"` - Core printer functionality
-  - `lazy_static = "1.5.0"` - Global static variables
-  - `serde_json = "1.0.143"` - JSON serialization
-
-- **Deno dependencies** (in `deno.json`):
-  - `@std/assert` - Testing assertions
-  - `@std/path` - Path manipulation utilities
+- Always use `PRINTERS_JS_SIMULATE=true` for safe testing
+- Default tests use simulation mode automatically
+- Scripts like `test-all.sh` automatically set simulation mode
+- Only disable simulation mode when intentionally testing real printing
+- The devcontainer sets `PRINTERS_JS_SIMULATE=true` by default
 
 ## Code Quality Requirements
 
-ALWAYS run these commands after making code changes:
+ALWAYS run these after changes:
 
-- **After modifying TypeScript files**: Run `deno lint` to check for linting
-  issues
-- **After modifying Rust files**: Run `cargo clippy` to check for linting issues
-- **After modifying Rust or Cargo files**: Run `cargo fmt` to format Rust code
-- **After modifying any files**: Run `deno fmt` to format files (excludes files
-  in `deno.json` `fmt.exclude` field)
+- `deno fmt` - Format TypeScript/JavaScript
+- `cargo fmt` - Format Rust code
+- `deno lint` - Lint Deno files
+- `cargo clippy` - Lint Rust code
 
-These commands must pass before considering any changes complete.
+## File Organization
 
-## Version Management
+- **Root**: Runtime entry points (`deno.ts`, `bun.js`, `node.js`, `index.ts`)
+- **`src/`**: Rust source code with modular architecture
+- **`tests/`**: Test files organized by runtime and purpose
+- **`scripts/`**: Build and test automation scripts
+- **`.devcontainer/`**: Development container setup for all runtimes
+- **`napi/`**: Auto-generated N-API modules (gitignored)
+- **`target/`**: Rust build artifacts (gitignored)
+- **`test-results/`**: Generated test reports and coverage (gitignored)
 
-### Semantic Version Bumping
+## Key Gotchas
 
-Use the built-in version bump utility to update versions across both `deno.json`
-and `Cargo.toml`:
+1. **N-API modules auto-generate into `napi/` subdirectory** - don't commit these
+2. **Different binary formats**: FFI uses `.dylib/.so/.dll`, N-API uses `.node`
+3. **Test files**: Use `tests/universal.test.ts`, not the old `mod.test.ts`
+4. **Simulation mode**: Always test with `PRINTERS_JS_SIMULATE=true` first
+5. **Thread cleanup**: The library automatically handles background thread cleanup
+6. **CI testing**: Use `./scripts/run-ci-local.sh` to test workflows locally
+7. **Coverage reporting**: Tests generate both JUnit XML and LCOV coverage
+8. **Android support**: Intentionally excluded from N-API builds
 
-```bash
-# Bump patch version (0.1.4 -> 0.1.5)
-deno task bump:patch
+## Detailed Documentation
 
-# Bump minor version (0.1.4 -> 0.2.0)
-deno task bump:minor
+For comprehensive technical details, architecture documentation, and
+contribution guidelines, see:
 
-# Bump major version (0.1.4 -> 1.0.0)
-deno task bump:major
-```
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Complete development documentation
+- **[README.md](./README.md)** - User-facing documentation and examples
 
-The version bump script (`scripts/bump-version.ts`):
+---
 
-- Uses the official Deno Standard Library `@std/semver` package
-- Updates both `deno.json` and `Cargo.toml` versions synchronously
-- Follows proper semantic versioning rules
-- Provides clear error messages and validation
-
-## Critical Architecture Changes (Recent Updates)
-
-### Thread Management and Memory Safety
-
-⚠️ **IMPORTANT**: The library now includes proper thread cleanup to prevent
-segfaults:
-
-- **Background Thread Management**: The Rust library spawns background threads
-  for print job monitoring. These threads must be properly cleaned up to prevent
-  segfaults on process exit.
-
-- **Shutdown Mechanism**: A `shutdown_library()` function is now available that:
-  - Sets a shutdown flag to signal all background threads to stop
-  - Waits for threads to complete (with 5-second timeout)
-  - Clears job tracking resources
-
-- **Automatic Cleanup**: The TypeScript layer automatically calls shutdown on:
-  - Process exit (`Deno.exit`)
-  - Browser unload events
-  - Process signals (SIGINT, SIGTERM, etc.)
-
-- **Manual Cleanup**: You can also manually call `shutdown()` from TypeScript if
-  needed:
-  ```typescript
-  import { shutdown } from "./mod.ts";
-
-  // Clean shutdown before exit
-  shutdown();
-  ```
-
-### Memory Management Pattern
-
-The library uses several patterns to ensure memory safety:
-
-1. **Static Resource Management**: Uses `lazy_static` for global job tracking
-   with proper cleanup
-2. **Thread-Safe Operations**: All shared resources are protected with
-   `Arc<Mutex<T>>`
-3. **Graceful Degradation**: Threads check shutdown flags and exit cleanly
-4. **Timeout Protection**: Shutdown waits maximum 5 seconds to prevent hanging
-
-### Testing Considerations
-
-- Tests now complete without segfaults due to proper thread cleanup
-- The `DENO_PRINTERS_SIMULATE=true` environment variable remains the safest way
-  to test
-- Background threads are properly terminated after test completion
-
-### Debugging Segfaults
-
-If you encounter segfaults in the future:
-
-1. **Check Thread Management**: Verify all spawned threads are being tracked and
-   cleaned up
-2. **Verify Shutdown Calls**: Ensure `shutdown_library()` is being called before
-   process exit
-3. **Monitor Static Resources**: Check that global static variables aren't being
-   accessed after cleanup
-4. **Test in Simulation**: Use `DENO_PRINTERS_SIMULATE=true` to isolate FFI vs.
-   printer driver issues
+**Key Principle**: This codebase prioritizes **cross-runtime compatibility**
+while maintaining **identical APIs** across Deno, Bun, and Node.js. When making
+changes, always ensure all three runtimes continue to work consistently.

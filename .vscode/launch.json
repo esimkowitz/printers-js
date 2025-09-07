@@ -1,37 +1,134 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
       "request": "launch",
-      "name": "Launch Program",
+      "name": "🦕 Deno - Launch Program",
       "type": "node",
-      "program": "${workspaceFolder}/mod.ts",
+      "program": "${workspaceFolder}/deno.ts",
       "cwd": "${workspaceFolder}",
-      "env": {},
+      "env": {
+        "PRINTERS_JS_SIMULATE": "true"
+      },
       "runtimeExecutable": "deno",
       "runtimeArgs": [
         "run",
-        "--unstable",
         "--inspect-wait",
-        "--allow-all"
+        "--allow-ffi",
+        "--allow-env"
       ],
       "attachSimplePort": 9229
     },
     {
       "request": "launch",
-      "name": "Debug tests",
+      "name": "🦕 Deno - Debug Tests",
       "type": "node",
       "cwd": "${workspaceFolder}",
+      "env": {
+        "PRINTERS_JS_SIMULATE": "true"
+      },
       "runtimeExecutable": "deno",
       "runtimeArgs": [
         "test",
         "--inspect-brk",
-        "--allow-all"
+        "--allow-ffi",
+        "--allow-env",
+        "tests/universal.test.ts"
       ],
       "attachSimplePort": 9229
+    },
+    {
+      "request": "launch",
+      "name": "🦕 Deno - Debug Universal Tests",
+      "type": "node",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PRINTERS_JS_SIMULATE": "true"
+      },
+      "runtimeExecutable": "deno",
+      "runtimeArgs": [
+        "run",
+        "--inspect-wait",
+        "--allow-ffi",
+        "--allow-env",
+        "tests/universal.test.ts"
+      ],
+      "attachSimplePort": 9229
+    },
+    {
+      "request": "launch",
+      "name": "🟢 Node.js - Launch Program",
+      "type": "node",
+      "program": "${workspaceFolder}/node.js",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PRINTERS_JS_SIMULATE": "true"
+      }
+    },
+    {
+      "request": "launch",
+      "name": "🟢 Node.js - Debug Tests",
+      "type": "node",
+      "program": "${workspaceFolder}/tests/node.test.js",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PRINTERS_JS_SIMULATE": "true"
+      }
+    },
+    {
+      "request": "launch",
+      "name": "🚀 Bun - Launch Program",
+      "type": "node",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PRINTERS_JS_SIMULATE": "true"
+      },
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "bun.js"
+      ]
+    },
+    {
+      "request": "launch",
+      "name": "🚀 Bun - Debug Tests",
+      "type": "node",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PRINTERS_JS_SIMULATE": "true"
+      },
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "tests/bun.test.ts"
+      ]
+    },
+    {
+      "request": "launch",
+      "name": "🔧 Build - Rust Library",
+      "type": "process",
+      "program": "cargo",
+      "args": [
+        "build",
+        "--release"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "request": "launch",
+      "name": "🔧 Build - N-API Module",
+      "type": "node",
+      "program": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole"
     }
   ]
 }

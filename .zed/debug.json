@@ -5,7 +5,7 @@
     "request": "launch",
     "type": "pwa-node",
     "cwd": "$ZED_WORKTREE_ROOT",
-    "program": "mod.ts",
+    "program": "deno.ts",
     "runtimeExecutable": "deno",
     "runtimeArgs": [
       "run",
