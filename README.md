@@ -1,7 +1,7 @@
 # @esimkowitz/printers
 
 [![JSR](https://jsr.io/badges/@esimkowitz/printers)](https://jsr.io/@esimkowitz/printers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Build](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml)
 
 A cross-platform Deno library for interacting with system printers.
