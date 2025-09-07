@@ -418,7 +418,9 @@ operations while maintaining memory safety.
 
 ## License
 
-MIT License - see [LICENSE](https://github.com/esimkowitz/deno-printers/blob/main/LICENSE) file for details.
+MIT License - see
+[LICENSE](https://github.com/esimkowitz/deno-printers/blob/main/LICENSE) file
+for details.
 
 ## Repository
 
