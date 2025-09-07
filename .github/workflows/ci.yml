@@ -90,10 +90,10 @@ jobs:
         run: cargo clippy -- -D warnings
 
       - name: Check Deno formatting
-        run: deno fmt --check
+        run: deno task fmt -- --check
 
       - name: Run Deno linter
-        run: deno lint
+        run: deno task lint
 
       # Install Node.js dependencies
       - name: Install Node.js dependencies
