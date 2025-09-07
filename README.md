@@ -4,8 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml)
 
-A cross-platform Deno library for interacting with system printers via FFI to a
-native Rust library.
+A cross-platform Deno library for interacting with system printers.
 
 ## Features
 
