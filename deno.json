@@ -3,10 +3,10 @@
   "version": "0.1.4",
   "license": "MIT",
   "tasks": {
-    "dev": "deno run --allow-ffi --unstable-ffi --watch mod.ts",
-    "test": "deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts",
-    "test:real": "deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts",
-    "test:doc": "deno test --doc --allow-ffi --unstable-ffi --allow-env mod.ts",
+    "dev": "deno run --allow-ffi --watch mod.ts",
+    "test": "deno test --allow-ffi --allow-env mod.test.ts",
+    "test:real": "deno test --allow-ffi --allow-env mod.test.ts",
+    "test:doc": "deno test --doc --allow-ffi --allow-env mod.ts",
     "build": "cargo build --release",
     "bump:patch": "deno run --allow-read --allow-write scripts/bump-version.ts patch",
     "bump:minor": "deno run --allow-read --allow-write scripts/bump-version.ts minor",
@@ -56,8 +56,5 @@
       "coverage/",
       "scripts/"
     ]
-  },
-  "unstable": [
-    "ffi"
-  ]
+  }
 }

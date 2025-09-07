@@ -154,7 +154,7 @@ include values like "READY", "OFFLINE", "PAUSED", etc.
 This library requires the following Deno permissions:
 
 ```bash
-deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+deno run --allow-ffi --allow-env your-script.ts
 ```
 
 - `--allow-ffi` - Required for loading the native library
@@ -172,7 +172,7 @@ mode, which prevents actual printing while testing all functionality:
 **Unix/Linux/macOS:**
 
 ```bash
-DENO_PRINTERS_SIMULATE=true deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+DENO_PRINTERS_SIMULATE=true deno run --allow-ffi --allow-env your-script.ts
 ```
 
 **Windows:**
@@ -181,24 +181,24 @@ Command Prompt:
 
 ```cmd
 set DENO_PRINTERS_SIMULATE=true
-deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+deno run --allow-ffi --allow-env your-script.ts
 ```
 
 PowerShell:
 
 ```powershell
 $env:DENO_PRINTERS_SIMULATE="true"
-deno run --allow-ffi --unstable-ffi --allow-env your-script.ts
+deno run --allow-ffi --allow-env your-script.ts
 ```
 
 ### Running Tests
 
 ```bash
 # Safe tests (simulation mode)
-deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts
+deno test --allow-ffi --allow-env mod.test.ts
 
 # With explicit simulation
-DENO_PRINTERS_SIMULATE=true deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts
+DENO_PRINTERS_SIMULATE=true deno test --allow-ffi --allow-env mod.test.ts
 ```
 
 ## Platform Support
