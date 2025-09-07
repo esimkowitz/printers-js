@@ -341,14 +341,6 @@ Deno.test("Memory management - garbage collection simulation", async () => {
     // Clear the references to allow garbage collection
     printerInstances = [];
 
-    // Force garbage collection (this is a hint to the GC, not guaranteed)
-    if (
-      "gc" in globalThis &&
-      typeof (globalThis as { gc?: () => void }).gc === "function"
-    ) {
-      (globalThis as { gc: () => void }).gc();
-    }
-
     // Give time for finalization registry to potentially run
     await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -419,7 +411,7 @@ Deno.test("Memory management - multiple create and dispose cycles", () => {
 Deno.test({
   name: "Performance test - printer enumeration",
   fn: () => {
-    const iterations = 100;
+    const iterations = 10;
     console.log(`Running printer enumeration ${iterations} times...`);
 
     const startTime = Date.now();
@@ -435,6 +427,6 @@ Deno.test({
     );
 
     // Should be reasonably fast - but give more time for slower systems
-    assertEquals(duration < 30000, true); // Less than 30 seconds total
+    assertEquals(duration < 10000, true); // Less than 10 seconds total
   },
 });

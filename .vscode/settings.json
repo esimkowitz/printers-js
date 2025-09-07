@@ -19,5 +19,8 @@
   "search.exclude": {
     "**/coverage": true,
     "**/.vscode/extensions": true
-  }
+  },
+  "rust-analyzer.lens.enable": true,
+  "rust-analyzer.lens.run.enable": true,
+  "rust-analyzer.lens.debug.enable": true
 }
