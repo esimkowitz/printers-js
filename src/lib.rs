@@ -428,6 +428,311 @@ pub unsafe extern "C" fn free_string(ptr: *mut c_char) {
     }
 }
 
+/// Create a new Printer instance by name
+/// Returns a pointer to the Printer struct or null if not found
+///
+/// # Safety
+/// The caller must ensure that `name_ptr` is a valid null-terminated C string.
+/// The returned pointer must be freed with `printer_free`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_create(name_ptr: *const c_char) -> *mut Printer {
+    if name_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let name = match CStr::from_ptr(name_ptr).to_str() {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    match get_printer_by_name(name) {
+        Some(printer) => Box::into_raw(Box::new(printer)),
+        None => std::ptr::null_mut(),
+    }
+}
+
+/// Free a Printer instance
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` was created by `printer_create`
+/// and is not used after this call.
+#[no_mangle]
+pub unsafe extern "C" fn printer_free(printer_ptr: *mut Printer) {
+    if !printer_ptr.is_null() {
+        let _ = Box::from_raw(printer_ptr);
+    }
+}
+
+/// Get the name field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_name(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.name.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the system_name field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_system_name(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.system_name.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the driver_name field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_driver_name(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.driver_name.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the uri field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_uri(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.uri.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the port_name field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_port_name(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.port_name.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the processor field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_processor(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.processor.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the data_type field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_data_type(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.data_type.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the description field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_description(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.description.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the location field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_location(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+    match CString::new(printer.location.clone()) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the is_default field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_is_default(printer_ptr: *const Printer) -> i32 {
+    if printer_ptr.is_null() {
+        return 0;
+    }
+
+    let printer = &*printer_ptr;
+    if printer.is_default {
+        1
+    } else {
+        0
+    }
+}
+
+/// Get the is_shared field of a Printer
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_is_shared(printer_ptr: *const Printer) -> i32 {
+    if printer_ptr.is_null() {
+        return 0;
+    }
+
+    let printer = &*printer_ptr;
+    if printer.is_shared {
+        1
+    } else {
+        0
+    }
+}
+
+/// Get the state field of a Printer as a JSON string
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_state(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+
+    // Convert PrinterState to string using Debug trait
+    let state_str = format!("{:?}", printer.state);
+
+    match CString::new(state_str) {
+        Ok(c_string) => c_string.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Get the state_reasons field of a Printer as a JSON array string
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer.
+/// The returned string must be freed with `free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn printer_get_state_reasons(printer_ptr: *const Printer) -> *mut c_char {
+    if printer_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let printer = &*printer_ptr;
+
+    // Serialize state_reasons to JSON array
+    match serde_json::to_string(&printer.state_reasons) {
+        Ok(json) => match CString::new(json) {
+            Ok(c_string) => c_string.into_raw(),
+            Err(_) => std::ptr::null_mut(),
+        },
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Print a file using a Printer instance
+///
+/// # Safety
+/// The caller must ensure that `printer_ptr` is a valid Printer pointer,
+/// `file_path_ptr` is a valid null-terminated C string.
+/// `job_properties_json_ptr` can be null.
+#[no_mangle]
+pub unsafe extern "C" fn printer_print_file(
+    printer_ptr: *const Printer,
+    file_path_ptr: *const c_char,
+    job_properties_json_ptr: *const c_char,
+) -> i32 {
+    if printer_ptr.is_null() || file_path_ptr.is_null() {
+        return PrintError::InvalidParams.as_i32();
+    }
+
+    let printer = &*printer_ptr;
+    let printer_name = printer.name.clone();
+
+    // Reuse the existing print_file function logic
+    print_file(
+        CString::new(printer_name).unwrap().as_ptr(),
+        file_path_ptr,
+        job_properties_json_ptr,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -23,6 +23,11 @@ export interface JobStatus {
   age_seconds: number;
 }
 
+/**
+ * Printer state enum
+ */
+export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
+
 // Library loading - multi-platform binary selection
 const LIB_EXTENSIONS = { windows: "dll", darwin: "dylib" } as const;
 
@@ -129,6 +134,71 @@ const lib = Deno.dlopen(libPath, {
     parameters: ["u64"],
     result: "u32",
   },
+  // New Printer struct functions
+  printer_create: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_free: {
+    parameters: ["pointer"],
+    result: "void",
+  },
+  printer_get_name: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_system_name: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_driver_name: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_uri: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_port_name: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_processor: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_data_type: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_description: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_location: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_is_default: {
+    parameters: ["pointer"],
+    result: "i32",
+  },
+  printer_get_is_shared: {
+    parameters: ["pointer"],
+    result: "i32",
+  },
+  printer_get_state: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_get_state_reasons: {
+    parameters: ["pointer"],
+    result: "pointer",
+  },
+  printer_print_file: {
+    parameters: ["pointer", "pointer", "pointer"],
+    result: "i32",
+  },
 });
 
 /**
@@ -159,30 +229,210 @@ export function cleanupOldJobs(maxAgeSeconds: number): number {
   return lib.symbols.cleanup_old_jobs(BigInt(maxAgeSeconds)) as number;
 }
 
+// Global FinalizationRegistry for automatic cleanup
+const printerRegistry = new FinalizationRegistry((ptr: Deno.PointerValue) => {
+  if (ptr) {
+    lib.symbols.printer_free(ptr);
+  }
+});
+
 /**
  * Printer class with methods for printer operations
  */
 export class Printer {
-  readonly name: string;
+  private ptr: Deno.PointerValue;
+  private disposed = false;
 
-  constructor(name: string) {
-    this.name = name;
+  /**
+   * Private constructor - use Printer.fromName() to create instances
+   * @param ptr Pointer to the native Printer struct
+   */
+  private constructor(ptr: Deno.PointerValue) {
+    if (!ptr || ptr === null) {
+      throw new Error("Invalid printer pointer");
+    }
+    this.ptr = ptr;
+    // Register for automatic cleanup
+    printerRegistry.register(this, ptr, this);
+  }
+
+  /**
+   * Create a Printer instance from a printer name
+   * @param name The name of the printer
+   * @returns A Printer instance or null if not found
+   */
+  static fromName(name: string): Printer | null {
+    return withCString(name, (namePtr) => {
+      const ptr = lib.symbols.printer_create(namePtr) as Deno.PointerValue;
+      if (!ptr || ptr === null) {
+        return null;
+      }
+      return new Printer(ptr);
+    });
+  }
+
+  /**
+   * Dispose of the printer instance and free native memory
+   */
+  dispose(): void {
+    if (!this.disposed && this.ptr) {
+      lib.symbols.printer_free(this.ptr);
+      this.ptr = null;
+      this.disposed = true;
+      // Unregister from finalization registry
+      printerRegistry.unregister(this);
+    }
+  }
+
+  private ensureNotDisposed(): void {
+    if (this.disposed) {
+      throw new Error("Printer instance has been disposed");
+    }
+  }
+
+  private getStringField(
+    getter: (ptr: Deno.PointerValue) => Deno.PointerValue,
+  ): string {
+    this.ensureNotDisposed();
+    return withCStringResult(
+      () => getter(this.ptr),
+      (result) => result || "",
+    );
   }
 
   exists(): boolean {
-    return printerExists(this.name);
+    this.ensureNotDisposed();
+    // A printer created via printer_create always exists
+    return true;
   }
+
+  get name(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_name(ptr) as Deno.PointerValue
+    );
+  }
+
+  get systemName(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_system_name(ptr) as Deno.PointerValue
+    );
+  }
+
+  get driverName(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_driver_name(ptr) as Deno.PointerValue
+    );
+  }
+
+  get uri(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_uri(ptr) as Deno.PointerValue
+    );
+  }
+
+  get portName(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_port_name(ptr) as Deno.PointerValue
+    );
+  }
+
+  get processor(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_processor(ptr) as Deno.PointerValue
+    );
+  }
+
+  get dataType(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_data_type(ptr) as Deno.PointerValue
+    );
+  }
+
+  get description(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_description(ptr) as Deno.PointerValue
+    );
+  }
+
+  get location(): string {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_location(ptr) as Deno.PointerValue
+    );
+  }
+
+  get isDefault(): boolean {
+    this.ensureNotDisposed();
+    return (lib.symbols.printer_get_is_default(this.ptr) as number) === 1;
+  }
+
+  get isShared(): boolean {
+    this.ensureNotDisposed();
+    return (lib.symbols.printer_get_is_shared(this.ptr) as number) === 1;
+  }
+
+  get state(): PrinterState {
+    return this.getStringField((ptr) =>
+      lib.symbols.printer_get_state(ptr) as Deno.PointerValue
+    ) as PrinterState;
+  }
+
+  get stateReasons(): string[] {
+    this.ensureNotDisposed();
+    return withCStringResult(
+      () =>
+        lib.symbols.printer_get_state_reasons(this.ptr) as Deno.PointerValue,
+      (jsonString) => {
+        if (!jsonString) return [];
+        try {
+          return JSON.parse(jsonString) as string[];
+        } catch {
+          return [];
+        }
+      },
+    );
+  }
+
+  /**
+   * Backward compatibility methods
+   */
   getName(): string {
     return this.name;
   }
+
   toString(): string {
-    return this.name;
+    const fields: string[] = [
+      `name: ${this.name}`,
+      `systemName: ${this.systemName}`,
+      `driver: ${this.driverName}`,
+      `isDefault: ${this.isDefault}`,
+      `isShared: ${this.isShared}`,
+      `state: ${this.state}`,
+    ];
+
+    // Add optional fields if they have values
+    if (this.uri) fields.push(`uri: ${this.uri}`);
+    if (this.portName && this.portName !== "nul:") {
+      fields.push(`port: ${this.portName}`);
+    }
+    if (this.description) fields.push(`description: ${this.description}`);
+    if (this.location) fields.push(`location: ${this.location}`);
+    if (this.processor && this.processor !== "winprint") {
+      fields.push(`processor: ${this.processor}`);
+    }
+    if (this.dataType && this.dataType !== "RAW") {
+      fields.push(`dataType: ${this.dataType}`);
+    }
+
+    const stateReasons = this.stateReasons;
+    if (stateReasons.length > 0 && stateReasons[0] !== "none") {
+      fields.push(`stateReasons: [${stateReasons.join(", ")}]`);
+    }
+
+    return `Printer { ${fields.join(", ")} }`;
   }
+
   equals(other: Printer): boolean {
     return this.name === other.name;
-  }
-  toJSON(): { name: string } {
-    return { name: this.name };
   }
 
   /**
@@ -195,9 +445,10 @@ export class Printer {
     filePath: string,
     jobProperties?: Record<string, string>,
   ): Promise<void> {
+    this.ensureNotDisposed();
+
     return new Promise((resolve, reject) => {
       // Convert parameters to C strings
-      const printerNameCString = toCString(this.name);
       const filePathCString = toCString(filePath);
 
       let jobPropertiesCString: Uint8Array | null = null;
@@ -207,15 +458,14 @@ export class Printer {
       }
 
       // Get pointers
-      const printerNamePtr = Deno.UnsafePointer.of(printerNameCString);
       const filePathPtr = Deno.UnsafePointer.of(filePathCString);
       const jobPropertiesPtr = jobPropertiesCString
         ? Deno.UnsafePointer.of(jobPropertiesCString)
         : null;
 
       // Call the native function to start the print job
-      const result = lib.symbols.print_file(
-        printerNamePtr,
+      const result = lib.symbols.printer_print_file(
+        this.ptr,
         filePathPtr,
         jobPropertiesPtr,
       ) as number;
@@ -273,12 +523,7 @@ export class Printer {
  * @returns A Printer object if found, null if not found
  */
 export function getPrinterByName(name: string): Printer | null {
-  return withCString(name, (ptr) => {
-    return withCStringResult(
-      () => lib.symbols.find_printer_by_name(ptr) as Deno.PointerValue,
-      (result) => result ? new Printer(result) : null,
-    );
-  });
+  return Printer.fromName(name);
 }
 
 /**
@@ -317,7 +562,9 @@ export function getAllPrinterNames(): string[] {
  */
 export function getAllPrinters(): Printer[] {
   const names = getAllPrinterNames();
-  return names.map((name) => new Printer(name));
+  return names.map((name) => Printer.fromName(name)).filter((p): p is Printer =>
+    p !== null
+  );
 }
 
 /** @internal - Do not use directly */
@@ -333,15 +580,55 @@ if (import.meta.main) {
 
   if (printers.length > 0) {
     const firstPrinter = printers[0];
-    console.log(`\nFirst printer: ${firstPrinter.getName()}`);
-    console.log(`Printer exists: ${firstPrinter.exists()}`);
+    console.log(`\n=== Testing Printer: ${firstPrinter.name} ===`);
 
-    // Also test getting by name
-    const foundPrinter = getPrinterByName(firstPrinter.getName());
-    console.log(`Found printer by name: ${foundPrinter?.toString() ?? "null"}`);
+    // Test all getter properties
+    console.log(`Name: ${firstPrinter.name}`);
+    console.log(`System Name: ${firstPrinter.systemName}`);
+    console.log(`Driver Name: ${firstPrinter.driverName}`);
+    console.log(`URI: ${firstPrinter.uri}`);
+    console.log(`Port Name: ${firstPrinter.portName}`);
+    console.log(`Processor: ${firstPrinter.processor}`);
+    console.log(`Data Type: ${firstPrinter.dataType}`);
+    console.log(`Description: ${firstPrinter.description}`);
+    console.log(`Location: ${firstPrinter.location}`);
+    console.log(`Is Default: ${firstPrinter.isDefault}`);
+    console.log(`Is Shared: ${firstPrinter.isShared}`);
+    console.log(`State: ${firstPrinter.state}`);
+    console.log(`State Reasons: ${JSON.stringify(firstPrinter.stateReasons)}`);
+
+    // Test backward compatibility method
+    console.log(`\n=== Backward Compatibility ===`);
+    console.log(`printer.getName() method: ${firstPrinter.getName()}`);
+    console.log(`printer.exists(): ${firstPrinter.exists()}`);
+
+    // Test toString with all fields
+    console.log(`\n=== Full toString representation ===`);
+    console.log(firstPrinter.toString());
+
+    // Test memory management - create and dispose
+    console.log(`\n=== Memory Management Test ===`);
+    const tempPrinter = getPrinterByName(firstPrinter.name);
+    if (tempPrinter) {
+      console.log(`Created temp printer: ${tempPrinter.name}`);
+      tempPrinter.dispose();
+      console.log("Disposed temp printer");
+
+      // This should throw an error
+      try {
+        console.log(tempPrinter.name);
+        console.log("ERROR: Should have thrown after dispose!");
+      } catch (e) {
+        console.log(
+          `Correctly threw error after dispose: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+      }
+    }
 
     // Example of printing (will fail since file doesn't exist)
-    console.log(`\nTesting printFile with non-existent file:`);
+    console.log(`\n=== Testing printFile ===`);
     firstPrinter.printFile("nonexistent.txt", {
       copies: "1",
       orientation: "portrait",
@@ -350,7 +637,7 @@ if (import.meta.main) {
       .catch((error) => console.log(`Print job failed: ${error.message}`));
   }
 
-  console.log(`\nTesting non-existent printer:`);
+  console.log(`\n=== Testing non-existent printer ===`);
   const nonExistent = getPrinterByName("NonExistentPrinter123");
   console.log(`Non-existent printer: ${nonExistent?.toString() ?? "null"}`);
   console.log(
