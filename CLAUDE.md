@@ -73,8 +73,10 @@ deno task bump:major    # 0.1.4 -> 1.0.0
 - **`deno.ts`**: Deno entry point (native Deno API)
 - **`bun.js`**: Bun entry point (FFI-based)
 - **`node.js`**: Node.js wrapper around N-API module in `napi/` subdirectory
-- **`index.ts`**: Universal entry point - auto-detects runtime and loads appropriate implementation
-- **`tests/universal.test.ts`**: Cross-runtime test suite using universal entry point
+- **`index.ts`**: Universal entry point - auto-detects runtime and loads
+  appropriate implementation
+- **`tests/universal.test.ts`**: Cross-runtime test suite using universal entry
+  point
 - **`tests/*.jest.js`**: Node.js-specific Jest tests with JUnit XML output
 - **`tests/bun.test.ts`**: Bun-specific tests with coverage
 
@@ -110,11 +112,13 @@ ALWAYS run these after changes:
 
 ## Key Gotchas
 
-1. **N-API modules auto-generate into `napi/` subdirectory** - don't commit these
+1. **N-API modules auto-generate into `napi/` subdirectory** - don't commit
+   these
 2. **Different binary formats**: FFI uses `.dylib/.so/.dll`, N-API uses `.node`
 3. **Test files**: Use `tests/universal.test.ts`, not the old `mod.test.ts`
 4. **Simulation mode**: Always test with `PRINTERS_JS_SIMULATE=true` first
-5. **Thread cleanup**: The library automatically handles background thread cleanup
+5. **Thread cleanup**: The library automatically handles background thread
+   cleanup
 6. **CI testing**: Use `./scripts/run-ci-local.sh` to test workflows locally
 7. **Coverage reporting**: Tests generate both JUnit XML and LCOV coverage
 8. **Android support**: Intentionally excluded from N-API builds

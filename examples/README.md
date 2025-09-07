@@ -1,6 +1,8 @@
 # Examples
 
-This directory contains example projects demonstrating how to use `@esimkowitz/printers` across different JavaScript runtimes and package managers.
+This directory contains example projects demonstrating how to use
+`@esimkowitz/printers` across different JavaScript runtimes and package
+managers.
 
 ## Directory Structure
 
@@ -67,16 +69,19 @@ bun start
 Each example includes the appropriate configuration files for its runtime:
 
 ### Deno Examples
+
 - **`deno.json`**: Contains tasks, imports, and compiler options
 - Import configurations for both JSR and NPM packages
 - Predefined tasks: `start`, `dev`
 
-### Node.js Examples  
+### Node.js Examples
+
 - **`package.json`**: Standard Node.js package configuration
 - JSR example includes import maps for Node.js 22+ JSR support
 - Scripts: `start`, `dev`, `start:legacy` (JSR example)
 
 ### Bun Examples
+
 - **`package.json`**: Package configuration and scripts
 - **`bunfig.toml`**: Bun-specific configuration
 - Registry configurations for both JSR and NPM
@@ -84,15 +89,18 @@ Each example includes the appropriate configuration files for its runtime:
 
 ## Safety Notice
 
-⚠️ **All examples run in simulation mode by default** (`PRINTERS_JS_SIMULATE=true`)
+⚠️ **All examples run in simulation mode by default**
+(`PRINTERS_JS_SIMULATE=true`)
 
-To test with real printers, modify the environment variable in each example, but **use caution** as this will send actual print jobs to your printers.
+To test with real printers, modify the environment variable in each example, but
+**use caution** as this will send actual print jobs to your printers.
 
 ## Example Features
 
 Each example demonstrates:
+
 - ✅ Basic printer discovery
-- ✅ Printer information display  
+- ✅ Printer information display
 - ✅ Simulated printing (safe)
 - ✅ Error handling
 - ✅ Runtime detection

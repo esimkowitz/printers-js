@@ -12,7 +12,7 @@ declare global {
 }
 
 // Runtime detection
-const isNode = typeof (globalThis as any).process !== "undefined" && 
+const isNode = typeof (globalThis as any).process !== "undefined" &&
   (globalThis as any).process?.versions?.node;
 const isBun = typeof (globalThis as any).Bun !== "undefined";
 const isDeno = typeof Deno !== "undefined";
@@ -114,7 +114,8 @@ export const runtimeInfo = {
 // Simulation mode detection (works across all runtimes)
 export const isSimulationMode =
   (isDeno && Deno?.env?.get?.("PRINTERS_JS_SIMULATE") === "true") ||
-  (isNode && (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true") ||
+  (isNode &&
+    (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true") ||
   (isBun && (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true");
 
 // Utility function to get typed printer instances

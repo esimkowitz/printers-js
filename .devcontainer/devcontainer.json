@@ -1,7 +1,7 @@
 {
   "name": "Cross-Runtime Printers Dev Environment",
   "dockerFile": "Dockerfile",
-  
+
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -27,7 +27,7 @@
     "vscode": {
       "extensions": [
         "denoland.vscode-deno",
-        "oven.bun-vscode", 
+        "oven.bun-vscode",
         "rust-lang.rust-analyzer",
         "esbenp.prettier-vscode",
         "editorconfig.editorconfig",
@@ -79,7 +79,7 @@
   ],
 
   "postCreateCommand": ".devcontainer/setup.sh",
-  
+
   "remoteUser": "vscode",
   "workspaceFolder": "/workspaces/deno-printers",
 

@@ -1,28 +1,32 @@
 /**
  * Deno example using JSR import
- * 
+ *
  * Run with: deno run --allow-ffi --allow-env main.ts
  */
 
-import { 
-  getAllPrinters, 
+import {
   getAllPrinterNames,
+  getAllPrinters,
   getPrinterByName,
+  isSimulationMode,
   runtimeInfo,
-  isSimulationMode 
 } from "jsr:@printers/printers";
 
 async function main() {
   console.log("🦕 Deno Printers Example (JSR Import)");
   console.log("=====================================");
   console.log(`Runtime: ${runtimeInfo.name} ${runtimeInfo.version}`);
-  console.log(`Simulation Mode: ${isSimulationMode ? "ON (safe)" : "OFF (real printing!)"}\n`);
+  console.log(
+    `Simulation Mode: ${
+      isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
+    }\n`,
+  );
 
   try {
     // Get all printer names
     console.log("📋 Available Printers:");
     const printerNames = getAllPrinterNames();
-    
+
     if (printerNames.length === 0) {
       console.log("   No printers found");
       return;
@@ -36,7 +40,7 @@ async function main() {
     // Get detailed printer information
     console.log("🖨️  Printer Details:");
     const printers = getAllPrinters();
-    
+
     for (const printer of printers) {
       console.log(`   Name: ${printer.name}`);
       console.log(`   System Name: ${printer.systemName}`);
@@ -51,23 +55,24 @@ async function main() {
     if (printers.length > 0) {
       const firstPrinter = printers[0];
       console.log(`\n🧪 Testing print with: ${firstPrinter.name}`);
-      
+
       try {
         await firstPrinter.printFile("test-document.pdf", {
           copies: "1",
-          orientation: "portrait"
+          orientation: "portrait",
         });
-        
+
         console.log("✅ Print job completed successfully");
-        
+
         if (isSimulationMode) {
-          console.log("   (This was a simulation - no actual printing occurred)");
+          console.log(
+            "   (This was a simulation - no actual printing occurred)",
+          );
         }
       } catch (error) {
         console.log(`❌ Print failed: ${error.message}`);
       }
     }
-
   } catch (error) {
     console.error("💥 Error:", error.message);
     Deno.exit(1);

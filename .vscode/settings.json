@@ -18,28 +18,28 @@
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "modifications",
   "editor.autoIndentOnPaste": true,
-// Bun-specific files
-"[bun.js]": {
-  "editor.defaultFormatter": "oven.bun-vscode"
-},
-// Node.js-specific files
-"[node.js]": {
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
-},
-"[napi/index.js]": {
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
-},
-"[package.json]": {
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
-},
-// Test files - runtime-specific formatting
-"[tests/bun.test.ts]": {
-  "editor.defaultFormatter": "oven.bun-vscode"
-},
-// JavaScript files (general)
-"[javascript]": {
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
-},
+  // Bun-specific files
+  "[bun.js]": {
+    "editor.defaultFormatter": "oven.bun-vscode"
+  },
+  // Node.js-specific files
+  "[node.js]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[napi/index.js]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[package.json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  // Test files - runtime-specific formatting
+  "[tests/bun.test.ts]": {
+    "editor.defaultFormatter": "oven.bun-vscode"
+  },
+  // JavaScript files (general)
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "debug.javascript.autoAttachFilter": "disabled",
 
   "files.exclude": {
@@ -90,5 +90,5 @@
   // Multi-runtime test configuration
   "testExplorer.useNativeTesting": true,
   "testExplorer.mergeSuites": false,
-  "testExplorer.showCollapseButton": true,
+  "testExplorer.showCollapseButton": true
 }
