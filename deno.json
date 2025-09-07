@@ -1,26 +1,12 @@
 {
   "name": "@esimkowitz/printers",
   "version": "0.1.4",
-  "description": "Cross-platform Deno library for interacting with system printers via FFI to native Rust library",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/esimkowitz/deno-printers.git"
-  },
-  "homepage": "https://github.com/esimkowitz/deno-printers",
-  "keywords": [
-    "printer",
-    "printing",
-    "cross-platform",
-    "ffi",
-    "rust",
-    "native"
-  ],
   "tasks": {
-    "dev": "deno run --allow-ffi --unstable-ffi --watch mod.ts",
-    "test": "deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts",
-    "test:real": "deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts",
-    "test:doc": "deno test --doc --allow-ffi --unstable-ffi --allow-env mod.ts",
+    "dev": "deno run --allow-ffi --watch mod.ts",
+    "test": "deno test --allow-ffi --allow-env mod.test.ts",
+    "test:real": "deno test --allow-ffi --allow-env mod.test.ts",
+    "test:doc": "deno test --doc --allow-ffi --allow-env mod.ts",
     "build": "cargo build --release",
     "bump:patch": "deno run --allow-read --allow-write scripts/bump-version.ts patch",
     "bump:minor": "deno run --allow-read --allow-write scripts/bump-version.ts minor",
