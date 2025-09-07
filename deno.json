@@ -31,7 +31,8 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
-    "@std/path": "jsr:@std/path@1"
+    "@std/path": "jsr:@std/path@1",
+    "@std/semver": "jsr:@std/semver@1"
   },
   "fmt": {
     "exclude": [
