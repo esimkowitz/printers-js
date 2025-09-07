@@ -63,10 +63,12 @@
       "index.ts",
       "package.json",
       "napi/",
-      "tests/node.test.js",
       "tests/bun.test.ts",
       "tests/shared.ts",
-      "tests/universal.test.ts"
+      "tests/universal.test.ts",
+      "tests/node.*.js",
+      "tests/jest.setup.js",
+      "examples/"
     ]
   },
   "exclude": [

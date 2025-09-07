@@ -81,7 +81,7 @@
   "postCreateCommand": ".devcontainer/setup.sh",
 
   "remoteUser": "vscode",
-  "workspaceFolder": "/workspaces/deno-printers",
+  "workspaceFolder": "/workspaces/printers-js",
 
   "containerEnv": {
     "PRINTERS_JS_SIMULATE": "true"

@@ -40,18 +40,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2931af7e13dc045d8e9d26afccc6fa115d64e115c9c84b1166288b46f6782c2"
 
 [[package]]
-name = "deno-printers"
-version = "0.1.4"
-dependencies = [
- "lazy_static",
- "napi",
- "napi-build",
- "napi-derive",
- "printers",
- "serde_json",
-]
-
-[[package]]
 name = "dtor"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -169,6 +157,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a1f07309b8dd1589167b705fa3b2c5d586e4f690d8044f242d699ff5648cdcc"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "printers-js"
+version = "0.1.4"
+dependencies = [
+ "lazy_static",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "printers",
+ "serde_json",
 ]
 
 [[package]]

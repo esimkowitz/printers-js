@@ -1,5 +1,5 @@
 /**
- * Universal entrypoint for @esimkowitz/printers
+ * Universal entrypoint for @printers/printers
  *
  * This module automatically detects the JavaScript runtime and loads
  * the appropriate implementation. Works with Deno, Node.js, and Bun.

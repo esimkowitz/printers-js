@@ -1,4 +1,4 @@
-# Contributing to @esimkowitz/printers
+# Contributing to @printers/printers
 
 This document provides detailed technical information for developers working on
 this cross-runtime printer library.

@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     cups-pdf \
     avahi-daemon \
     avahi-utils \
-    # Network tools for printer discovery  
+    # Network tools for printer discovery
     net-tools \
     iputils-ping \
     dnsutils \
@@ -66,12 +66,12 @@ RUN sed -i 's/Listen localhost:631/Listen 0.0.0.0:631/' /etc/cups/cupsd.conf \
     && sed -i 's/<Location \/admin>/<Location \/admin>\n  Allow from all/' /etc/cups/cupsd.conf
 
 # Create workspace directory
-RUN mkdir -p /workspaces/deno-printers \
+RUN mkdir -p /workspaces/printers-js \
     && chown -R vscode:vscode /workspaces
 
 # Switch to vscode user
 USER vscode
-WORKDIR /workspaces/deno-printers
+WORKDIR /workspaces/printers-js
 
 # Set up user environment
 RUN echo 'export PATH="$HOME/.deno/bin:$HOME/.bun/bin:$HOME/.cargo/bin:$PATH"' >> ~/.zshrc \
