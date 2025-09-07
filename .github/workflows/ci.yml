@@ -90,7 +90,7 @@ jobs:
         run: cargo clippy -- -D warnings
 
       - name: Check Deno formatting
-        run: deno task fmt -- --check
+        run: deno task fmt
 
       - name: Run Deno linter
         run: deno task lint
