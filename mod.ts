@@ -244,7 +244,7 @@ const printerRegistry = new FinalizationRegistry((ptr: Deno.PointerValue) => {
  *
  * All properties are implemented as getters that call into the native layer on each access,
  * ensuring you always get current information.
- * 
+ *
  * @example
  * ```typescript
  * const printer = getPrinterByName("My Printer");
@@ -253,7 +253,7 @@ const printerRegistry = new FinalizationRegistry((ptr: Deno.PointerValue) => {
  *   console.log(`Driver: ${printer.driverName}`);
  *   console.log(`State: ${printer.state}`);
  *   console.log(`Default: ${printer.isDefault}`);
- *   
+ *
  *   await printer.printFile("document.pdf", { copies: "2" });
  * }
  * ```
@@ -311,15 +311,15 @@ export class Printer {
    *
    * This method is idempotent - it's safe to call multiple times.
    * After disposal, accessing any property will throw an error.
-   * 
+   *
    * @example
    * ```typescript
    * const printer = getPrinterByName("My Printer");
    * if (printer) {
    *   console.log(printer.name); // Works fine
-   *   
+   *
    *   printer.dispose();
-   *   
+   *
    *   // This will throw an error
    *   try {
    *     console.log(printer.name);
