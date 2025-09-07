@@ -200,20 +200,20 @@ jobs:
         settings:
           - host: macos-latest
             target: x86_64-apple-darwin
-            
+
           - host: macos-latest
             target: aarch64-apple-darwin
-            
+
           - host: windows-latest
             target: x86_64-pc-windows-msvc
-            
-          - host: windows-latest  
+
+          - host: windows-latest
             target: aarch64-pc-windows-msvc
-            
+
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-            
+
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
@@ -267,7 +267,7 @@ jobs:
         if: ${{ matrix.settings.docker }}
         with:
           image: ${{ matrix.settings.docker }}
-          options: '--user 0:0 -v ${{ github.workspace }}/.cargo-cache:/root/.cargo/registry/cache -v ${{ github.workspace }}/.cargo:/root/.cargo -v ${{ github.workspace }}:/build -w /build'
+          options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache:/root/.cargo/registry/cache -v ${{ github.workspace }}/.cargo:/root/.cargo -v ${{ github.workspace }}:/build -w /build"
           run: npm run build -- --target ${{ matrix.settings.target }}
 
       - name: Build
