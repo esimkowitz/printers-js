@@ -342,8 +342,11 @@ Deno.test("Memory management - garbage collection simulation", async () => {
     printerInstances = [];
 
     // Force garbage collection (this is a hint to the GC, not guaranteed)
-    if ((globalThis as any).gc) {
-      (globalThis as any).gc();
+    if (
+      "gc" in globalThis &&
+      typeof (globalThis as { gc?: () => void }).gc === "function"
+    ) {
+      (globalThis as { gc: () => void }).gc();
     }
 
     // Give time for finalization registry to potentially run
