@@ -385,14 +385,6 @@ The native library is built as a C dynamic library (cdylib) and loaded via
 Deno's FFI capabilities, providing near-native performance for printer
 operations while maintaining memory safety.
 
-## Contributing
-
-This library is built with:
-
-- **Rust** - Native library with printer operations
-- **Deno** - TypeScript runtime and FFI host
-- **GitHub Actions** - CI/CD with multi-platform builds
-
 ## License
 
 MIT License - see LICENSE file for details.

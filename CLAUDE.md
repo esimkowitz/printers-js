@@ -125,3 +125,89 @@ ALWAYS run these commands after making code changes:
   in `deno.json` `fmt.exclude` field)
 
 These commands must pass before considering any changes complete.
+
+## Version Management
+
+### Semantic Version Bumping
+
+Use the built-in version bump utility to update versions across both `deno.json`
+and `Cargo.toml`:
+
+```bash
+# Bump patch version (0.1.4 -> 0.1.5)
+deno task bump:patch
+
+# Bump minor version (0.1.4 -> 0.2.0)
+deno task bump:minor
+
+# Bump major version (0.1.4 -> 1.0.0)
+deno task bump:major
+```
+
+The version bump script (`scripts/bump-version.ts`):
+
+- Uses the official Deno Standard Library `@std/semver` package
+- Updates both `deno.json` and `Cargo.toml` versions synchronously
+- Follows proper semantic versioning rules
+- Provides clear error messages and validation
+
+## Critical Architecture Changes (Recent Updates)
+
+### Thread Management and Memory Safety
+
+⚠️ **IMPORTANT**: The library now includes proper thread cleanup to prevent
+segfaults:
+
+- **Background Thread Management**: The Rust library spawns background threads
+  for print job monitoring. These threads must be properly cleaned up to prevent
+  segfaults on process exit.
+
+- **Shutdown Mechanism**: A `shutdown_library()` function is now available that:
+  - Sets a shutdown flag to signal all background threads to stop
+  - Waits for threads to complete (with 5-second timeout)
+  - Clears job tracking resources
+
+- **Automatic Cleanup**: The TypeScript layer automatically calls shutdown on:
+  - Process exit (`Deno.exit`)
+  - Browser unload events
+  - Process signals (SIGINT, SIGTERM, etc.)
+
+- **Manual Cleanup**: You can also manually call `shutdown()` from TypeScript if
+  needed:
+  ```typescript
+  import { shutdown } from "./mod.ts";
+
+  // Clean shutdown before exit
+  shutdown();
+  ```
+
+### Memory Management Pattern
+
+The library uses several patterns to ensure memory safety:
+
+1. **Static Resource Management**: Uses `lazy_static` for global job tracking
+   with proper cleanup
+2. **Thread-Safe Operations**: All shared resources are protected with
+   `Arc<Mutex<T>>`
+3. **Graceful Degradation**: Threads check shutdown flags and exit cleanly
+4. **Timeout Protection**: Shutdown waits maximum 5 seconds to prevent hanging
+
+### Testing Considerations
+
+- Tests now complete without segfaults due to proper thread cleanup
+- The `DENO_PRINTERS_SIMULATE=true` environment variable remains the safest way
+  to test
+- Background threads are properly terminated after test completion
+
+### Debugging Segfaults
+
+If you encounter segfaults in the future:
+
+1. **Check Thread Management**: Verify all spawned threads are being tracked and
+   cleaned up
+2. **Verify Shutdown Calls**: Ensure `shutdown_library()` is being called before
+   process exit
+3. **Monitor Static Resources**: Check that global static variables aren't being
+   accessed after cleanup
+4. **Test in Simulation**: Use `DENO_PRINTERS_SIMULATE=true` to isolate FFI vs.
+   printer driver issues

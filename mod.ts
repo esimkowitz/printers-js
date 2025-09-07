@@ -199,7 +199,58 @@ const lib = Deno.dlopen(libPath, {
     parameters: ["pointer", "pointer", "pointer"],
     result: "i32",
   },
+  shutdown_library: {
+    parameters: [],
+    result: "void",
+  },
 });
+
+/**
+ * Shutdown the library and cleanup all background threads
+ * This should be called before the process exits to prevent segfaults
+ */
+export function shutdown(): void {
+  lib.symbols.shutdown_library();
+}
+
+// Auto cleanup on process exit and unload
+function setupCleanupHandlers(): void {
+  // Handle process exit
+  if (typeof Deno !== "undefined") {
+    const originalExit = Deno.exit;
+    Deno.exit = function (code?: number): never {
+      shutdown();
+      return originalExit.call(Deno, code);
+    };
+
+    // Handle unload events
+    globalThis.addEventListener?.("beforeunload", shutdown);
+    globalThis.addEventListener?.("unload", shutdown);
+  }
+
+  // Handle process signals (Node.js style)
+  interface NodeProcess {
+    on?: (signal: string, callback: () => void) => void;
+    exit: (code?: number) => never;
+  }
+  
+  const globalWithProcess = globalThis as typeof globalThis & {
+    process?: NodeProcess;
+  };
+  
+  if (typeof globalWithProcess.process !== "undefined") {
+    const process = globalWithProcess.process;
+    ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((signal) => {
+      process.on?.(signal, () => {
+        shutdown();
+        process.exit(0);
+      });
+    });
+  }
+}
+
+// Set up cleanup handlers
+setupCleanupHandlers();
 
 /**
  * Get the status of a print job
