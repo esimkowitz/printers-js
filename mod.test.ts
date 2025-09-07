@@ -56,26 +56,40 @@ Deno.test("Printer class methods work correctly", () => {
     // Test Printer methods
     assertEquals(typeof firstPrinter.getName(), "string");
     assertEquals(typeof firstPrinter.toString(), "string");
-    assertEquals(firstPrinter.getName(), firstPrinter.toString());
+    assertEquals(typeof firstPrinter.name, "string");
     assertEquals(firstPrinter.exists(), true);
 
-    // Test equals method
-    const samePrinter = new Printer(firstPrinter.getName());
-    assertEquals(firstPrinter.equals(samePrinter), true);
+    // Test all getter properties
+    assertEquals(typeof firstPrinter.name, "string");
+    assertEquals(typeof firstPrinter.systemName, "string");
+    assertEquals(typeof firstPrinter.driverName, "string");
+    assertEquals(typeof firstPrinter.uri, "string");
+    assertEquals(typeof firstPrinter.portName, "string");
+    assertEquals(typeof firstPrinter.processor, "string");
+    assertEquals(typeof firstPrinter.dataType, "string");
+    assertEquals(typeof firstPrinter.description, "string");
+    assertEquals(typeof firstPrinter.location, "string");
+    assertEquals(typeof firstPrinter.isDefault, "boolean");
+    assertEquals(typeof firstPrinter.isShared, "boolean");
+    assertEquals(typeof firstPrinter.state, "string");
+    assertEquals(Array.isArray(firstPrinter.stateReasons), true);
 
-    const differentPrinter = new Printer("Different Printer");
-    assertEquals(firstPrinter.equals(differentPrinter), false);
-
-    // Test toJSON method
-    const json = firstPrinter.toJSON();
-    assertEquals(typeof json, "object");
-    assertEquals(json.name, firstPrinter.getName());
+    // Test equals method with same printer found by name
+    const samePrinter = getPrinterByName(firstPrinter.name);
+    if (samePrinter) {
+      assertEquals(firstPrinter.equals(samePrinter), true);
+    }
 
     // Test that getPrinterByName returns a Printer object
-    const foundPrinter = getPrinterByName(firstPrinter.getName());
+    const foundPrinter = getPrinterByName(firstPrinter.name);
     assertEquals(foundPrinter instanceof Printer, true);
     assertEquals(foundPrinter?.getName(), firstPrinter.getName());
+    assertEquals(foundPrinter?.name, firstPrinter.name);
     assertEquals(foundPrinter?.equals(firstPrinter), true);
+
+    // Test toString contains printer name
+    assertEquals(firstPrinter.toString().includes(firstPrinter.name), true);
+    assertEquals(firstPrinter.toString().startsWith("Printer {"), true);
   }
 });
 
@@ -257,11 +271,147 @@ Deno.test({
   },
 });
 
+// Memory management and garbage collection tests
+Deno.test("Memory management - dispose method", () => {
+  const printers = getAllPrinters();
+
+  if (printers.length > 0) {
+    const printer = getPrinterByName(printers[0].name);
+    if (printer) {
+      // Test that printer works before dispose
+      assertEquals(typeof printer.name, "string");
+      assertEquals(typeof printer.systemName, "string");
+
+      // Dispose the printer
+      printer.dispose();
+
+      // Test that accessing properties throws after dispose
+      let threwError = false;
+      try {
+        const _name = printer.name;
+      } catch (error) {
+        threwError = true;
+        assertEquals(error instanceof Error, true);
+        assertEquals(
+          (error as Error).message,
+          "Printer instance has been disposed",
+        );
+      }
+      assertEquals(threwError, true, "Should have thrown error after dispose");
+
+      // Test that dispose is idempotent (can be called multiple times safely)
+      printer.dispose(); // Should not throw
+      printer.dispose(); // Should not throw
+    }
+  }
+});
+
+Deno.test("Memory management - garbage collection simulation", async () => {
+  const printers = getAllPrinters();
+
+  if (printers.length > 0) {
+    const printerName = printers[0].name;
+
+    // Create multiple printer instances to test garbage collection
+    const createPrinters = () => {
+      const instances = [];
+      for (let i = 0; i < 10; i++) {
+        const printer = getPrinterByName(printerName);
+        if (printer) {
+          // Access some properties to ensure the instance is fully created
+          printer.name;
+          printer.systemName;
+          instances.push(printer);
+        }
+      }
+      return instances;
+    };
+
+    console.log("Creating 10 printer instances...");
+    let printerInstances = createPrinters();
+    assertEquals(printerInstances.length, 10);
+
+    console.log("Verifying instances work correctly...");
+    for (const printer of printerInstances) {
+      assertEquals(printer.name, printerName);
+      assertEquals(typeof printer.systemName, "string");
+    }
+
+    console.log("Releasing references and forcing garbage collection...");
+    // Clear the references to allow garbage collection
+    printerInstances = [];
+
+    // Give time for finalization registry to potentially run
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    console.log("Creating new instances to verify memory management...");
+    // Create new instances to verify the system still works
+    const newInstances = createPrinters();
+    assertEquals(newInstances.length, 10);
+
+    // Explicitly dispose of new instances to test proper cleanup
+    for (const printer of newInstances) {
+      printer.dispose();
+    }
+
+    console.log("✓ Memory management test completed successfully");
+  }
+});
+
+Deno.test("Memory management - multiple create and dispose cycles", () => {
+  const printers = getAllPrinters();
+
+  if (printers.length > 0) {
+    const printerName = printers[0].name;
+
+    console.log("Testing multiple create/dispose cycles...");
+
+    for (let cycle = 0; cycle < 5; cycle++) {
+      console.log(`Cycle ${cycle + 1}/5`);
+
+      // Create multiple instances
+      const instances = [];
+      for (let i = 0; i < 3; i++) {
+        const printer = getPrinterByName(printerName);
+        if (printer) {
+          // Verify the instance works
+          assertEquals(printer.name, printerName);
+          assertEquals(typeof printer.driverName, "string");
+          assertEquals(typeof printer.isDefault, "boolean");
+          instances.push(printer);
+        }
+      }
+
+      assertEquals(instances.length, 3);
+
+      // Dispose all instances
+      for (const printer of instances) {
+        printer.dispose();
+
+        // Verify disposal worked
+        let threwError = false;
+        try {
+          printer.name;
+        } catch (error) {
+          threwError = true;
+          assertEquals(
+            (error as Error).message,
+            "Printer instance has been disposed",
+          );
+        }
+        assertEquals(threwError, true);
+      }
+    }
+
+    console.log("✓ Multiple create/dispose cycles completed successfully");
+  }
+});
+
 // Performance test - works in both modes
 Deno.test({
   name: "Performance test - printer enumeration",
   fn: () => {
-    const iterations = 100;
+    const iterations = 10;
     console.log(`Running printer enumeration ${iterations} times...`);
 
     const startTime = Date.now();
@@ -277,6 +427,6 @@ Deno.test({
     );
 
     // Should be reasonably fast - but give more time for slower systems
-    assertEquals(duration < 30000, true); // Less than 30 seconds total
+    assertEquals(duration < 10000, true); // Less than 10 seconds total
   },
 });

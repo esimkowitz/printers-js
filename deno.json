@@ -20,6 +20,7 @@
     "dev": "deno run --allow-ffi --unstable-ffi --watch mod.ts",
     "test": "deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts",
     "test:real": "deno test --allow-ffi --unstable-ffi --allow-env mod.test.ts",
+    "test:doc": "deno test --doc --allow-ffi --unstable-ffi --allow-env mod.ts",
     "build": "cargo build --release"
   },
   "exports": {

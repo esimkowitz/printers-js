@@ -11,6 +11,8 @@ native Rust library.
 - 🔒 **Safe testing** - Built-in simulation mode prevents accidental printing
 - ⚡ **Async job tracking** - Non-blocking print jobs with status monitoring
 - 📊 **Comprehensive API** - List printers, check status, manage print jobs
+- 🔍 **Rich printer metadata** - Access all printer properties (driver, state,
+  location, etc.)
 
 ## Quick Start
 
@@ -19,10 +21,16 @@ import { getAllPrinters, Printer } from "@esimkowitz/printers";
 
 // List all available printers
 const printers = getAllPrinters();
-console.log("Available printers:", printers.map((p) => p.getName()));
+console.log("Available printers:", printers.map((p) => p.name));
 
 // Get a specific printer
 const printer = printers[0];
+
+// Access printer properties using getter properties
+console.log(`Name: ${printer.name}`);
+console.log(`Driver: ${printer.driverName}`);
+console.log(`State: ${printer.state}`);
+console.log(`Is Default: ${printer.isDefault}`);
 
 // Print a file (returns a Promise)
 try {
@@ -74,15 +82,38 @@ Remove old completed/failed jobs and return the count removed.
 
 #### `Printer`
 
-Represents a system printer with methods for printing and status checking.
+Represents a system printer with comprehensive metadata and printing
+capabilities. Printer instances are created via `Printer.fromName()` or
+`getPrinterByName()` and automatically manage native memory using
+FinalizationRegistry.
+
+**Properties (getters):**
+
+- `name: string` - Printer display name
+- `systemName: string` - System-level printer name
+- `driverName: string` - Printer driver name
+- `uri: string` - Printer URI (if available)
+- `portName: string` - Port name (e.g., "USB001", "LPT1:")
+- `processor: string` - Print processor (e.g., "winprint")
+- `dataType: string` - Default data type (e.g., "RAW")
+- `description: string` - Printer description
+- `location: string` - Physical location description
+- `isDefault: boolean` - Whether this is the default printer
+- `isShared: boolean` - Whether the printer is shared on network
+- `state: PrinterState` - Current printer state ("READY", "OFFLINE", etc.)
+- `stateReasons: string[]` - Array of state reason strings
 
 **Methods:**
 
-- `getName(): string` - Get the printer name
+- `static fromName(name: string): Printer | null` - Create printer instance from
+  name
 - `exists(): boolean` - Check if printer is available
-- `toString(): string` - Get string representation
-- `equals(other: Printer): boolean` - Compare with another printer
-- `toJSON()` - Get JSON representation
+- `toString(): string` - Get comprehensive string representation with all fields
+- `equals(other: Printer): boolean` - Compare with another printer by name
+- `dispose(): void` - Manually release printer resources (optional - automatic
+  cleanup available)
+- `getName(): string` - Backward compatibility method (use `.name` property
+  instead)
 - `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` -
   Print a file
 
@@ -100,6 +131,15 @@ interface JobStatus {
   age_seconds: number;
 }
 ```
+
+#### `PrinterState`
+
+```typescript
+type PrinterState = "idle" | "processing" | "stopped" | "unknown";
+```
+
+Note: The actual printer state comes from the native printer system and may
+include values like "READY", "OFFLINE", "PAUSED", etc.
 
 ## Permissions
 
@@ -177,6 +217,12 @@ const printers = getAllPrinters();
 if (printers.length > 0) {
   const printer = printers[0];
 
+  // Access printer information
+  console.log(`Using printer: ${printer.name}`);
+  console.log(`Driver: ${printer.driverName}`);
+  console.log(`State: ${printer.state}`);
+  console.log(`Default: ${printer.isDefault}`);
+
   try {
     await printer.printFile("document.pdf");
     console.log("✅ Print successful");
@@ -208,23 +254,40 @@ try {
 }
 ```
 
-### Printer Management
+### Printer Information & Management
 
 ```typescript
 import {
   cleanupOldJobs,
   getAllPrinterNames,
+  getAllPrinters,
   getPrinterByName,
   printerExists,
 } from "@esimkowitz/printers";
 
-// List available printers
-console.log("Printers:", getAllPrinterNames());
+// List all printers with detailed information
+const printers = getAllPrinters();
+for (const printer of printers) {
+  console.log(`\n${printer.name}:`);
+  console.log(`  Driver: ${printer.driverName}`);
+  console.log(`  State: ${printer.state}`);
+  console.log(`  Port: ${printer.portName}`);
+  console.log(`  Default: ${printer.isDefault ? "Yes" : "No"}`);
+  console.log(`  Shared: ${printer.isShared ? "Yes" : "No"}`);
+
+  if (printer.location) {
+    console.log(`  Location: ${printer.location}`);
+  }
+
+  if (printer.stateReasons.length > 0 && printer.stateReasons[0] !== "none") {
+    console.log(`  Issues: ${printer.stateReasons.join(", ")}`);
+  }
+}
 
 // Check if specific printer exists
 if (printerExists("My Printer")) {
   const printer = getPrinterByName("My Printer");
-  console.log("Found printer:", printer?.getName());
+  console.log("Found printer:", printer?.name);
 }
 
 // Clean up old print jobs (older than 1 hour)
@@ -232,20 +295,90 @@ const cleaned = cleanupOldJobs(3600);
 console.log(`Cleaned up ${cleaned} old print jobs`);
 ```
 
+### Working with Printer Properties
+
+```typescript
+import { getAllPrinters } from "@esimkowitz/printers";
+
+const printers = getAllPrinters();
+
+// Find default printer
+const defaultPrinter = printers.find((p) => p.isDefault);
+console.log(`Default printer: ${defaultPrinter?.name || "None"}`);
+
+// Find printers by state
+const readyPrinters = printers.filter((p) => p.state === "READY");
+console.log(`Ready printers: ${readyPrinters.map((p) => p.name).join(", ")}`);
+
+// Find network printers
+const networkPrinters = printers.filter((p) => p.isShared);
+console.log(
+  `Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`,
+);
+
+// Comprehensive printer information
+const printer = printers[0];
+console.log(`
+Printer: ${printer.name}
+System Name: ${printer.systemName}
+Driver: ${printer.driverName}
+Port: ${printer.portName}
+Processor: ${printer.processor}
+Data Type: ${printer.dataType}
+URI: ${printer.uri}
+Location: ${printer.location}
+Description: ${printer.description}
+State: ${printer.state}
+State Reasons: [${printer.stateReasons.join(", ")}]
+Is Default: ${printer.isDefault}
+Is Shared: ${printer.isShared}
+`);
+```
+
+## Technical Details
+
+### Memory Management
+
+Printer instances wrap native Rust structures and automatically manage memory
+through JavaScript's FinalizationRegistry:
+
+- **Automatic cleanup**: When Printer instances are garbage collected, native
+  memory is automatically freed
+- **Manual cleanup**: Call `printer.dispose()` for immediate resource release
+- **Safe disposal**: Multiple calls to `dispose()` are safe, and accessing
+  disposed instances throws descriptive errors
+- **No memory leaks**: The FinalizationRegistry ensures native resources are
+  always cleaned up
+
+### Printer Properties
+
+All printer properties are implemented as getter properties that call into the
+native layer on each access. This ensures you always get the most current
+information:
+
+```typescript
+const printer = getPrinterByName("My Printer");
+
+// These properties call the native layer each time
+console.log(printer.name); // Current printer name
+console.log(printer.state); // Current state (may change)
+console.log(printer.isDefault); // Current default status
+```
+
 ## Architecture
 
 This library consists of:
 
 1. **Rust native library** (`src/lib.rs`) - Handles actual printer operations
-   via the `printers` crate
+   via the `printers` crate with FFI-safe wrapper functions
 2. **TypeScript FFI layer** (`mod.ts`) - Provides JavaScript-friendly API via
-   Deno's FFI
+   Deno's FFI with automatic memory management
 3. **Multi-platform binaries** - Pre-compiled for all supported platforms and
    architectures
 
 The native library is built as a C dynamic library (cdylib) and loaded via
 Deno's FFI capabilities, providing near-native performance for printer
-operations.
+operations while maintaining memory safety.
 
 ## Contributing
 
