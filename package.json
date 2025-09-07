@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "main": "node.js",
   "files": [
@@ -45,16 +45,13 @@
     "build:debug": "napi build --platform && mkdir -p napi && mv index.js index.d.ts *.node napi/ 2>/dev/null || true",
     "build:rust": "cargo build --release",
     "build:all": "npm run build:rust && npm run build",
-
     "test": "PRINTERS_JS_SIMULATE=true npm run test:jest",
     "test:jest": "jest --config jest.config.js --coverage",
     "test:real": "node tests/node.test.js",
     "test:node": "PRINTERS_JS_SIMULATE=true npm run test:jest",
-
     "dev": "node --watch node.js",
     "lint": "echo 'Use deno task lint for comprehensive linting'",
     "fmt": "echo 'Use deno task fmt for comprehensive formatting'",
-
     "prepublishOnly": "napi prepublish -t npm",
     "artifacts": "napi artifacts",
     "universal": "napi universal",

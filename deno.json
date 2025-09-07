@@ -79,5 +79,10 @@
     "package.json",
     "napi/",
     "target/"
-  ]
+  ],
+  "nodeModulesDir": "none",
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.unstable"],
+    "strict": true
+  }
 }

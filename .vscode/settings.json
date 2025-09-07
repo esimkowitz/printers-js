@@ -1,5 +1,8 @@
 {
   "deno.enable": true,
+  "deno.lint": true,
+  "deno.unstable": true,
+  "deno.config": "./deno.json",
   "deno.codeLens.test": true,
   "deno.codeLens.testArgs": [
     "--allow-all",
@@ -9,9 +12,9 @@
   "deno.enablePaths": [
     "./deno.ts",
     "./index.ts",
-    "./tests/deno.test.ts",
     "./tests/universal.test.ts",
-    "./tests/shared.ts"
+    "./tests/shared.ts",
+    "./scripts/"
   ],
   // File-specific editor settings
   "editor.defaultFormatter": "denoland.vscode-deno",
@@ -60,11 +63,18 @@
   "rust-analyzer.lens.enable": true,
   "rust-analyzer.lens.run.enable": true,
   "rust-analyzer.lens.debug.enable": true,
-  // File associations
+  // File associations for multi-runtime support
   "files.associations": {
+    "deno.ts": "typescript",
+    "index.ts": "typescript",
     "bun.js": "javascript",
     "node.js": "javascript",
-    "*.ts": "typescript"
+    "tests/universal.test.ts": "typescript",
+    "tests/shared.ts": "typescript",
+    "tests/bun.test.ts": "typescript",
+    "tests/node.*.js": "javascript",
+    "tests/jest.setup.js": "javascript",
+    "scripts/*.ts": "typescript"
   },
   // Disable markdownlint in favor of deno lint for markdown
   "markdownlint.config": {
@@ -75,8 +85,11 @@
     "./node.js",
     "./bun.js",
     "./tests/bun.test.ts",
-    "./tests/node.simple.test.js",
+    "./tests/node.test.js",
+    "./tests/node.jest.js",
+    "./tests/jest.setup.js",
     "./napi/",
+    "./node_modules/",
     "./package.json"
   ],
   // Deno test discovery
