@@ -83,6 +83,10 @@ Get the status of a print job by ID.
 
 Remove old completed/failed jobs and return the count removed.
 
+#### `shutdown(): void`
+
+Shutdown the library and cleanup all background threads. This function is automatically called on process exit, but can be manually invoked if needed.
+
 ### Classes
 
 #### `Printer`
@@ -354,6 +358,25 @@ through JavaScript's FinalizationRegistry:
   disposed instances throws descriptive errors
 - **No memory leaks**: The FinalizationRegistry ensures native resources are
   always cleaned up
+
+### Thread Management & Process Safety
+
+The library includes robust thread management to prevent segmentation faults and ensure clean shutdown:
+
+- **Background Thread Management**: Print job monitoring runs in background threads that are properly tracked and cleaned up
+- **Automatic Shutdown**: The library automatically handles cleanup on process exit, browser unload events, and common process signals (SIGINT, SIGTERM, etc.)
+- **Manual Shutdown**: Call `shutdown()` explicitly if you need to clean up resources before process exit
+- **Timeout Protection**: Shutdown operations have a 5-second timeout to prevent hanging
+- **Thread Safety**: All shared resources are protected with appropriate synchronization primitives
+
+```typescript
+import { shutdown } from "@esimkowitz/printers";
+
+// Manual cleanup (optional - automatic cleanup is provided)
+shutdown();
+```
+
+The library's shutdown mechanism ensures that all background threads are properly terminated and resources are cleaned up, preventing common issues like segmentation faults that can occur with FFI libraries.
 
 ### Printer Properties
 
