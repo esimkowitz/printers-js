@@ -5,8 +5,11 @@ use std::collections::HashMap;
 use std::env;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 /// Error codes for the printing operations
@@ -67,6 +70,8 @@ fn generate_job_id() -> JobId {
 lazy_static::lazy_static! {
     static ref JOB_TRACKER: JobTracker = Arc::new(Mutex::new(HashMap::new()));
     static ref NEXT_JOB_ID: JobIdGenerator = Arc::new(Mutex::new(1000));
+    static ref SHUTDOWN_FLAG: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    static ref THREAD_HANDLES: Arc<Mutex<Vec<JoinHandle<()>>>> = Arc::new(Mutex::new(Vec::new()));
 }
 
 #[derive(Clone, Debug)]
@@ -171,8 +176,9 @@ pub unsafe extern "C" fn print_file(
     let printer_name_bg = printer_name.clone();
     let file_path_bg = file_path.clone();
     let job_tracker = JOB_TRACKER.clone();
+    let shutdown_flag = SHUTDOWN_FLAG.clone();
 
-    thread::spawn(move || {
+    let handle = thread::spawn(move || {
         // Update status to printing
         {
             let mut tracker = job_tracker.lock().unwrap();
@@ -246,6 +252,17 @@ pub unsafe extern "C" fn print_file(
 
                 // Monitor job completion
                 loop {
+                    // Check for shutdown signal
+                    if shutdown_flag.load(Ordering::Relaxed) {
+                        // Mark job as failed due to shutdown
+                        let mut tracker = job_tracker.lock().unwrap();
+                        if let Some(job) = tracker.get_mut(&job_id) {
+                            job.status = "failed".to_string();
+                            job.error_message = Some("Shutdown requested".to_string());
+                        }
+                        break;
+                    }
+
                     thread::sleep(Duration::from_millis(JOB_MONITORING_INTERVAL_MS));
 
                     let active_jobs = printer.get_active_jobs();
@@ -292,6 +309,12 @@ pub unsafe extern "C" fn print_file(
             }
         }
     });
+
+    // Store the thread handle for cleanup
+    {
+        let mut handles = THREAD_HANDLES.lock().unwrap();
+        handles.push(handle);
+    }
 
     job_id as i32
 }
@@ -425,6 +448,35 @@ pub unsafe extern "C" fn printer_exists(name_ptr: *const c_char) -> i32 {
 pub unsafe extern "C" fn free_string(ptr: *mut c_char) {
     if !ptr.is_null() {
         let _ = CString::from_raw(ptr);
+    }
+}
+
+/// Signal all background threads to shut down and wait for them to complete
+/// This should be called before the process exits to prevent segfaults
+#[no_mangle]
+pub extern "C" fn shutdown_library() {
+    // Set shutdown flag to signal all threads to stop
+    SHUTDOWN_FLAG.store(true, Ordering::Relaxed);
+
+    // Wait for all threads to complete (with timeout)
+    let mut handles = THREAD_HANDLES.lock().unwrap();
+    let timeout = Duration::from_secs(5); // 5 second timeout
+    let start_time = Instant::now();
+
+    while let Some(handle) = handles.pop() {
+        // Check if we've exceeded the timeout
+        if start_time.elapsed() > timeout {
+            break; // Don't wait forever
+        }
+
+        // Try to join the thread (this will block until the thread completes)
+        let _ = handle.join();
+    }
+
+    // Clear job tracker
+    {
+        let mut tracker = JOB_TRACKER.lock().unwrap();
+        tracker.clear();
     }
 }
 

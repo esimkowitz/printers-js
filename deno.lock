@@ -4,7 +4,8 @@
     "jsr:@std/assert@1": "1.0.13",
     "jsr:@std/internal@^1.0.6": "1.0.10",
     "jsr:@std/internal@^1.0.9": "1.0.10",
-    "jsr:@std/path@1": "1.1.1"
+    "jsr:@std/path@1": "1.1.1",
+    "jsr:@std/semver@1": "1.0.5"
   },
   "jsr": {
     "@std/assert@1.0.13": {
@@ -21,12 +22,16 @@
       "dependencies": [
         "jsr:@std/internal@^1.0.9"
       ]
+    },
+    "@std/semver@1.0.5": {
+      "integrity": "529f79e83705714c105ad0ba55bec0f9da0f24d2f726b6cc1c15e505cc2c0624"
     }
   },
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
-      "jsr:@std/path@1"
+      "jsr:@std/path@1",
+      "jsr:@std/semver@1"
     ]
   }
 }

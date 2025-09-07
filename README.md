@@ -1,5 +1,10 @@
 # @esimkowitz/printers
 
+[![JSR](https://jsr.io/badges/@esimkowitz/printers)](https://jsr.io/@<scope>/<package>)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml)
+[![Release](https://github.com/esimkowitz/deno-printers/actions/workflows/release.yml/badge.svg)](https://github.com/esimkowitz/deno-printers/actions/workflows/release.yml)
+
 A cross-platform Deno library for interacting with system printers via FFI to a
 native Rust library.
 
@@ -77,6 +82,11 @@ Get the status of a print job by ID.
 #### `cleanupOldJobs(maxAgeSeconds: number): number`
 
 Remove old completed/failed jobs and return the count removed.
+
+#### `shutdown(): void`
+
+Shutdown the library and cleanup all background threads. This function is
+automatically called on process exit, but can be manually invoked if needed.
 
 ### Classes
 
@@ -350,6 +360,34 @@ through JavaScript's FinalizationRegistry:
 - **No memory leaks**: The FinalizationRegistry ensures native resources are
   always cleaned up
 
+### Thread Management & Process Safety
+
+The library includes robust thread management to prevent segmentation faults and
+ensure clean shutdown:
+
+- **Background Thread Management**: Print job monitoring runs in background
+  threads that are properly tracked and cleaned up
+- **Automatic Shutdown**: The library automatically handles cleanup on process
+  exit, browser unload events, and common process signals (SIGINT, SIGTERM,
+  etc.)
+- **Manual Shutdown**: Call `shutdown()` explicitly if you need to clean up
+  resources before process exit
+- **Timeout Protection**: Shutdown operations have a 5-second timeout to prevent
+  hanging
+- **Thread Safety**: All shared resources are protected with appropriate
+  synchronization primitives
+
+```typescript
+import { shutdown } from "@esimkowitz/printers";
+
+// Manual cleanup (optional - automatic cleanup is provided)
+shutdown();
+```
+
+The library's shutdown mechanism ensures that all background threads are
+properly terminated and resources are cleaned up, preventing common issues like
+segmentation faults that can occur with FFI libraries.
+
 ### Printer Properties
 
 All printer properties are implemented as getter properties that call into the
@@ -379,14 +417,6 @@ This library consists of:
 The native library is built as a C dynamic library (cdylib) and loaded via
 Deno's FFI capabilities, providing near-native performance for printer
 operations while maintaining memory safety.
-
-## Contributing
-
-This library is built with:
-
-- **Rust** - Native library with printer operations
-- **Deno** - TypeScript runtime and FFI host
-- **GitHub Actions** - CI/CD with multi-platform builds
 
 ## License
 
