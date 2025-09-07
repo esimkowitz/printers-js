@@ -4,12 +4,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/esimkowitz/deno-printers/blob/main/LICENSE)
 [![Build](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml)
 
-A cross-platform Deno library for interacting with system printers.
+A cross-runtime printer library that works seamlessly across **Deno**, **Bun**,
+and **Node.js**.
 
 ## Features
 
+- 🔄 **Cross-runtime compatibility** - Single API that works in Deno, Bun, and
+  Node.js
 - 🖨️ **Cross-platform printing** - Works on Windows, macOS, and Linux
-- 🦀 **Native performance** - Powered by Rust's `printers` crate via FFI
+- 🦀 **Native performance** - Powered by Rust's `printers` crate
 - 🏗️ **Multi-architecture support** - AMD64 and ARM64 binaries included
 - 🔒 **Safe testing** - Built-in simulation mode prevents accidental printing
 - ⚡ **Async job tracking** - Non-blocking print jobs with status monitoring
@@ -19,6 +22,8 @@ A cross-platform Deno library for interacting with system printers.
 
 ## Quick Start
 
+### Deno
+
 ```typescript
 import { getAllPrinters, Printer } from "@esimkowitz/printers";
 
@@ -26,16 +31,8 @@ import { getAllPrinters, Printer } from "@esimkowitz/printers";
 const printers = getAllPrinters();
 console.log("Available printers:", printers.map((p) => p.name));
 
-// Get a specific printer
-const printer = printers[0];
-
-// Access printer properties using getter properties
-console.log(`Name: ${printer.name}`);
-console.log(`Driver: ${printer.driverName}`);
-console.log(`State: ${printer.state}`);
-console.log(`Is Default: ${printer.isDefault}`);
-
 // Print a file (returns a Promise)
+const printer = printers[0];
 try {
   await printer.printFile("/path/to/document.pdf", {
     copies: "2",
@@ -45,6 +42,26 @@ try {
 } catch (error) {
   console.error("Print failed:", error.message);
 }
+```
+
+### Bun
+
+```javascript
+import { getAllPrinters } from "./bun.js";
+
+const printers = getAllPrinters();
+const printer = printers[0];
+await printer.printFile("document.pdf");
+```
+
+### Node.js
+
+```javascript
+const { getAllPrinters } = require("./node.js");
+
+const printers = getAllPrinters();
+const printer = printers[0];
+await printer.printFile("document.pdf");
 ```
 
 ## Installation
@@ -159,20 +176,20 @@ deno run --allow-ffi --allow-env your-script.ts
 
 - `--allow-ffi` - Required for loading the native library
 - `--unstable-ffi` - Deno's FFI is currently unstable
-- `--allow-env` - Optional, for reading `DENO_PRINTERS_SIMULATE` environment
+- `--allow-env` - Optional, for reading `PRINTERS_JS_SIMULATE` environment
   variable
 
 ## Testing & Safety
 
 ### Simulation Mode
 
-Set the `DENO_PRINTERS_SIMULATE=true` environment variable to enable simulation
+Set the `PRINTERS_JS_SIMULATE=true` environment variable to enable simulation
 mode, which prevents actual printing while testing all functionality:
 
 **Unix/Linux/macOS:**
 
 ```bash
-DENO_PRINTERS_SIMULATE=true deno run --allow-ffi --allow-env your-script.ts
+PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env your-script.ts
 ```
 
 **Windows:**
@@ -180,25 +197,30 @@ DENO_PRINTERS_SIMULATE=true deno run --allow-ffi --allow-env your-script.ts
 Command Prompt:
 
 ```cmd
-set DENO_PRINTERS_SIMULATE=true
+set PRINTERS_JS_SIMULATE=true
 deno run --allow-ffi --allow-env your-script.ts
 ```
 
 PowerShell:
 
 ```powershell
-$env:DENO_PRINTERS_SIMULATE="true"
+$env:PRINTERS_JS_SIMULATE="true"
 deno run --allow-ffi --allow-env your-script.ts
 ```
 
 ### Running Tests
 
 ```bash
-# Safe tests (simulation mode)
-deno test --allow-ffi --allow-env mod.test.ts
+# Comprehensive cross-runtime tests (recommended)
+./scripts/test-all.sh
 
-# With explicit simulation
-DENO_PRINTERS_SIMULATE=true deno test --allow-ffi --allow-env mod.test.ts
+# Individual runtime tests  
+deno task test              # Deno tests
+npm run test:jest           # Node.js Jest tests
+bun test tests/bun.test.ts  # Bun tests
+
+# Safe simulation mode (default)
+PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/universal.test.ts
 ```
 
 ## Platform Support
@@ -343,78 +365,19 @@ Is Shared: ${printer.isShared}
 `);
 ```
 
-## Technical Details
+## Development & Contributing
 
-### Memory Management
+This library uses a sophisticated cross-runtime architecture with shared Rust
+backend and runtime-specific entry points. For detailed technical information
+about:
 
-Printer instances wrap native Rust structures and automatically manage memory
-through JavaScript's FinalizationRegistry:
+- **Architecture & Design Patterns** - Dual-binary system (FFI + N-API)
+- **Memory Management** - Automatic cleanup with FinalizationRegistry
+- **Thread Safety** - Background thread management and shutdown procedures
+- **Build Systems** - FFI compilation and N-API module generation
+- **Development Workflow** - Testing, linting, and contribution guidelines
 
-- **Automatic cleanup**: When Printer instances are garbage collected, native
-  memory is automatically freed
-- **Manual cleanup**: Call `printer.dispose()` for immediate resource release
-- **Safe disposal**: Multiple calls to `dispose()` are safe, and accessing
-  disposed instances throws descriptive errors
-- **No memory leaks**: The FinalizationRegistry ensures native resources are
-  always cleaned up
-
-### Thread Management & Process Safety
-
-The library includes robust thread management to prevent segmentation faults and
-ensure clean shutdown:
-
-- **Background Thread Management**: Print job monitoring runs in background
-  threads that are properly tracked and cleaned up
-- **Automatic Shutdown**: The library automatically handles cleanup on process
-  exit, browser unload events, and common process signals (SIGINT, SIGTERM,
-  etc.)
-- **Manual Shutdown**: Call `shutdown()` explicitly if you need to clean up
-  resources before process exit
-- **Timeout Protection**: Shutdown operations have a 5-second timeout to prevent
-  hanging
-- **Thread Safety**: All shared resources are protected with appropriate
-  synchronization primitives
-
-```typescript
-import { shutdown } from "@esimkowitz/printers";
-
-// Manual cleanup (optional - automatic cleanup is provided)
-shutdown();
-```
-
-The library's shutdown mechanism ensures that all background threads are
-properly terminated and resources are cleaned up, preventing common issues like
-segmentation faults that can occur with FFI libraries.
-
-### Printer Properties
-
-All printer properties are implemented as getter properties that call into the
-native layer on each access. This ensures you always get the most current
-information:
-
-```typescript
-const printer = getPrinterByName("My Printer");
-
-// These properties call the native layer each time
-console.log(printer.name); // Current printer name
-console.log(printer.state); // Current state (may change)
-console.log(printer.isDefault); // Current default status
-```
-
-## Architecture
-
-This library consists of:
-
-1. **Rust native library** (`src/lib.rs`) - Handles actual printer operations
-   via the `printers` crate with FFI-safe wrapper functions
-2. **TypeScript FFI layer** (`mod.ts`) - Provides JavaScript-friendly API via
-   Deno's FFI with automatic memory management
-3. **Multi-platform binaries** - Pre-compiled for all supported platforms and
-   architectures
-
-The native library is built as a C dynamic library (cdylib) and loaded via
-Deno's FFI capabilities, providing near-native performance for printer
-operations while maintaining memory safety.
+Please see **[CONTRIBUTING.md](./CONTRIBUTING.md)**
 
 ## License
 

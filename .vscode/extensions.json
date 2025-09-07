@@ -2,6 +2,11 @@
   "recommendations": [
     "denoland.vscode-deno",
     "editorconfig.editorconfig",
-    "rust-lang.rust-analyzer"
+    "oven.bun-vscode",
+    "esbenp.prettier-vscode",
+    "swellaby.vscode-rust-test-adapter",
+    "rust-lang.rust-analyzer",
+    "ms-vscode.test-adapter-converter",
+    "orta.vscode-jest"
   ]
 }

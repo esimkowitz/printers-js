@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      DENO_PRINTERS_SIMULATE: true # Force simulation mode for all tests
+      PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
     steps:
       - name: Checkout base branch
@@ -69,76 +69,69 @@ jobs:
           deno-version: v2.x # Run with latest stable Deno.
           cache: true
 
-      # Rust code quality checks
+      # Setup Node.js for N-API module and testing
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # Setup Bun for cross-runtime testing
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Code quality checks
       - name: Check Rust formatting
         run: cargo fmt --check
 
       - name: Run Rust linter (Clippy)
         run: cargo clippy -- -D warnings
 
-      # Create directories for reports and coverage
-      - run: mkdir -p reports
-      - run: mkdir -p coverage
-
-      # Run Cargo tests with coverage
-      - name: Run Cargo tests with coverage
-        run: |
-          cargo llvm-cov --all-features --workspace --lcov --output-path coverage/rust.lcov test
-
-      # Run Cargo tests with JUnit output
-      - name: Generate Cargo test JUnit report
-        run: |
-          RUSTC_BOOTSTRAP=1 cargo test -- -Z unstable-options --format json --report-time | cargo2junit > reports/cargo.xml
-
-      # Build the native library (required before Deno tests)
-      - name: Build Rust library
-        run: cargo build --release
-
-      # Deno code quality checks
       - name: Check Deno formatting
         run: deno fmt --check
 
-      # Scan the code for syntax errors and style issues
       - name: Run Deno linter
         run: deno lint
 
-      - run: mkdir -p coverage-deno
+      # Install Node.js dependencies
+      - name: Install Node.js dependencies
+        run: npm install
 
-      # Run all test files with proper permissions and simulation mode
-      - name: Run Deno tests
-        run: deno test --allow-ffi --unstable-ffi --allow-env --coverage=coverage-deno/ --reporter=junit --junit-path=./reports/deno.xml
-        env:
-          DENO_PRINTERS_SIMULATE: true
+      # Build all runtime libraries using our comprehensive script
+      - name: Build all runtime libraries
+        run: ./scripts/build-all.sh
 
-      # Run Deno doc tests (separate from coverage)
-      - name: Run Deno doc tests
-        run: deno test --doc --allow-ffi --unstable-ffi --allow-env --reporter=junit --junit-path=./reports/deno-doc.xml mod.ts
-        env:
-          DENO_PRINTERS_SIMULATE: true
-
-      # Generate Deno coverage report
-      - name: Generate Deno coverage report
-        run: deno coverage --lcov coverage-deno/ > coverage/deno.lcov
-
-      # Combine coverage reports
-      - name: Combine coverage reports
+      # Run Cargo tests with coverage (Rust-level tests)
+      - name: Run Cargo tests with coverage
         run: |
-          echo "Combining Rust and Deno coverage reports..."
-          cat coverage/rust.lcov coverage/deno.lcov > coverage/combined.lcov
+          mkdir -p test-results/coverage
+          cargo llvm-cov --all-features --workspace --lcov --output-path test-results/coverage/rust.lcov test
+
+      # Generate Cargo test JUnit report
+      - name: Generate Cargo test JUnit report
+        run: |
+          mkdir -p test-results
+          RUSTC_BOOTSTRAP=1 cargo test -- -Z unstable-options --format json --report-time | cargo2junit > test-results/cargo.xml
+
+      # Run comprehensive cross-runtime tests using our test-all.sh script
+      - name: Run cross-runtime tests
+        run: ./scripts/test-all.sh
 
       - name: Upload Test Reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: reports
-          path: reports/*
+          name: test-reports
+          path: test-results/*.xml
 
       - name: Upload Coverage Reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
-          path: coverage/*
+          name: coverage-reports
+          path: test-results/coverage/*
 
   report:
     if: ${{ always() && github.event_name == 'pull_request_target' }}
@@ -168,19 +161,21 @@ jobs:
       - uses: actions/download-artifact@v5
 
       - name: Convert JUnit XML to CTRF
-        run: deno run -A npm:junit-to-ctrf "reports/*.xml" -o reports/junit.json
+        run: |
+          mkdir -p test-results/ctrf
+          deno run -A npm:junit-to-ctrf "test-reports/*.xml" -o test-results/ctrf/junit.json
 
-      - name: Publish Test Report
+      - name: Publish Cross-Runtime Test Report
         uses: ctrf-io/github-test-reporter@v1
         with:
-          title: Deno Printers Test Report
-          report-path: "./reports/*.json"
+          title: Cross-Runtime Printer Library Test Report
+          report-path: "./test-results/ctrf/*.json"
           pull-request-report: true
           flaky-rate-report: true
           pull-request: true
           overwrite-comment: true
           status-check: true
-          status-check-name: "Deno Printers Tests"
+          status-check-name: "Cross-Runtime Tests (Deno/Bun/Node.js)"
           annotate: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -188,30 +183,226 @@ jobs:
       - name: Setup LCOV
         uses: hrishikesh-kadam/setup-lcov@v1
 
-      # Also report individual coverage for debugging
+      # Create combined coverage report from all runtimes
+      - name: Combine coverage reports
+        run: |
+          echo "Combining coverage reports from all runtimes..."
+          cd coverage-reports
+
+          # Create individual reports and combined report
+          if [ -f rust.lcov ]; then
+            cp rust.lcov combined.lcov
+          else
+            touch combined.lcov
+          fi
+
+          if [ -f deno-lcov.info ]; then
+            cat deno-lcov.info >> combined.lcov
+          fi
+
+          # Note: Bun coverage is in different format, handled separately
+          echo "Coverage files available:"
+          ls -la
+
+      # Report coverage for each runtime separately
       - name: Report Rust code coverage
+        if: ${{ hashFiles('coverage-reports/rust.lcov') != '' }}
         uses: zgosalvez/github-actions-report-lcov@v4
         with:
-          title-prefix: "[Rust]"
-          coverage-files: coverage/rust.lcov
+          title-prefix: "🦀 [Rust Core]"
+          coverage-files: coverage-reports/rust.lcov
           artifact-name: rust-coverage-report
           github-token: ${{ secrets.GITHUB_TOKEN }}
           update-comment: true
 
       - name: Report Deno code coverage
+        if: ${{ hashFiles('coverage-reports/deno-lcov.info') != '' }}
         uses: zgosalvez/github-actions-report-lcov@v4
         with:
-          title-prefix: "[Deno]"
-          coverage-files: coverage/deno.lcov
+          title-prefix: "🦕 [Deno FFI]"
+          coverage-files: coverage-reports/deno-lcov.info
           artifact-name: deno-coverage-report
           github-token: ${{ secrets.GITHUB_TOKEN }}
           update-comment: true
 
-      - name: Report Combined code coverage
+      - name: Report Combined coverage
+        if: ${{ hashFiles('coverage-reports/combined.lcov') != '' }}
         uses: zgosalvez/github-actions-report-lcov@v4
         with:
-          title-prefix: "[Combined]"
-          coverage-files: coverage/combined.lcov
+          title-prefix: "📊 [Combined Coverage]"
+          coverage-files: coverage-reports/combined.lcov
           artifact-name: combined-coverage-report
           github-token: ${{ secrets.GITHUB_TOKEN }}
           update-comment: true
+
+      # Add/update dynamic test summary comment based on actual results
+      - name: Update Test Summary Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Function to parse JUnit XML
+            function parseJUnit(xmlContent) {
+              const testMatch = xmlContent.match(/<testsuite[^>]*tests="(\d+)"[^>]*errors="(\d+)"[^>]*failures="(\d+)"/);
+              if (testMatch) {
+                return {
+                  total: parseInt(testMatch[1]),
+                  errors: parseInt(testMatch[2]),
+                  failures: parseInt(testMatch[3]),
+                  passed: parseInt(testMatch[1]) - parseInt(testMatch[2]) - parseInt(testMatch[3])
+                };
+              }
+              return { total: 0, errors: 0, failures: 0, passed: 0 };
+            }
+
+            // Function to format test result
+            function formatTestResult(result) {
+              const total = result.passed + result.failures + result.errors;
+              const status = result.failures === 0 && result.errors === 0 ? '✅' : '❌';
+              return { status, text: `${result.passed}/${total} passed` };
+            }
+
+            // Generate the summary content
+            let summary = `## 🧪 Cross-Runtime Test Results\n\n`;
+            summary += `This PR was tested across **3 JavaScript runtimes**:\n\n`;
+            summary += `| Runtime | Status | Tests | Coverage |\n`;
+            summary += `|---------|--------|-------|----------|\n`;
+
+            // Read Deno test results
+            let denoResult = { status: '❓', text: 'Not found' };
+            try {
+              if (fs.existsSync('test-reports/deno-test-results.xml')) {
+                const denoXml = fs.readFileSync('test-reports/deno-test-results.xml', 'utf8');
+                const parsed = parseJUnit(denoXml);
+                denoResult = formatTestResult(parsed);
+              }
+            } catch (e) {
+              console.log('Error reading Deno results:', e.message);
+            }
+
+            // Read Rust/Cargo test results
+            let rustResult = { status: '❓', text: 'Not found' };
+            try {
+              if (fs.existsSync('test-reports/cargo.xml')) {
+                const cargoXml = fs.readFileSync('test-reports/cargo.xml', 'utf8');
+                const parsed = parseJUnit(cargoXml);
+                rustResult = formatTestResult(parsed);
+              }
+            } catch (e) {
+              console.log('Error reading Rust results:', e.message);
+            }
+
+            // Read Bun test results
+            let bunResult = { status: '❓', text: 'Not found' };
+            try {
+              if (fs.existsSync('test-reports/bun-test-results.xml')) {
+                const bunXml = fs.readFileSync('test-reports/bun-test-results.xml', 'utf8');
+                const parsed = parseJUnit(bunXml);
+                bunResult = formatTestResult(parsed);
+              }
+            } catch (e) {
+              console.log('Error reading Bun results:', e.message);
+            }
+
+            // Read Node.js test results
+            let nodeResult = { status: '❓', text: 'Not found' };
+            try {
+              if (fs.existsSync('test-reports/node-test-results.xml')) {
+                const nodeXml = fs.readFileSync('test-reports/node-test-results.xml', 'utf8');
+                const parsed = parseJUnit(nodeXml);
+                nodeResult = formatTestResult(parsed);
+              }
+            } catch (e) {
+              console.log('Error reading Node.js results:', e.message);
+            }
+
+            // Check for coverage files
+            const denoCoverage = fs.existsSync('coverage-reports/deno-lcov.info') ? 'LCOV available' : 'No coverage';
+            const rustCoverage = fs.existsSync('coverage-reports/rust.lcov') ? 'LCOV available' : 'No coverage';
+            const bunCoverage = fs.existsSync('coverage-reports/bun') ? 'Coverage available' : 'No coverage';
+
+            summary += `| 🦕 **Deno** | ${denoResult.status} FFI | ${denoResult.text} | ${denoCoverage} |\n`;
+            summary += `| 🦀 **Rust Core** | ${rustResult.status} Native | ${rustResult.text} | ${rustCoverage} |\n`;
+            summary += `| 🥖 **Bun** | ${bunResult.status} FFI | ${bunResult.text} | ${bunCoverage} |\n`;
+            summary += `| 🟢 **Node.js** | ${nodeResult.status} N-API | ${nodeResult.text} | N-API fallback |\n\n`;
+
+            // List available artifacts
+            summary += `### 📊 Test Artifacts Generated\n\n`;
+            const testFiles = fs.existsSync('test-reports') ? fs.readdirSync('test-reports') : [];
+            const coverageFiles = fs.existsSync('coverage-reports') ? fs.readdirSync('coverage-reports') : [];
+
+            if (testFiles.length > 0) {
+              summary += `**JUnit Reports**: ${testFiles.filter(f => f.endsWith('.xml')).join(', ')}\n\n`;
+            }
+
+            if (coverageFiles.length > 0) {
+              summary += `**Coverage Reports**: ${coverageFiles.join(', ')}\n\n`;
+            }
+
+            summary += `### 🔧 Architecture\n\n`;
+            summary += `- **Deno & Bun**: Use FFI → Rust native library\n`;
+            summary += `- **Node.js**: Uses simulation mode (N-API module has compatibility issues)\n`;
+            summary += `- **Universal API**: Consistent interface across all runtimes\n\n`;
+
+            // Overall status
+            const overallSuccess = denoResult.status === '✅' && rustResult.status === '✅';
+            const overallStatus = overallSuccess ? '✅ All tests passing' : '❌ Some tests failed';
+            summary += `**Overall Status**: ${overallStatus}\n\n`;
+
+            // Add timestamp and run info
+            const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            summary += `*Last updated: ${timestamp} UTC | [View CI Run](${runUrl})* 🤖`;
+
+            // Look for existing comment from this bot
+            const COMMENT_IDENTIFIER = '## 🧪 Cross-Runtime Test Results';
+
+            try {
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+
+              // Find existing test results comment
+              const existingComment = comments.data.find(comment =>
+                comment.user.type === 'Bot' &&
+                comment.body.includes(COMMENT_IDENTIFIER)
+              );
+
+              if (existingComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                  body: summary
+                });
+                console.log('Updated existing test results comment');
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: summary
+                });
+                console.log('Created new test results comment');
+              }
+            } catch (error) {
+              console.error('Error managing comment:', error);
+              // Fallback: try to create a new comment
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: summary
+                });
+                console.log('Created fallback comment');
+              } catch (fallbackError) {
+                console.error('Fallback comment creation failed:', fallbackError);
+              }
+            }

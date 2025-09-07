@@ -1,0 +1,33 @@
+{
+  "name": "@printers/printers",
+  "version": "0.1.4",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "publish": {
+    "include": [
+      "index.ts",
+      "deno.ts",
+      "bun.js",
+      "node.js",
+      "jsr.json",
+      "README.md",
+      "LICENSE",
+      "target/release/*.dll",
+      "target/release/*.dylib",
+      "target/release/*.so",
+      "napi/"
+    ]
+  },
+  "exclude": [
+    "tests/",
+    "scripts/",
+    ".devcontainer/",
+    ".vscode/",
+    ".zed/",
+    "test-results/",
+    "coverage/",
+    "target/debug/"
+  ]
+}

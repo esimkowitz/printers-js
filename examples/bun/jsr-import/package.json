@@ -1,0 +1,18 @@
+{
+  "name": "printers-example-bun-jsr",
+  "version": "1.0.0",
+  "description": "Bun JSR example for @printers/printers",
+  "type": "module",
+  "main": "main.ts",
+  "scripts": {
+    "start": "bun run main.ts",
+    "dev": "bun --watch main.ts"
+  },
+  "imports": {
+    "@printers/printers": "jsr:@printers/printers@^0.1.4"
+  },
+  "engines": {
+    "bun": ">= 1.0"
+  },
+  "license": "MIT"
+}

@@ -6,21 +6,89 @@
     "--no-check",
     "--trace-leaks"
   ],
+  "deno.enablePaths": [
+    "./deno.ts",
+    "./index.ts",
+    "./tests/deno.test.ts",
+    "./tests/universal.test.ts",
+    "./tests/shared.ts"
+  ],
+  // File-specific editor settings
   "editor.defaultFormatter": "denoland.vscode-deno",
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "modifications",
   "editor.autoIndentOnPaste": true,
+  // Bun-specific files
+  "[bun.js]": {
+    "editor.defaultFormatter": "oven.bun-vscode"
+  },
+  // Node.js-specific files
+  "[node.js]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[napi/index.js]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[package.json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  // Test files - runtime-specific formatting
+  "[tests/bun.test.ts]": {
+    "editor.defaultFormatter": "oven.bun-vscode"
+  },
+  // JavaScript files (general)
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "debug.javascript.autoAttachFilter": "disabled",
+
   "files.exclude": {
     "**/.git": true,
     "**/.DS_Store": true,
-    "**/.vscode/extensions": true
+    "**/.vscode/extensions": true,
+    "**/napi": true,
+    "**/target": true
   },
+
   "search.exclude": {
     "**/coverage": true,
-    "**/.vscode/extensions": true
+    "**/.vscode/extensions": true,
+    "**/napi": true,
+    "**/target": true
   },
+
   "rust-analyzer.lens.enable": true,
   "rust-analyzer.lens.run.enable": true,
-  "rust-analyzer.lens.debug.enable": true
+  "rust-analyzer.lens.debug.enable": true,
+  // File associations
+  "files.associations": {
+    "bun.js": "javascript",
+    "node.js": "javascript",
+    "*.ts": "typescript"
+  },
+  // Disable markdownlint in favor of deno lint for markdown
+  "markdownlint.config": {
+    "default": false
+  },
+  // Exclude cross-runtime files from inappropriate linters
+  "deno.disablePaths": [
+    "./node.js",
+    "./bun.js",
+    "./tests/bun.test.ts",
+    "./tests/node.simple.test.js",
+    "./napi/",
+    "./package.json"
+  ],
+  // Deno test discovery
+  "typescript.suggest.autoImports": true,
+  "typescript.suggest.completeFunctionCalls": false,
+  "typescript.suggest.paths": true,
+  "deno.testing.args": [
+    "--allow-ffi",
+    "--allow-env"
+  ],
+  // Multi-runtime test configuration
+  "testExplorer.useNativeTesting": true,
+  "testExplorer.mergeSuites": false,
+  "testExplorer.showCollapseButton": true
 }

@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "start": "deno run --allow-ffi --allow-env main.ts",
+    "dev": "deno run --allow-ffi --allow-env --watch main.ts"
+  },
+  "imports": {
+    "@printers/printers": "jsr:@printers/printers@^0.1.4"
+  },
+  "compilerOptions": {
+    "strict": true
+  }
+}

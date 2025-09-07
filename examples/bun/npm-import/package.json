@@ -1,0 +1,18 @@
+{
+  "name": "printers-example-bun-npm",
+  "version": "1.0.0",
+  "description": "Bun NPM example for @printers/printers",
+  "type": "module",
+  "main": "main.ts",
+  "scripts": {
+    "start": "bun run main.ts",
+    "dev": "bun --watch main.ts"
+  },
+  "dependencies": {
+    "@printers/printers": "^0.1.4"
+  },
+  "engines": {
+    "bun": ">= 1.0"
+  },
+  "license": "MIT"
+}

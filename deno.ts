@@ -11,6 +11,7 @@ export enum PrintError {
   InvalidJsonEncoding = 5,
   PrinterNotFound = 6,
   FileNotFound = 7,
+  SimulatedFailure = 8,
 }
 
 // Job status interface
@@ -32,17 +33,17 @@ export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 const LIB_EXTENSIONS = { windows: "dll", darwin: "dylib" } as const;
 
 function getLibraryName(): string {
-  const { os, arch } = Deno.build;
+  const { os } = Deno.build;
   const extension = LIB_EXTENSIONS[os as keyof typeof LIB_EXTENSIONS] ?? "so";
 
-  // Determine architecture suffix for multi-arch binaries
-  const archSuffix = arch === "aarch64" ? "-arm64" : "";
+  // For now, we build universal binaries without architecture suffixes
+  // In the future, we could add architecture-specific builds if needed
 
   // Construct library name based on platform
   if (os === "windows") {
-    return `deno_printers${archSuffix}.${extension}`;
+    return `deno_printers.${extension}`;
   } else {
-    return `libdeno_printers${archSuffix}.${extension}`;
+    return `libdeno_printers.${extension}`;
   }
 }
 
@@ -96,6 +97,7 @@ function getErrorMessage(errorCode: number): string {
     [PrintError.InvalidJsonEncoding]: "Invalid job properties JSON encoding",
     [PrintError.PrinterNotFound]: "Printer not found",
     [PrintError.FileNotFound]: "File not found",
+    [PrintError.SimulatedFailure]: "Simulated failure for testing",
   };
   return errorMessages[errorCode] || `Unknown error (code: ${errorCode})`;
 }
