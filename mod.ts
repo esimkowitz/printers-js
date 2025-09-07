@@ -237,7 +237,26 @@ const printerRegistry = new FinalizationRegistry((ptr: Deno.PointerValue) => {
 });
 
 /**
- * Printer class with methods for printer operations
+ * Printer class representing a system printer with comprehensive metadata and printing capabilities.
+ *
+ * Printer instances wrap native Rust structures and automatically manage memory using FinalizationRegistry.
+ * Create instances using `Printer.fromName()` or `getPrinterByName()`.
+ *
+ * All properties are implemented as getters that call into the native layer on each access,
+ * ensuring you always get current information.
+ * 
+ * @example
+ * ```typescript
+ * const printer = getPrinterByName("My Printer");
+ * if (printer) {
+ *   console.log(`Name: ${printer.name}`);
+ *   console.log(`Driver: ${printer.driverName}`);
+ *   console.log(`State: ${printer.state}`);
+ *   console.log(`Default: ${printer.isDefault}`);
+ *   
+ *   await printer.printFile("document.pdf", { copies: "2" });
+ * }
+ * ```
  */
 export class Printer {
   private ptr: Deno.PointerValue;
@@ -257,9 +276,21 @@ export class Printer {
   }
 
   /**
-   * Create a Printer instance from a printer name
-   * @param name The name of the printer
-   * @returns A Printer instance or null if not found
+   * Create a Printer instance from a printer name.
+   *
+   * This is the preferred way to create Printer instances. The constructor is private.
+   *
+   * @param name The name of the printer to find
+   * @returns A Printer instance if found, null if not found or name is invalid
+   * @example
+   * ```typescript
+   * const printer = Printer.fromName("Microsoft Print to PDF");
+   * if (printer) {
+   *   console.log(`Found: ${printer.name}`);
+   * } else {
+   *   console.log("Printer not found");
+   * }
+   * ```
    */
   static fromName(name: string): Printer | null {
     return withCString(name, (namePtr) => {
@@ -272,7 +303,31 @@ export class Printer {
   }
 
   /**
-   * Dispose of the printer instance and free native memory
+   * Manually release the printer's native resources.
+   *
+   * This is optional - the FinalizationRegistry will automatically clean up resources
+   * when the instance is garbage collected. However, calling dispose() allows for
+   * immediate resource release.
+   *
+   * This method is idempotent - it's safe to call multiple times.
+   * After disposal, accessing any property will throw an error.
+   * 
+   * @example
+   * ```typescript
+   * const printer = getPrinterByName("My Printer");
+   * if (printer) {
+   *   console.log(printer.name); // Works fine
+   *   
+   *   printer.dispose();
+   *   
+   *   // This will throw an error
+   *   try {
+   *     console.log(printer.name);
+   *   } catch (e) {
+   *     console.log("Error:", e instanceof Error ? e.message : String(e)); // "Printer instance has been disposed"
+   *   }
+   * }
+   * ```
    */
   dispose(): void {
     if (!this.disposed && this.ptr) {
@@ -306,76 +361,118 @@ export class Printer {
     return true;
   }
 
+  /**
+   * The display name of the printer.
+   * This is typically what users see in print dialogs.
+   */
   get name(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_name(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * The system-level name of the printer.
+   * This may be different from the display name and is used internally by the OS.
+   */
   get systemName(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_system_name(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * The name of the printer driver.
+   */
   get driverName(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_driver_name(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * The URI of the printer (if available).
+   * May be empty for local printers.
+   */
   get uri(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_uri(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * The port name used by the printer.
+   */
   get portName(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_port_name(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * The print processor used by the printer.
+   */
   get processor(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_processor(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * The default data type for print jobs.
+   */
   get dataType(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_data_type(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * Optional description of the printer.
+   */
   get description(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_description(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * Physical location description of the printer.
+   */
   get location(): string {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_location(ptr) as Deno.PointerValue
     );
   }
 
+  /**
+   * Whether this is the default printer for the system.
+   */
   get isDefault(): boolean {
     this.ensureNotDisposed();
     return (lib.symbols.printer_get_is_default(this.ptr) as number) === 1;
   }
 
+  /**
+   * Whether this printer is shared on the network.
+   */
   get isShared(): boolean {
     this.ensureNotDisposed();
     return (lib.symbols.printer_get_is_shared(this.ptr) as number) === 1;
   }
 
+  /**
+   * Current state of the printer.
+   */
   get state(): PrinterState {
     return this.getStringField((ptr) =>
       lib.symbols.printer_get_state(ptr) as Deno.PointerValue
     ) as PrinterState;
   }
 
+  /**
+   * Array of state reason strings describing any issues.
+   */
   get stateReasons(): string[] {
     this.ensureNotDisposed();
     return withCStringResult(

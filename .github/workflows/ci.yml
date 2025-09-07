@@ -110,6 +110,12 @@ jobs:
         env:
           DENO_PRINTERS_SIMULATE: true
 
+      # Run Deno doc tests (separate from coverage)
+      - name: Run Deno doc tests
+        run: deno test --doc --allow-ffi --unstable-ffi --allow-env --reporter=junit --junit-path=./reports/deno-doc.xml mod.ts
+        env:
+          DENO_PRINTERS_SIMULATE: true
+
       # Generate Deno coverage report
       - name: Generate Deno coverage report
         run: deno coverage --lcov coverage-deno/ > coverage/deno.lcov
