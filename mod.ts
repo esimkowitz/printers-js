@@ -233,11 +233,11 @@ function setupCleanupHandlers(): void {
     on?: (signal: string, callback: () => void) => void;
     exit: (code?: number) => never;
   }
-  
+
   const globalWithProcess = globalThis as typeof globalThis & {
     process?: NodeProcess;
   };
-  
+
   if (typeof globalWithProcess.process !== "undefined") {
     const process = globalWithProcess.process;
     ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((signal) => {
