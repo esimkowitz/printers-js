@@ -1,5 +1,5 @@
 [package]
-name = "deno-printers"
+name = "printers-js"
 authors = ["Evan Simkowitz <esimkowitz@users.noreply.github.com>"]
 version = "0.1.4"
 edition = "2021"

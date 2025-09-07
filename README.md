@@ -1,8 +1,8 @@
-# @esimkowitz/printers
+# @printers/printers
 
-[![JSR](https://jsr.io/badges/@esimkowitz/printers)](https://jsr.io/@esimkowitz/printers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/esimkowitz/deno-printers/blob/main/LICENSE)
-[![Build](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/deno-printers/actions/workflows/ci.yml)
+[![JSR](https://jsr.io/badges/@printers/printers)](https://jsr.io/@printers/printers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/printers/printers-js/blob/main/LICENSE)
+[![Build](https://github.com/printers/printers-js/actions/workflows/ci.yml/badge.svg)](https://github.com/printers/printers-js/actions/workflows/ci.yml)
 
 A cross-runtime printer library that works seamlessly across **Deno**, **Bun**,
 and **Node.js**.
@@ -25,7 +25,7 @@ and **Node.js**.
 ### Deno
 
 ```typescript
-import { getAllPrinters, Printer } from "@esimkowitz/printers";
+import { getAllPrinters, Printer } from "@printers/printers";
 
 // List all available printers
 const printers = getAllPrinters();
@@ -67,7 +67,7 @@ await printer.printFile("document.pdf");
 ## Installation
 
 ```bash
-deno add @esimkowitz/printers
+deno add @printers/printers
 ```
 
 ## API Reference
@@ -214,7 +214,7 @@ deno run --allow-ffi --allow-env your-script.ts
 # Comprehensive cross-runtime tests (recommended)
 ./scripts/test-all.sh
 
-# Individual runtime tests  
+# Individual runtime tests
 deno task test              # Deno tests
 npm run test:jest           # Node.js Jest tests
 bun test tests/bun.test.ts  # Bun tests
@@ -241,7 +241,7 @@ correct binary.
 ### Basic Printing
 
 ```typescript
-import { getAllPrinters } from "@esimkowitz/printers";
+import { getAllPrinters } from "@printers/printers";
 
 const printers = getAllPrinters();
 if (printers.length > 0) {
@@ -265,7 +265,7 @@ if (printers.length > 0) {
 ### Advanced Job Tracking
 
 ```typescript
-import { getAllPrinters, getJobStatus } from "@esimkowitz/printers";
+import { getAllPrinters, getJobStatus } from "@printers/printers";
 
 const printer = getAllPrinters()[0];
 
@@ -293,7 +293,7 @@ import {
   getAllPrinters,
   getPrinterByName,
   printerExists,
-} from "@esimkowitz/printers";
+} from "@printers/printers";
 
 // List all printers with detailed information
 const printers = getAllPrinters();
@@ -328,7 +328,7 @@ console.log(`Cleaned up ${cleaned} old print jobs`);
 ### Working with Printer Properties
 
 ```typescript
-import { getAllPrinters } from "@esimkowitz/printers";
+import { getAllPrinters } from "@printers/printers";
 
 const printers = getAllPrinters();
 
@@ -382,10 +382,10 @@ Please see **[CONTRIBUTING.md](./CONTRIBUTING.md)**
 ## License
 
 MIT License - see
-[LICENSE](https://github.com/esimkowitz/deno-printers/blob/main/LICENSE) file
-for details.
+[LICENSE](https://github.com/printers/printers-js/blob/main/LICENSE) file for
+details.
 
 ## Repository
 
 Source code:
-[github.com/esimkowitz/deno-printers](https://github.com/esimkowitz/deno-printers)
+[github.com/printers/printers-js](https://github.com/printers/printers-js)

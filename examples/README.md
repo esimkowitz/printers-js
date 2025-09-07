@@ -1,8 +1,7 @@
 # Examples
 
 This directory contains example projects demonstrating how to use
-`@esimkowitz/printers` across different JavaScript runtimes and package
-managers.
+`@printers/printers` across different JavaScript runtimes and package managers.
 
 ## Directory Structure
 
@@ -29,7 +28,7 @@ cd examples/deno/jsr-import
 deno task start
 # or: deno run --allow-ffi --allow-env main.ts
 
-# NPM import  
+# NPM import
 cd examples/deno/npm-import
 deno task start
 # or: deno run --allow-ffi --allow-env --allow-read --allow-net main.ts
@@ -44,7 +43,7 @@ npm start
 # or: node --experimental-strip-types main.js
 
 # NPM import
-cd examples/node/npm-import  
+cd examples/node/npm-import
 npm install
 npm start
 ```
