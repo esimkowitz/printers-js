@@ -39,25 +39,6 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
     }
 }
 
-/// Force simulation mode on (for when environment variables don't work)
-/// This sets an environment variable that the Rust code can read
-///
-/// # Safety
-/// This function is safe to call from any context as it only modifies environment variables.
-#[no_mangle]
-pub unsafe extern "C" fn force_simulation_mode(enabled: i32) {
-    eprintln!(
-        "[RUST DEBUG] force_simulation_mode called with: {}",
-        enabled
-    );
-    if enabled != 0 {
-        std::env::set_var("PRINTERS_JS_SIMULATE", "true");
-        eprintln!("[RUST DEBUG] Set PRINTERS_JS_SIMULATE=true via force_simulation_mode");
-    } else {
-        std::env::set_var("PRINTERS_JS_SIMULATE", "false");
-        eprintln!("[RUST DEBUG] Set PRINTERS_JS_SIMULATE=false via force_simulation_mode");
-    }
-}
 
 /// Find a printer by name and return its JSON representation
 ///

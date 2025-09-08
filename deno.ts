@@ -215,10 +215,6 @@ try {
       parameters: [],
       result: "void",
     },
-    force_simulation_mode: {
-      parameters: ["i32"],
-      result: "void",
-    },
   });
 } catch (error) {
   console.error(`Failed to load FFI library at ${libPath}:`, error);
@@ -233,11 +229,10 @@ try {
   throw new Error(`FFI library loading failed: ${error}`);
 }
 
-// Force simulation mode if the environment variable is set
-// This is a workaround for CI environments where env vars don't propagate to FFI libraries
+// Simulation mode is handled entirely within the Rust library using environment variables
+// The library will automatically detect PRINTERS_JS_SIMULATE and use simulation mode
 if (Deno.env.get("PRINTERS_JS_SIMULATE") === "true") {
-  console.log("[DENO DEBUG] Forcing simulation mode in Rust library");
-  lib.symbols.force_simulation_mode(1);
+  console.log("[DENO DEBUG] Simulation mode enabled via environment variable");
 }
 
 /**
