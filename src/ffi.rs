@@ -39,7 +39,6 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
     }
 }
 
-
 /// Find a printer by name and return its JSON representation
 ///
 /// # Safety
