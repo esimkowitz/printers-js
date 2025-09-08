@@ -41,6 +41,14 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
+      # Install cargo-llvm-cov for code coverage
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      # Install cargo2junit for JUnit XML output from Cargo tests
+      - name: Install cargo2junit
+        run: cargo install cargo2junit
+
       # Cache Rust dependencies for faster builds
       - name: Cache Rust dependencies
         uses: actions/cache@v4
