@@ -176,13 +176,13 @@ jobs:
       matrix:
         settings:
           # macOS builds
-          - host: macos-13  # Intel Mac
+          - host: macos-13 # Intel Mac
             target: x86_64-apple-darwin
-            
-          - host: macos-14  # Apple Silicon
+
+          - host: macos-14 # Apple Silicon
             target: aarch64-apple-darwin
 
-          # Windows builds  
+          # Windows builds
           - host: windows-latest
             target: x86_64-pc-windows-msvc
 
