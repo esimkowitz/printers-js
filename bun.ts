@@ -31,8 +31,34 @@ function getLibraryPath() {
 
 const libPath = getLibraryPath();
 
+// Debug library loading in CI
+console.log(`[BUN DEBUG] Loading library from: ${libPath}`);
+console.log(`[BUN DEBUG] Platform: ${process.platform}, Arch: ${process.arch}`);
+
+// Check if library file exists
+try {
+  const fs = require('fs');
+  if (!fs.existsSync(libPath)) {
+    console.error(`[BUN ERROR] Library file does not exist: ${libPath}`);
+    console.error(`[BUN DEBUG] Contents of target/release directory:`);
+    try {
+      const releaseDir = path.dirname(libPath);
+      const files = fs.readdirSync(releaseDir);
+      console.error(`[BUN DEBUG] Available files:`, files);
+    } catch (e) {
+      console.error(`[BUN DEBUG] Could not list release directory:`, e.message);
+    }
+    throw new Error(`Library file not found: ${libPath}`);
+  }
+} catch (e) {
+  console.error(`[BUN ERROR] Error checking library file:`, e.message);
+  throw e;
+}
+
 // Load the native library using Bun's FFI
-const lib = dlopen(libPath, {
+let lib;
+try {
+  lib = dlopen(libPath, {
   find_printer_by_name: {
     args: [FFIType.ptr],
     returns: FFIType.ptr,
@@ -129,7 +155,12 @@ const lib = dlopen(libPath, {
     args: [FFIType.ptr, FFIType.ptr, FFIType.ptr],
     returns: FFIType.i32,
   },
-});
+  });
+} catch (e) {
+  console.error(`[BUN ERROR] Failed to load library:`, e.message);
+  console.error(`[BUN DEBUG] Library path was:`, libPath);
+  throw new Error(`Failed to load printer library: ${e.message}`);
+}
 
 // Utility functions for C string conversion
 function cString(str) {

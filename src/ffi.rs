@@ -564,8 +564,8 @@ mod tests {
     fn test_cleanup_old_jobs_ffi() {
         unsafe {
             let result = cleanup_old_jobs(3600); // 1 hour
-            // Function should return a valid u32 (no need to test bounds since u32 is bounded by definition)
-            // Just verify it executes without panic
+                                                 // Function should return a valid u32 (no need to test bounds since u32 is bounded by definition)
+                                                 // Just verify it executes without panic
             let _ = result;
         }
     }

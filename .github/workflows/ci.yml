@@ -271,38 +271,37 @@ jobs:
         run: |
           echo "Combining coverage reports from all runtimes..."
 
-          # Create coverage-reports directory if it doesn't exist
-          mkdir -p coverage-reports
-          cd coverage-reports
-
           # Coverage files are flattened in current directory after artifact download
           echo "Looking for coverage files in current directory..."
           ls -la *.lcov *.info 2>/dev/null || echo "No coverage files found"
 
-          # Copy Rust coverage if it exists
+          # Create coverage-reports directory for organized output
+          mkdir -p coverage-reports
+
+          # Create combined report from files in current directory
           if [ -f rust.lcov ]; then
             echo "Found Rust coverage file"
-            # File is already in correct location
+            cp rust.lcov coverage-reports/rust.lcov
+            cp rust.lcov coverage-reports/combined.lcov
+          else
+            touch coverage-reports/combined.lcov
           fi
 
-          # Copy Deno coverage if it exists
           if [ -f deno-lcov.info ]; then
             echo "Found Deno coverage file"
-            # File is already in correct location
+            cp deno-lcov.info coverage-reports/deno-lcov.info
+            cat deno-lcov.info >> coverage-reports/combined.lcov
           fi
 
-          # Copy other coverage files if they exist (already in current directory)
-          # Files are already flattened to current directory by artifact download
-
-          # Create individual reports and combined report
-          if [ -f rust.lcov ]; then
-            cp rust.lcov combined.lcov
-          else
-            touch combined.lcov
+          # Copy other coverage files to organized directory
+          if [ -f bun-lcov.info ]; then
+            echo "Found Bun coverage file"
+            cp bun-lcov.info coverage-reports/bun-lcov.info
           fi
 
-          if [ -f deno-lcov.info ]; then
-            cat deno-lcov.info >> combined.lcov
+          if [ -f node-lcov.info ]; then
+            echo "Found Node coverage file"
+            cp node-lcov.info coverage-reports/node-lcov.info
           fi
 
           # Note: Bun coverage is in different format, handled separately
@@ -311,14 +310,20 @@ jobs:
 
           # Clean up the combined coverage file to remove problematic entries
           # This filters out TLA:GNC lines which can cause genhtml errors
-          if [ -f combined.lcov ] && [ -s combined.lcov ]; then
+          if [ -f coverage-reports/combined.lcov ] && [ -s coverage-reports/combined.lcov ]; then
             echo "Cleaning combined coverage file..."
+            cd coverage-reports
             grep -v "TLA:GNC" combined.lcov > combined_clean.lcov || cp combined.lcov combined_clean.lcov
             mv combined_clean.lcov combined.lcov
             echo "Combined coverage file created with $(wc -l < combined.lcov) lines"
+            cd ..
           else
             echo "No coverage data to combine"
           fi
+
+          # Show final coverage directory structure
+          echo "Final coverage-reports directory:"
+          ls -la coverage-reports/ || echo "No coverage-reports directory"
 
       # Report coverage for each runtime separately
       # - name: Report Rust code coverage
