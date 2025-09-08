@@ -153,7 +153,7 @@ async function main(): Promise<void> {
     ? ".dylib"
     : ".so";
   const libPrefix = os === "windows" ? "" : "lib";
-  const libName = `${libPrefix}deno_printers${libExtension}`;
+  const libName = `${libPrefix}printers_js${libExtension}`;
 
   console.log(`  - target/release/${libName} (${os.toUpperCase()} FFI)`);
   console.log("  - napi/*.node (Node.js N-API, if built)");
