@@ -251,6 +251,7 @@ jobs:
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
+          components: rustfmt, clippy
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -270,11 +271,15 @@ jobs:
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
 
-      - name: Install dependencies
+      - name: Install dependencies in Docker
         if: matrix.settings.docker && runner.os == 'Linux'
-        run: |
-          apt-get update
-          apt-get install -y libcups2-dev pkg-config clang
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ${{ matrix.settings.docker }}
+          options: "--user 0:0"
+          run: |
+            apt-get update
+            apt-get install -y libcups2-dev pkg-config clang
 
       - name: Install dependencies
         run: npm ci
@@ -290,6 +295,16 @@ jobs:
       - name: Build
         run: npm run build -- --target ${{ matrix.settings.target }}
         if: ${{ !matrix.settings.docker }}
+
+      - name: Debug build output
+        shell: bash
+        run: |
+          echo "Contents of current directory:"
+          ls -la
+          echo "Contents of napi/ directory (if it exists):"
+          ls -la napi/ || echo "napi/ directory does not exist"
+          echo "Looking for .node files:"
+          find . -name "*.node" -type f || echo "No .node files found"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

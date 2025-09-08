@@ -1,17 +1,37 @@
 {
+  "name": "@printers/printers",
+  "version": "0.2.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "publish": {
+    "include": [
+      "index.ts",
+      "deno.ts",
+      "bun.js",
+      "node.js",
+      "README.md",
+      "LICENSE",
+      "target/release/*.dll",
+      "target/release/*.dylib",
+      "target/release/*.so",
+      "napi/"
+    ]
+  },
   "tasks": {
     "dev": "deno run --allow-ffi --watch deno.ts",
     "build": "cargo build --release",
     "build:napi": "npm run build",
     "build:all": "deno run --allow-run --allow-read --allow-env scripts/build-all.ts",
     "test": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env --no-check tests/shared.test.ts",
-    "test:real": "deno test --allow-ffi --allow-env tests/",
+    "test:real": "deno test --allow-ffi --allow-env tests/shared.test.ts",
     "test:doc": "deno test --doc --allow-ffi --allow-env deno.ts",
     "test:shared": "PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env tests/shared.test.ts",
     "test:node": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
-    "test:bun": "PRINTERS_JS_SIMULATE=true bun test tests/",
+    "test:bun": "PRINTERS_JS_SIMULATE=true bun test tests/shared.test.ts",
     "test:all": "PRINTERS_JS_SIMULATE=true deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts",
-    "test:junit": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/ --junit-path=test-results/deno-junit.xml",
+    "test:junit": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/shared.test.ts --junit-path=test-results/deno-junit.xml",
     "test:all:real": "PRINTERS_JS_SIMULATE=false deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts",
     "dev:deno": "deno run --allow-ffi --allow-env --watch deno.ts",
     "dev:node": "npm run dev",
@@ -64,22 +84,22 @@
       "index.ts",
       "package.json",
       "napi/",
-      "tests/bun.test.ts",
-      "tests/shared.ts",
-      "tests/universal.test.ts",
-      "tests/node.*.js",
-      "tests/jest.setup.js",
+      "tests/node-test-runner.ts",
       "examples/"
     ]
   },
   "exclude": [
     "node.ts",
     "bun.ts",
-    "index.js",
     "index.d.ts",
     "package.json",
     "napi/",
     "target/",
+    ".devcontainer/",
+    ".vscode/",
+    ".zed/",
+    "test-results/",
+    "coverage/",
     "tests/node-test-runner.ts"
   ],
   "nodeModulesDir": "none",
