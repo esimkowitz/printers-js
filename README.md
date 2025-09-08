@@ -5,7 +5,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/printers/printers-js/blob/main/LICENSE)
 [![Build](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml)
 
-
 A cross-runtime printer library that works seamlessly across **Deno**, **Bun**,
 and **Node.js**.
 
