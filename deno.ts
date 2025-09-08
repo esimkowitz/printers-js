@@ -122,7 +122,10 @@ let lib: Deno.DynamicLibrary<any>;
 
 console.log("[DENO DEBUG] Loading FFI library...");
 console.log("[DENO DEBUG] Library path:", libPath);
-console.log("[DENO DEBUG] PRINTERS_JS_SIMULATE during load:", Deno.env.get("PRINTERS_JS_SIMULATE"));
+console.log(
+  "[DENO DEBUG] PRINTERS_JS_SIMULATE during load:",
+  Deno.env.get("PRINTERS_JS_SIMULATE"),
+);
 
 try {
   lib = Deno.dlopen(libPath, {
@@ -726,8 +729,11 @@ export function printerExists(name: string): boolean {
  */
 export function getAllPrinterNames(): string[] {
   console.log("[DENO DEBUG] getAllPrinterNames called");
-  console.log("[DENO DEBUG] Environment variable PRINTERS_JS_SIMULATE:", Deno.env.get("PRINTERS_JS_SIMULATE"));
-  
+  console.log(
+    "[DENO DEBUG] Environment variable PRINTERS_JS_SIMULATE:",
+    Deno.env.get("PRINTERS_JS_SIMULATE"),
+  );
+
   return withCStringResult(
     () => {
       console.log("[DENO DEBUG] About to call FFI get_all_printer_names");

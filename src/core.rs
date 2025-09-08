@@ -42,7 +42,10 @@ type JobIdGenerator = Arc<Mutex<JobId>>;
 pub fn should_simulate_printing() -> bool {
     let env_var = env::var("PRINTERS_JS_SIMULATE").unwrap_or_default();
     let result = env_var == "true";
-    eprintln!("[CORE DEBUG] should_simulate_printing: PRINTERS_JS_SIMULATE = '{}', returning {}", env_var, result);
+    eprintln!(
+        "[CORE DEBUG] should_simulate_printing: PRINTERS_JS_SIMULATE = '{}', returning {}",
+        env_var, result
+    );
     result
 }
 
@@ -133,8 +136,11 @@ impl PrinterCore {
     /// Get all printer names
     pub fn get_all_printer_names() -> Vec<String> {
         let simulate = should_simulate_printing();
-        eprintln!("[CORE DEBUG] get_all_printer_names: should_simulate_printing() = {}", simulate);
-        
+        eprintln!(
+            "[CORE DEBUG] get_all_printer_names: should_simulate_printing() = {}",
+            simulate
+        );
+
         if simulate {
             eprintln!("[CORE DEBUG] Returning mock printers");
             vec!["Mock Printer".to_string(), "Test Printer".to_string()]
@@ -142,10 +148,7 @@ impl PrinterCore {
             eprintln!("[CORE DEBUG] Getting real printers");
             let real_printers = printers::get_printers();
             eprintln!("[CORE DEBUG] Found {} real printers", real_printers.len());
-            real_printers
-                .into_iter()
-                .map(|p| p.name.clone())
-                .collect()
+            real_printers.into_iter().map(|p| p.name.clone()).collect()
         }
     }
 
