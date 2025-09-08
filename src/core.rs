@@ -12,7 +12,6 @@ use std::time::{Duration, Instant};
 /// Error codes for the printing operations
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PrintError {
     InvalidParams = 1,
     InvalidPrinterName = 2,

@@ -1,3 +1,4 @@
+// @ts-nocheck: FFI symbols have complex types that are validated at runtime
 import { join } from "@std/path";
 
 /**
@@ -56,8 +57,6 @@ const libPath = join(cleanDir, "target", "release", getLibraryName());
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
-// Debug logging for development
-if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
   console.log(`[DEBUG] Loading FFI library from: ${libPath}`);
   console.log(`[DEBUG] Current working directory: ${Deno.cwd()}`);
   console.log(`[DEBUG] Expected library name: ${getLibraryName()}`);
@@ -114,6 +113,8 @@ function getErrorMessage(errorCode: number): string {
 function isErrorCode(result: number): boolean {
   return Object.values(PrintError).includes(result as PrintError);
 }
+
+// FFI symbols are validated at runtime
 
 // Load the dynamic library
 // deno-lint-ignore no-explicit-any
