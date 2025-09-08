@@ -14,14 +14,14 @@ function getLibraryPath() {
   let libName;
   if (platform === "win32") {
     libName = arch === "arm64"
-      ? "deno_printers-arm64.dll"
-      : "deno_printers.dll";
+      ? "printers_js-arm64.dll"
+      : "printers_js.dll";
   } else if (platform === "darwin") {
-    libName = "libdeno_printers.dylib";
+    libName = "libprinters_js.dylib";
   } else if (platform === "linux") {
     libName = arch === "arm64"
-      ? "libdeno_printers-arm64.so"
-      : "libdeno_printers.so";
+      ? "libprinters_js-arm64.so"
+      : "libprinters_js.so";
   } else {
     throw new Error(`Unsupported platform: ${platform}-${arch}`);
   }

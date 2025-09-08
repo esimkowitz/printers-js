@@ -42,9 +42,9 @@ function getLibraryName(): string {
 
   // Construct library name based on platform
   if (os === "windows") {
-    return `deno_printers.${extension}`;
+    return `printers_js.${extension}`;
   } else {
-    return `libdeno_printers.${extension}`;
+    return `libprinters_js.${extension}`;
   }
 }
 

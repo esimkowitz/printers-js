@@ -67,20 +67,20 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: libdeno_printers.so
-            release_name: libdeno_printers-linux-amd64.so
+            artifact_name: libprinters_js.so
+            release_name: libprinters_js-linux-amd64.so
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: libdeno_printers.so
-            release_name: libdeno_printers-linux-arm64.so
+            artifact_name: libprinters_js.so
+            release_name: libprinters_js-linux-arm64.so
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            artifact_name: deno_printers.dll
-            release_name: deno_printers-windows-amd64.dll
+            artifact_name: printers_js.dll
+            release_name: printers_js-windows-amd64.dll
           - target: aarch64-pc-windows-msvc
             os: windows-latest
-            artifact_name: deno_printers.dll
-            release_name: deno_printers-windows-arm64.dll
+            artifact_name: printers_js.dll
+            release_name: printers_js-windows-arm64.dll
           - target: aarch64-apple-darwin
             os: macos-latest
             artifact_name: libdeno_printers.dylib
