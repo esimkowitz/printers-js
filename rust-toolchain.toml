@@ -8,4 +8,4 @@ targets = [
   "x86_64-pc-windows-msvc",
   "aarch64-pc-windows-msvc"
 ]
-tools = ["cargo", "rustfmt", "clippy", "cargo-llvm-cov", "cargo2junit"]
+tools = ["cargo", "rustfmt", "clippy"]
