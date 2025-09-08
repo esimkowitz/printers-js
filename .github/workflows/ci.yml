@@ -643,24 +643,24 @@ jobs:
           script: |
             // Check code quality step results
             const steps = context.payload.workflow_run?.jobs?.[0]?.steps || [];
-            
+
             // Get step outcomes from the build job
             const buildJob = context.payload.workflow_run?.jobs?.find(job => job.name === 'build');
-            
+
             // Check each linting/formatting step result
             const rustFmt = '${{ steps.rust-fmt.outcome }}';
             const rustLint = '${{ steps.rust-lint.outcome }}';
             const denoFmt = '${{ steps.deno-fmt.outcome }}';
             const denoLint = '${{ steps.deno-lint.outcome }}';
             const eslint = '${{ steps.eslint.outcome }}';
-            
+
             console.log('Code Quality Step Results:');
             console.log(`- Rust formatting: ${rustFmt}`);
             console.log(`- Rust linter (Clippy): ${rustLint}`);
             console.log(`- Deno formatting: ${denoFmt}`);
             console.log(`- Deno linter: ${denoLint}`);
             console.log(`- ESLint: ${eslint}`);
-            
+
             // Count failures
             const checks = [
               { name: 'Rust formatting', result: rustFmt },
@@ -669,14 +669,14 @@ jobs:
               { name: 'Deno linter', result: denoLint },
               { name: 'ESLint', result: eslint }
             ];
-            
+
             const failed = checks.filter(check => check.result === 'failure');
             const passed = checks.filter(check => check.result === 'success');
             const skipped = checks.filter(check => check.result === 'skipped');
-            
+
             const allPassed = failed.length === 0;
             const state = allPassed ? 'success' : 'failure';
-            
+
             let description;
             if (allPassed) {
               description = `All code quality checks passed (${passed.length}/${checks.length})`;
@@ -684,7 +684,7 @@ jobs:
               const failedNames = failed.map(f => f.name).join(', ');
               description = `Code quality issues: ${failedNames} (${passed.length}/${checks.length} passed)`;
             }
-            
+
             try {
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
