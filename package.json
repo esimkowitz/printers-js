@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
   "main": "index.ts",
@@ -10,7 +10,10 @@
     "deno.ts",
     "bun.ts",
     "napi/index.js",
-    "napi/*.node"
+    "napi/*.node",
+    "target/release/*.dll",
+    "target/release/*.dylib",
+    "target/release/*.so"
   ],
   "napi": {
     "binaryName": "printers",
