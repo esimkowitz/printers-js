@@ -189,3 +189,4 @@ changes, always ensure all three runtimes continue to work consistently.
 - Verify claims by examining the codebase or external sources
 - Disagree when technical facts contradict statements
 - Focus on objective problem-solving rather than agreement
+- never commit changes on behalf of the user, always let the user submit changes

@@ -49,8 +49,8 @@
     "tsx": "^4.20.5"
   },
   "scripts": {
-    "build": "napi build --platform --release --features napi && mkdir -p napi && mv index.js index.d.ts *.node napi/ 2>/dev/null || true",
-    "build:debug": "napi build --platform --features napi && mkdir -p napi && mv index.js index.d.ts *.node napi/ 2>/dev/null || true",
+    "build": "napi build --platform --release --features napi && npx tsx scripts/move-napi-artifacts.ts",
+    "build:debug": "napi build --platform --features napi && npx tsx scripts/move-napi-artifacts.ts",
     "test": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
