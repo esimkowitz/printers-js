@@ -112,9 +112,22 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
+      # Clean previous builds to ensure fresh library
+      - name: Clean previous builds
+        run: |
+          rm -rf target/release/
+          rm -rf napi/
+      
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
         run: deno task build:all
+      
+      # Verify library was built correctly and can detect simulation mode
+      - name: Verify library simulation mode detection
+        run: |
+          echo "Testing library simulation mode detection..."
+          echo "Environment variable: $PRINTERS_JS_SIMULATE"
+          PRINTERS_JS_SIMULATE=true cargo test test_should_simulate_printing_when_env_var_is_true -- --nocapture
 
       # Run Cargo tests with coverage (Rust-level tests)
       - name: Run Cargo tests with coverage
