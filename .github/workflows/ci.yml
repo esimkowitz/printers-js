@@ -240,7 +240,32 @@ jobs:
       - name: Combine coverage reports
         run: |
           echo "Combining coverage reports from all runtimes..."
+          
+          # Create coverage-reports directory if it doesn't exist
+          mkdir -p coverage-reports
           cd coverage-reports
+          
+          # Copy coverage files from test-results/coverage to coverage-reports
+          echo "Looking for coverage files..."
+          ls -la ../test-results/coverage/ || echo "No test-results/coverage directory"
+          
+          # Copy Rust coverage if it exists
+          if [ -f ../test-results/coverage/rust.lcov ]; then
+            echo "Found Rust coverage file"
+            cp ../test-results/coverage/rust.lcov rust.lcov
+          fi
+          
+          # Copy Deno coverage if it exists
+          if [ -f ../test-results/coverage/deno-lcov.info ]; then
+            echo "Found Deno coverage file"
+            cp ../test-results/coverage/deno-lcov.info deno-lcov.info
+          fi
+          
+          # Copy other coverage files if they exist
+          if [ -d ../test-results/coverage/ ]; then
+            cp ../test-results/coverage/*.info . 2>/dev/null || true
+            cp ../test-results/coverage/*.lcov . 2>/dev/null || true
+          fi
 
           # Create individual reports and combined report
           if [ -f rust.lcov ]; then
@@ -259,10 +284,13 @@ jobs:
 
           # Clean up the combined coverage file to remove problematic entries
           # This filters out TLA:GNC lines which can cause genhtml errors
-          if [ -f combined.lcov ]; then
+          if [ -f combined.lcov ] && [ -s combined.lcov ]; then
             echo "Cleaning combined coverage file..."
-            grep -v "TLA:GNC" combined.lcov > combined_clean.lcov || true
+            grep -v "TLA:GNC" combined.lcov > combined_clean.lcov || cp combined.lcov combined_clean.lcov
             mv combined_clean.lcov combined.lcov
+            echo "Combined coverage file created with $(wc -l < combined.lcov) lines"
+          else
+            echo "No coverage data to combine"
           fi
 
       # Report coverage for each runtime separately
