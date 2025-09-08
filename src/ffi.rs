@@ -43,7 +43,10 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
 /// This sets an environment variable that the Rust code can read
 #[no_mangle]
 pub unsafe extern "C" fn force_simulation_mode(enabled: i32) {
-    eprintln!("[RUST DEBUG] force_simulation_mode called with: {}", enabled);
+    eprintln!(
+        "[RUST DEBUG] force_simulation_mode called with: {}",
+        enabled
+    );
     if enabled != 0 {
         std::env::set_var("PRINTERS_JS_SIMULATE", "true");
         eprintln!("[RUST DEBUG] Set PRINTERS_JS_SIMULATE=true via force_simulation_mode");
@@ -98,13 +101,25 @@ pub unsafe extern "C" fn printer_exists(name: *const c_char) -> i32 {
 pub unsafe extern "C" fn get_all_printer_names() -> *mut c_char {
     // Debug logging for CI troubleshooting
     let simulate_env = std::env::var("PRINTERS_JS_SIMULATE").unwrap_or_default();
-    
+
     // Debug: Show some environment variables that Rust can see
-    eprintln!("[RUST DEBUG] Environment check: PRINTERS_JS_SIMULATE='{}'", simulate_env);
-    eprintln!("[RUST DEBUG] should_simulate_printing()={}", crate::core::should_simulate_printing());
-    eprintln!("[RUST DEBUG] PATH exists: {}", std::env::var("PATH").is_ok());
-    eprintln!("[RUST DEBUG] HOME exists: {}", std::env::var("HOME").is_ok());
-    
+    eprintln!(
+        "[RUST DEBUG] Environment check: PRINTERS_JS_SIMULATE='{}'",
+        simulate_env
+    );
+    eprintln!(
+        "[RUST DEBUG] should_simulate_printing()={}",
+        crate::core::should_simulate_printing()
+    );
+    eprintln!(
+        "[RUST DEBUG] PATH exists: {}",
+        std::env::var("PATH").is_ok()
+    );
+    eprintln!(
+        "[RUST DEBUG] HOME exists: {}",
+        std::env::var("HOME").is_ok()
+    );
+
     // Show all environment variables containing "PRINTERS"
     for (key, value) in std::env::vars() {
         if key.contains("PRINTERS") || key.contains("SIMULATE") {

@@ -503,17 +503,17 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            
+
             // Function to parse JUnit XML and check if tests passed
             function parseJUnit(xmlContent) {
               // Try multiple patterns for different JUnit formats
               let testMatch = xmlContent.match(/<testsuite[^>]*tests="(\d+)"[^>]*errors="(\d+)"[^>]*failures="(\d+)"/);
-              
+
               if (!testMatch) {
                 const testsMatch = xmlContent.match(/tests="(\d+)"/);
                 const errorsMatch = xmlContent.match(/errors="(\d+)"/);
                 const failuresMatch = xmlContent.match(/failures="(\d+)"/);
-                
+
                 if (testsMatch) {
                   const tests = parseInt(testsMatch[1]);
                   const errors = errorsMatch ? parseInt(errorsMatch[1]) : 0;
@@ -521,32 +521,32 @@ jobs:
                   return { total: tests, errors, failures, passed: tests - errors - failures };
                 }
               }
-              
+
               if (!testMatch) {
                 const testcases = (xmlContent.match(/<testcase/g) || []).length;
                 const failures = (xmlContent.match(/<failure/g) || []).length;
                 const errors = (xmlContent.match(/<error/g) || []).length;
-                
+
                 if (testcases > 0) {
                   return { total: testcases, errors, failures, passed: testcases - errors - failures };
                 }
               }
-              
+
               if (testMatch) {
                 return {
                   total: parseInt(testMatch[1]),
-                  errors: parseInt(testMatch[2]), 
+                  errors: parseInt(testMatch[2]),
                   failures: parseInt(testMatch[3]),
                   passed: parseInt(testMatch[1]) - parseInt(testMatch[2]) - parseInt(testMatch[3])
                 };
               }
-              
+
               return { total: 0, errors: 0, failures: 0, passed: 0 };
             }
 
             // Check test results for each runtime
             const results = {};
-            
+
             // Check Deno results
             if (fs.existsSync('test-reports/deno-test-results.xml')) {
               const xml = fs.readFileSync('test-reports/deno-test-results.xml', 'utf8');
@@ -555,8 +555,8 @@ jobs:
             } else {
               results.deno = { success: false, total: 0, errors: 0, failures: 1, passed: 0 };
             }
-            
-            // Check Bun results  
+
+            // Check Bun results
             if (fs.existsSync('test-reports/bun-test-results.xml')) {
               const xml = fs.readFileSync('test-reports/bun-test-results.xml', 'utf8');
               const parsed = parseJUnit(xml);
@@ -564,7 +564,7 @@ jobs:
             } else {
               results.bun = { success: false, total: 0, errors: 0, failures: 1, passed: 0 };
             }
-            
+
             // Check Node.js results
             if (fs.existsSync('test-reports/node-test-results.xml')) {
               const xml = fs.readFileSync('test-reports/node-test-results.xml', 'utf8');
@@ -573,7 +573,7 @@ jobs:
             } else {
               results.node = { success: false, total: 0, errors: 0, failures: 1, passed: 0 };
             }
-            
+
             // Rust tests are optional since there are no unit tests defined
             results.rust = { success: true, total: 0, errors: 0, failures: 0, passed: 0 };
             if (fs.existsSync('test-reports/cargo.xml')) {
@@ -581,26 +581,26 @@ jobs:
               const parsed = parseJUnit(xml);
               results.rust = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             }
-            
+
             // Determine overall success
             const overallSuccess = results.deno.success && results.bun.success && results.node.success && results.rust.success;
             const totalTests = results.deno.total + results.bun.total + results.node.total + results.rust.total;
             const totalPassed = results.deno.passed + results.bun.passed + results.node.passed + results.rust.passed;
             const totalFailures = results.deno.failures + results.bun.failures + results.node.failures + results.rust.failures;
             const totalErrors = results.deno.errors + results.bun.errors + results.node.errors + results.rust.errors;
-            
+
             console.log('Test Results Summary:');
             console.log(`- Deno: ${results.deno.passed}/${results.deno.total} passed (success: ${results.deno.success})`);
             console.log(`- Bun: ${results.bun.passed}/${results.bun.total} passed (success: ${results.bun.success})`);
             console.log(`- Node.js: ${results.node.passed}/${results.node.total} passed (success: ${results.node.success})`);
             console.log(`- Rust: ${results.rust.passed}/${results.rust.total} passed (success: ${results.rust.success})`);
             console.log(`- Overall: ${totalPassed}/${totalTests} passed (success: ${overallSuccess})`);
-            
+
             const state = overallSuccess ? 'success' : 'failure';
-            const description = overallSuccess 
+            const description = overallSuccess
               ? `All tests passed (${totalPassed}/${totalTests})`
               : `Tests failed: ${totalFailures} failures, ${totalErrors} errors (${totalPassed}/${totalTests} passed)`;
-            
+
             try {
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
@@ -619,7 +619,7 @@ jobs:
                 core.setFailed(`Tests failed: ${description}`);
               }
             }
-            
+
             // Also fail the job if tests failed so the workflow shows failure
             if (!overallSuccess) {
               core.setFailed(`Cross-runtime tests failed: ${description}`);
