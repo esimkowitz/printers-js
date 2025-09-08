@@ -385,12 +385,18 @@ mod tests {
 
     #[test]
     fn test_print_file_error_codes() {
+        // Ensure clean environment state
+        env::remove_var("PRINTERS_JS_SIMULATE");
         env::set_var("PRINTERS_JS_SIMULATE", "true");
+
+        // Give a moment for environment variable to propagate
+        std::thread::sleep(std::time::Duration::from_millis(10));
 
         // Debug: verify the environment is set up correctly
         assert!(
             should_simulate_printing(),
-            "Simulation mode should be enabled"
+            "Simulation mode should be enabled. Env var: {:?}",
+            env::var("PRINTERS_JS_SIMULATE")
         );
         assert!(
             PrinterCore::printer_exists("Mock Printer"),
@@ -403,7 +409,12 @@ mod tests {
 
         // Test with non-existent printer (should still work in simulation mode)
         let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);
-        assert!(result.is_ok());
+        assert!(
+            result.is_ok(),
+            "Print job should succeed in simulation mode for normal file paths. Got error: {:?}, simulation mode: {}",
+            result.err(),
+            should_simulate_printing()
+        );
 
         // Test with file that should trigger file not found error
         let result =

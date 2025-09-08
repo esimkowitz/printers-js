@@ -403,9 +403,48 @@ jobs:
               return { status, text: `${result.passed}/${total} passed` };
             }
 
+            // Parse LCOV coverage file to get coverage percentage
+            function parseLCOVCoverage(filePath) {
+              try {
+                if (!fs.existsSync(filePath)) {
+                  return 'No coverage';
+                }
+
+                const lcovContent = fs.readFileSync(filePath, 'utf8');
+
+                // Count total and hit lines
+                let totalLines = 0;
+                let hitLines = 0;
+
+                const lines = lcovContent.split('\n');
+                for (const line of lines) {
+                  if (line.startsWith('DA:')) {
+                    // DA:line_number,hit_count
+                    totalLines++;
+                    const hitCount = parseInt(line.split(',')[1] || '0');
+                    if (hitCount > 0) {
+                      hitLines++;
+                    }
+                  }
+                }
+
+                if (totalLines === 0) {
+                  return 'No data';
+                }
+
+                const percentage = Math.round((hitLines / totalLines) * 100);
+                return `${percentage}% (${hitLines}/${totalLines})`;
+              } catch (error) {
+                console.log('Error parsing LCOV:', error.message);
+                return 'Parse error';
+              }
+            }
+
             // Generate the summary content
-            let summary = `## 🧪 Cross-Runtime Test Results\n\n`;
-            summary += `This PR was tested across **3 JavaScript runtimes**:\n\n`;
+            let summary = `## 🧪 Test Results\n\n`;
+
+            summary += `### JavaScript Runtime Tests\n`;
+            summary += `Cross-runtime compatibility verified across **3 JavaScript runtimes**:\n\n`;
             summary += `| Runtime | Status | Tests | Coverage |\n`;
             summary += `|---------|--------|-------|----------|\n`;
 
@@ -461,16 +500,26 @@ jobs:
               console.log('Error reading Node.js results:', e.message);
             }
 
-            // Check for coverage files (flattened after artifact download)
-            const denoCoverage = fs.existsSync('deno-lcov.info') ? 'LCOV available' : 'No coverage';
-            const rustCoverage = fs.existsSync('rust.lcov') ? 'LCOV available' : 'No coverage';
-            const bunCoverage = fs.existsSync('bun-lcov.info') ? 'LCOV available' : 'No coverage';
-            const nodeCoverage = fs.existsSync('node-lcov.info') ? 'LCOV available' : 'No coverage';
+            // Debug: List available files
+            console.log('Available files in current directory:');
+            const files = fs.readdirSync('.').filter(f => f.includes('lcov') || f.includes('info'));
+            console.log('Coverage-related files:', files);
+
+            // Parse coverage files for actual percentages (flattened after artifact download)
+            const denoCoverage = parseLCOVCoverage('deno-lcov.info');
+            const rustCoverage = parseLCOVCoverage('rust.lcov');
+            const bunCoverage = parseLCOVCoverage('bun-lcov.info');
+            const nodeCoverage = parseLCOVCoverage('node-lcov.info');
 
             summary += `| 🦕 **Deno** | ${denoResult.status} | ${denoResult.text} | ${denoCoverage} |\n`;
-            summary += `| 🦀 **Rust** | ${rustResult.status} | ${rustResult.text} | ${rustCoverage} |\n`;
             summary += `| 🥟 **Bun** | ${bunResult.status} | ${bunResult.text} | ${bunCoverage} |\n`;
             summary += `| 🟢 **Node.js** | ${nodeResult.status} | ${nodeResult.text} | ${nodeCoverage} |\n\n`;
+
+            summary += `### Rust Library Tests\n`;
+            summary += `Core library functionality tested in **Rust**:\n\n`;
+            summary += `| Component | Status | Tests | Coverage |\n`;
+            summary += `|-----------|--------|-------|----------|\n`;
+            summary += `| 🦀 **Core Library** | ${rustResult.status} | ${rustResult.text} | ${rustCoverage} |\n\n`;
 
             // List available artifacts
             summary += `### 📊 Test Artifacts Generated\n\n`;
@@ -596,9 +645,13 @@ jobs:
             // Check test results for each runtime
             const results = {};
 
-            // Check Deno results
-            if (fs.existsSync('test-reports/deno-test-results.xml')) {
-              const xml = fs.readFileSync('test-reports/deno-test-results.xml', 'utf8');
+            // Debug: List all available files
+            console.log('Available files in current directory:');
+            console.log(fs.readdirSync('.').filter(f => f.endsWith('.xml')));
+
+            // Check Deno results (files are flattened after artifact download)
+            if (fs.existsSync('deno-test-results.xml')) {
+              const xml = fs.readFileSync('deno-test-results.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.deno = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             } else {
@@ -606,8 +659,8 @@ jobs:
             }
 
             // Check Bun results
-            if (fs.existsSync('test-reports/bun-test-results.xml')) {
-              const xml = fs.readFileSync('test-reports/bun-test-results.xml', 'utf8');
+            if (fs.existsSync('bun-test-results.xml')) {
+              const xml = fs.readFileSync('bun-test-results.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.bun = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             } else {
@@ -615,8 +668,8 @@ jobs:
             }
 
             // Check Node.js results
-            if (fs.existsSync('test-reports/node-test-results.xml')) {
-              const xml = fs.readFileSync('test-reports/node-test-results.xml', 'utf8');
+            if (fs.existsSync('node-test-results.xml')) {
+              const xml = fs.readFileSync('node-test-results.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.node = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             } else {
@@ -625,8 +678,8 @@ jobs:
 
             // Rust tests are optional since there are no unit tests defined
             results.rust = { success: true, total: 0, errors: 0, failures: 0, passed: 0 };
-            if (fs.existsSync('test-reports/cargo.xml')) {
-              const xml = fs.readFileSync('test-reports/cargo.xml', 'utf8');
+            if (fs.existsSync('cargo.xml')) {
+              const xml = fs.readFileSync('cargo.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.rust = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             }
