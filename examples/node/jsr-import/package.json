@@ -9,8 +9,8 @@
     "dev": "node --experimental-strip-types --watch main.js",
     "start:legacy": "node --experimental-modules --experimental-json-modules main.js"
   },
-  "imports": {
-    "@printers/printers": "jsr:@printers/printers@^0.1.4"
+  "dependencies": {
+    "@printers/printers": "npm:@jsr/printers__printers@^0.1.4"
   },
   "engines": {
     "node": ">= 22"

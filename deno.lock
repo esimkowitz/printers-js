@@ -10,6 +10,7 @@
     "jsr:@std/semver@1": "1.0.5",
     "npm:@jsr/cross__test@^0.0.10": "0.0.10",
     "npm:@jsr/std__assert@^1.0.14": "1.0.14",
+    "npm:@napi-rs/cli@3.1.5": "3.1.5_@types+node@24.1.0_typanion@3.14.0",
     "npm:@napi-rs/cli@^3.1.5": "3.1.5_@types+node@24.1.0_typanion@3.14.0",
     "npm:@types/bun@^1.2.21": "1.2.21",
     "npm:@types/node@*": "24.1.0",

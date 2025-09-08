@@ -17,7 +17,7 @@ import {
   getPrinterByName,
   isSimulationMode,
   runtimeInfo,
-} from "jsr:@printers/printers";
+} from "@printers/printers";
 
 async function main() {
   console.log("🟢 Node.js Printers Example (JSR Import)");

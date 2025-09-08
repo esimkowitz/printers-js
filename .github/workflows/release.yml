@@ -236,24 +236,35 @@ jobs:
 
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
 
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
 
     steps:
       - uses: actions/checkout@v5
 
       - name: Setup node
         uses: actions/setup-node@v5
-        if: ${{ !matrix.settings.docker }}
         with:
           node-version: 20
           cache: npm
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev pkg-config clang gcc-aarch64-linux-gnu
+
+      - name: Setup cross-compilation for ARM64
+        if: matrix.settings.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+          echo "AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -269,33 +280,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build in docker
-        uses: addnab/docker-run-action@v3
-        if: ${{ matrix.settings.docker }}
-        with:
-          image: ${{ matrix.settings.docker }}
-          options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache:/root/.cargo/registry/cache -v ${{ github.workspace }}/.cargo:/root/.cargo -v ${{ github.workspace }}:/build -w /build"
-          run: |
-            echo "Installing build dependencies..."
-            apt-get update && apt-get install -y --no-install-recommends \
-              libcups2-dev \
-              pkg-config \
-              clang \
-              gcc \
-              g++ \
-              make
-            echo "Verifying CUPS installation..."
-            pkg-config --libs cups || (echo "CUPS not found, trying alternative installation" && \
-              apt-get install -y cups-common libcups2 libcupsimage2-dev)
-            echo "Building N-API module..."
-            npm run build -- --target ${{ matrix.settings.target }}
-            echo "Checking build output..."
-            ls -la *.node 2>/dev/null || echo "No .node files in root"
-            ls -la napi/*.node 2>/dev/null || echo "No .node files in napi/"
-
       - name: Build
         run: npm run build -- --target ${{ matrix.settings.target }}
-        if: ${{ !matrix.settings.docker }}
 
       - name: Debug build output
         shell: bash

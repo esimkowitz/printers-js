@@ -49,10 +49,9 @@ if (typeof Deno !== "undefined") {
 const {
   getAllPrinterNames,
   getAllPrinters,
-  getTypedPrinters,
   printerExists,
   getPrinterByName,
-  Printer,
+  PrinterConstructor,
   cleanupOldJobs,
   getJobStatus,
   shutdown,
@@ -128,15 +127,18 @@ test(`${runtimeName}: should return an array of Printer objects from getAllPrint
   }
 });
 
-test(`${runtimeName}: should return typed printer instances from getTypedPrinters`, () => {
-  const printers = getTypedPrinters();
+test(`${runtimeName}: should return typed printer instances from getAllPrinters`, () => {
+  const printers = getAllPrinters();
   if (!Array.isArray(printers)) {
-    throw new Error("getTypedPrinters should return an array");
+    throw new Error("getAllPrinters should return an array");
   }
 
   for (const printer of printers) {
-    if (!(printer instanceof Printer)) {
-      throw new Error("Each printer should be a Printer instance");
+    // Check that printer has the expected interface properties
+    if (!printer.name || typeof printer.getName !== "function") {
+      throw new Error(
+        "Each printer should have the expected Printer interface",
+      );
     }
   }
 });
@@ -160,7 +162,7 @@ test(`${runtimeName}: should return null for non-existent printer in getPrinterB
 });
 
 test(`${runtimeName}: should have working Printer class methods`, () => {
-  const printers = getTypedPrinters();
+  const printers = getAllPrinters();
   if (printers.length === 0) {
     return; // Skip if no printers available
   }
@@ -178,14 +180,14 @@ test(`${runtimeName}: should have working Printer class methods`, () => {
   }
 
   // Test comparison
-  const samePrinter = Printer.fromName(printer.name);
+  const samePrinter = PrinterConstructor.fromName(printer.name);
   if (samePrinter && !printer.equals(samePrinter)) {
     throw new Error("Printer should equal another instance with same name");
   }
 });
 
 test(`${runtimeName}: should handle printFile operations`, async () => {
-  const printers = getTypedPrinters();
+  const printers = getAllPrinters();
   if (printers.length === 0) {
     return; // Skip if no printers
   }

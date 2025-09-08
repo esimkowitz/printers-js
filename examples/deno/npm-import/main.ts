@@ -10,7 +10,7 @@ import {
   getPrinterByName,
   isSimulationMode,
   runtimeInfo,
-} from "npm:@printers/printers";
+} from "@printers/printers";
 
 async function main() {
   console.log("🦕 Deno Printers Example (NPM Import)");

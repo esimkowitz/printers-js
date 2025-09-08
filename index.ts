@@ -11,6 +11,7 @@
 const isNode: boolean = typeof (globalThis as any).process !== "undefined" &&
   (globalThis as any).process?.versions?.node;
 const isBun: boolean = typeof (globalThis as any).Bun !== "undefined";
+// @ts-expect-error: Deno namespace exists
 const isDeno: boolean = typeof Deno !== "undefined";
 
 // Type definitions (shared across all runtimes)
@@ -36,7 +37,7 @@ export interface JobStatus {
 
 export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 
-export interface PrinterAPI {
+export interface Printer {
   name: string;
   systemName?: string;
   driverName?: string;
@@ -52,13 +53,33 @@ export interface PrinterAPI {
   stateReasons?: string[];
   exists(): boolean;
   toString(): string;
-  equals(other: PrinterAPI): boolean;
+  equals(other: Printer): boolean;
   dispose?(): void;
   getName(): string;
   printFile(
     filePath: string,
     jobProperties?: Record<string, string>,
   ): Promise<void>;
+}
+
+// Static methods interface for Printer class
+export interface PrinterClass {
+  /**
+   * Create a Printer instance from a printer name
+   * @param name The name of the printer to find
+   * @returns A Printer instance if found, null if not found or name is invalid
+   */
+  fromName(name: string): Printer | null;
+  new(): never; // Prevent direct construction
+}
+
+// Runtime information interface
+export interface RuntimeInfo {
+  name: "deno" | "node" | "bun" | "unknown";
+  isDeno: boolean;
+  isNode: boolean;
+  isBun: boolean;
+  version: string;
 }
 
 // Runtime-specific imports and exports
@@ -82,24 +103,25 @@ if (isDeno) {
   );
 }
 
-// Re-export all functionality from the runtime-specific module
-export const getAllPrinters = printerModule.getAllPrinters;
-export const getAllPrinterNames = printerModule.getAllPrinterNames;
-export const getPrinterByName = printerModule.getPrinterByName;
-export const printerExists = printerModule.printerExists;
-export const getJobStatus = printerModule.getJobStatus;
-export const cleanupOldJobs = printerModule.cleanupOldJobs;
-export const shutdown = printerModule.shutdown;
-export const Printer = printerModule.Printer;
+// Re-export all functionality from the runtime-specific module with proper typing
+export const getAllPrinters: () => Printer[] = printerModule.getAllPrinters;
+export const getAllPrinterNames: () => string[] = printerModule.getAllPrinterNames;
+export const getPrinterByName: (name: string) => Printer | null = printerModule.getPrinterByName;
+export const printerExists: (name: string) => boolean = printerModule.printerExists;
+export const getJobStatus: (jobId: number) => JobStatus | null = printerModule.getJobStatus;
+export const cleanupOldJobs: (maxAgeMs?: number) => Promise<number> = printerModule.cleanupOldJobs;
+export const shutdown: () => Promise<void> = printerModule.shutdown;
+export const PrinterConstructor: PrinterClass = printerModule.Printer;
 
 // Runtime information
-export const runtimeInfo = {
+export const runtimeInfo: RuntimeInfo = {
   name: isDeno ? "deno" : isBun ? "bun" : isNode ? "node" : "unknown",
   isDeno,
   isNode,
   isBun,
   version: isDeno
-    ? Deno.version.deno
+    ? // @ts-expect-error: Deno namespace exists
+      Deno.version.deno
     : isBun
     ? (globalThis as any).Bun.version
     : isNode
@@ -109,33 +131,8 @@ export const runtimeInfo = {
 
 // Simulation mode detection (works across all runtimes)
 export const isSimulationMode: boolean =
+  // @ts-expect-error: Deno namespace exists
   (isDeno && Deno?.env?.get?.("PRINTERS_JS_SIMULATE") === "true") ||
   (isNode &&
     (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true") ||
   (isBun && (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true");
-
-// Utility function to get typed printer instances
-export function getTypedPrinters(): PrinterAPI[] {
-  return getAllPrinters() as PrinterAPI[];
-}
-
-export function getTypedPrinterByName(name: string): PrinterAPI | null {
-  return getPrinterByName(name) as PrinterAPI | null;
-}
-
-// Default export for CommonJS compatibility
-export default {
-  PrintError,
-  getAllPrinters,
-  getAllPrinterNames,
-  getPrinterByName,
-  printerExists,
-  getJobStatus,
-  cleanupOldJobs,
-  shutdown,
-  Printer,
-  runtimeInfo,
-  isSimulationMode,
-  getTypedPrinters,
-  getTypedPrinterByName,
-};

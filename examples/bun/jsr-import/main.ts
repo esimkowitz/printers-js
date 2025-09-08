@@ -14,7 +14,7 @@ import {
   isSimulationMode,
   PrintError,
   runtimeInfo,
-} from "jsr:@printers/printers";
+} from "@printers/printers";
 
 async function main() {
   console.log("🚀 Bun Printers Example (JSR Import)");
