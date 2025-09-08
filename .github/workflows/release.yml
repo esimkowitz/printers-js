@@ -285,9 +285,22 @@ jobs:
           image: ${{ matrix.settings.docker }}
           options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache:/root/.cargo/registry/cache -v ${{ github.workspace }}/.cargo:/root/.cargo -v ${{ github.workspace }}:/build -w /build"
           run: |
-            apt-get update
-            apt-get install -y libcups2-dev pkg-config clang
+            echo "Installing build dependencies..."
+            apt-get update && apt-get install -y --no-install-recommends \
+              libcups2-dev \
+              pkg-config \
+              clang \
+              gcc \
+              g++ \
+              make
+            echo "Verifying CUPS installation..."
+            pkg-config --libs cups || (echo "CUPS not found, trying alternative installation" && \
+              apt-get install -y cups-common libcups2 libcupsimage2-dev)
+            echo "Building N-API module..."
             npm run build -- --target ${{ matrix.settings.target }}
+            echo "Checking build output..."
+            ls -la *.node 2>/dev/null || echo "No .node files in root"
+            ls -la napi/*.node 2>/dev/null || echo "No .node files in napi/"
 
       - name: Build
         run: npm run build -- --target ${{ matrix.settings.target }}
