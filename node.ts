@@ -165,8 +165,8 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 // Export with the same API as Deno version
-module.exports = {
-  Printer: PrinterWrapper,
+export {
+  PrinterWrapper as Printer,
   getAllPrinters,
   getAllPrinterNames,
   getPrinterByName,
@@ -174,5 +174,6 @@ module.exports = {
   getJobStatus,
   cleanupOldJobs,
   shutdown,
-  PrintErrorCode: nativeModule.PrintErrorCode,
 };
+
+export const PrintErrorCode = nativeModule.PrintErrorCode;

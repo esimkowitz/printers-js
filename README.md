@@ -61,7 +61,7 @@ await printer.printFile("document.pdf");
 ```javascript
 const { getAllPrinters } = require("@printers/printers");
 // Or for local development:
-// const { getAllPrinters } = require("./node.js");
+// const { getAllPrinters } = require("./node.ts");
 
 const printers = getAllPrinters();
 const printer = printers[0];
@@ -236,15 +236,15 @@ deno run --allow-ffi --allow-env your-script.ts
 
 ```bash
 # Comprehensive cross-runtime tests (recommended)
-./scripts/test-all.sh
+deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
 
 # Individual runtime tests
-deno task test              # Deno tests
-npm run test:jest           # Node.js Jest tests
-bun test tests/bun.test.ts  # Bun tests
+deno task test                    # Deno tests
+npx tsx tests/node-test-runner.ts # Node.js tests with coverage
+bun test tests/                   # Bun tests
 
 # Safe simulation mode (default)
-PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/universal.test.ts
+PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/shared.test.ts
 ```
 
 ## Platform Support

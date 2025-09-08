@@ -1,13 +1,26 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@cross/runtime@1": "1.2.1",
+    "jsr:@cross/test@0.0.10": "0.0.10",
     "jsr:@std/assert@1": "1.0.13",
     "jsr:@std/internal@^1.0.6": "1.0.10",
     "jsr:@std/internal@^1.0.9": "1.0.10",
     "jsr:@std/path@1": "1.1.1",
-    "jsr:@std/semver@1": "1.0.5"
+    "jsr:@std/semver@1": "1.0.5",
+    "npm:@napi-rs/cli@^2.18.4": "2.18.4",
+    "npm:@types/node@*": "24.1.0"
   },
   "jsr": {
+    "@cross/runtime@1.2.1": {
+      "integrity": "f462fcf2fd678f9073291b4e55209b90f58c8d508764a84205d178abdcf22fc9"
+    },
+    "@cross/test@0.0.10": {
+      "integrity": "5f235cdd927d5551d692bc413458625552d299bc5471baf18180e4287cf4ac20",
+      "dependencies": [
+        "jsr:@cross/runtime"
+      ]
+    },
     "@std/assert@1.0.13": {
       "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
       "dependencies": [
@@ -27,8 +40,24 @@
       "integrity": "529f79e83705714c105ad0ba55bec0f9da0f24d2f726b6cc1c15e505cc2c0624"
     }
   },
+  "npm": {
+    "@napi-rs/cli@2.18.4": {
+      "integrity": "sha512-SgJeA4df9DE2iAEpr3M2H0OKl/yjtg1BnRI5/JyowS71tUWhrfSu2LT0V3vlHET+g1hBVlrO60PmEXwUEKp8Mg==",
+      "bin": true
+    },
+    "@types/node@24.1.0": {
+      "integrity": "sha512-ut5FthK5moxFKH2T1CUOC6ctR67rQRvvHdFLCD2Ql6KXmMuCrjsSsRI9UsLCm9M18BMwClv4pn327UvB7eeO1w==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "undici-types@7.8.0": {
+      "integrity": "sha512-9UJ2xGDvQ43tYyVMpuHlsgApydB8ZKfVYTsLDhXkFL/6gfkp+U8xTGdh8pMJv1SpZna0zxG1DwsKZsreLbXBxw=="
+    }
+  },
   "workspace": {
     "dependencies": [
+      "jsr:@cross/test@0.0.10",
       "jsr:@std/assert@1",
       "jsr:@std/path@1",
       "jsr:@std/semver@1"
