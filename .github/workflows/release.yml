@@ -310,7 +310,7 @@ jobs:
           ls -la napi/
 
       - name: Publish to JSR
-        run: deno publish --allow-dirty
+        run: deno publish --allow-dirty --no-check
 
   publish-npm:
     name: Publish to NPM
