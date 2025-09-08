@@ -230,6 +230,19 @@ jobs:
           pattern: "*-reports"
           merge-multiple: true
 
+      # Debug: Show what files were actually downloaded
+      - name: Debug - List downloaded artifacts
+        if: ${{ always() }}
+        run: |
+          echo "=== Files in current directory after artifact download ==="
+          ls -la
+          echo ""
+          echo "=== XML test result files ==="
+          ls -la *.xml 2>/dev/null || echo "No XML files found"
+          echo ""
+          echo "=== Coverage files ==="
+          ls -la *.lcov *.info 2>/dev/null || echo "No coverage files found"
+
       # - name: Convert JUnit XML to CTRF
       #   run: |
       #     mkdir -p test-results/ctrf
@@ -262,27 +275,24 @@ jobs:
           mkdir -p coverage-reports
           cd coverage-reports
 
-          # Copy coverage files from test-results/coverage to coverage-reports
-          echo "Looking for coverage files..."
-          ls -la ../test-results/coverage/ || echo "No test-results/coverage directory"
+          # Coverage files are flattened in current directory after artifact download
+          echo "Looking for coverage files in current directory..."
+          ls -la *.lcov *.info 2>/dev/null || echo "No coverage files found"
 
           # Copy Rust coverage if it exists
-          if [ -f ../test-results/coverage/rust.lcov ]; then
+          if [ -f rust.lcov ]; then
             echo "Found Rust coverage file"
-            cp ../test-results/coverage/rust.lcov rust.lcov
+            # File is already in correct location
           fi
 
           # Copy Deno coverage if it exists
-          if [ -f ../test-results/coverage/deno-lcov.info ]; then
+          if [ -f deno-lcov.info ]; then
             echo "Found Deno coverage file"
-            cp ../test-results/coverage/deno-lcov.info deno-lcov.info
+            # File is already in correct location
           fi
 
-          # Copy other coverage files if they exist
-          if [ -d ../test-results/coverage/ ]; then
-            cp ../test-results/coverage/*.info . 2>/dev/null || true
-            cp ../test-results/coverage/*.lcov . 2>/dev/null || true
-          fi
+          # Copy other coverage files if they exist (already in current directory)
+          # Files are already flattened to current directory by artifact download
 
           # Create individual reports and combined report
           if [ -f rust.lcov ]; then
@@ -418,8 +428,8 @@ jobs:
             // Read Deno test results
             let denoResult = { status: '❓', text: 'Not found' };
             try {
-              if (fs.existsSync('test-reports/deno-test-results.xml')) {
-                const denoXml = fs.readFileSync('test-reports/deno-test-results.xml', 'utf8');
+              if (fs.existsSync('deno-test-results.xml')) {
+                const denoXml = fs.readFileSync('deno-test-results.xml', 'utf8');
                 console.log('Deno XML preview:', denoXml.substring(0, 500));
                 const parsed = parseJUnit(denoXml);
                 console.log('Deno parsed result:', parsed);
@@ -434,8 +444,8 @@ jobs:
             // Read Rust/Cargo test results
             let rustResult = { status: '❓', text: 'Not found' };
             try {
-              if (fs.existsSync('test-reports/cargo.xml')) {
-                const cargoXml = fs.readFileSync('test-reports/cargo.xml', 'utf8');
+              if (fs.existsSync('cargo.xml')) {
+                const cargoXml = fs.readFileSync('cargo.xml', 'utf8');
                 const parsed = parseJUnit(cargoXml);
                 rustResult = formatTestResult(parsed);
               }
@@ -446,8 +456,8 @@ jobs:
             // Read Bun test results
             let bunResult = { status: '❓', text: 'Not found' };
             try {
-              if (fs.existsSync('test-reports/bun-test-results.xml')) {
-                const bunXml = fs.readFileSync('test-reports/bun-test-results.xml', 'utf8');
+              if (fs.existsSync('bun-test-results.xml')) {
+                const bunXml = fs.readFileSync('bun-test-results.xml', 'utf8');
                 const parsed = parseJUnit(bunXml);
                 bunResult = formatTestResult(parsed);
               }
@@ -458,8 +468,8 @@ jobs:
             // Read Node.js test results
             let nodeResult = { status: '❓', text: 'Not found' };
             try {
-              if (fs.existsSync('test-reports/node-test-results.xml')) {
-                const nodeXml = fs.readFileSync('test-reports/node-test-results.xml', 'utf8');
+              if (fs.existsSync('node-test-results.xml')) {
+                const nodeXml = fs.readFileSync('node-test-results.xml', 'utf8');
                 const parsed = parseJUnit(nodeXml);
                 nodeResult = formatTestResult(parsed);
               }
@@ -467,11 +477,11 @@ jobs:
               console.log('Error reading Node.js results:', e.message);
             }
 
-            // Check for coverage files
-            const denoCoverage = fs.existsSync('coverage-reports/deno-lcov.info') ? 'LCOV available' : 'No coverage';
-            const rustCoverage = fs.existsSync('coverage-reports/rust.lcov') ? 'LCOV available' : 'No coverage';
-            const bunCoverage = fs.existsSync('coverage-reports/bun-lcov.info') ? 'LCOV available' : 'No coverage';
-            const nodeCoverage = fs.existsSync('coverage-reports/node-lcov.info') ? 'LCOV available' : 'No coverage';
+            // Check for coverage files (flattened after artifact download)
+            const denoCoverage = fs.existsSync('deno-lcov.info') ? 'LCOV available' : 'No coverage';
+            const rustCoverage = fs.existsSync('rust.lcov') ? 'LCOV available' : 'No coverage';
+            const bunCoverage = fs.existsSync('bun-lcov.info') ? 'LCOV available' : 'No coverage';
+            const nodeCoverage = fs.existsSync('node-lcov.info') ? 'LCOV available' : 'No coverage';
 
             summary += `| 🦕 **Deno** | ${denoResult.status} | ${denoResult.text} | ${denoCoverage} |\n`;
             summary += `| 🦀 **Rust** | ${rustResult.status} | ${rustResult.text} | ${rustCoverage} |\n`;
