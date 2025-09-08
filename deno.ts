@@ -54,8 +54,8 @@ const cleanDir = Deno.build.os === "windows" && currentDir.startsWith("/")
 
 const libPath = join(cleanDir, "target", "release", getLibraryName());
 
-// Debug logging for CI troubleshooting
-if (Deno.env.get("PRINTERS_JS_SIMULATE") === "true") {
+// Debug logging for development
+if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
   console.log(`[DEBUG] Loading FFI library from: ${libPath}`);
   console.log(`[DEBUG] Current working directory: ${Deno.cwd()}`);
   console.log(`[DEBUG] Expected library name: ${getLibraryName()}`);
@@ -231,9 +231,6 @@ try {
 
 // Simulation mode is handled entirely within the Rust library using environment variables
 // The library will automatically detect PRINTERS_JS_SIMULATE and use simulation mode
-if (Deno.env.get("PRINTERS_JS_SIMULATE") === "true") {
-  console.log("[DENO DEBUG] Simulation mode enabled via environment variable");
-}
 
 /**
  * Shutdown the library and cleanup all background threads
@@ -721,28 +718,13 @@ export function printerExists(name: string): boolean {
  * @returns Array of printer names
  */
 export function getAllPrinterNames(): string[] {
-  console.log("[DENO DEBUG] Calling getAllPrinterNames()");
   return withCStringResult(
-    () => {
-      console.log(
-        "[DENO DEBUG] About to call lib.symbols.get_all_printer_names()",
-      );
-      const result = lib.symbols.get_all_printer_names() as Deno.PointerValue;
-      console.log("[DENO DEBUG] FFI call returned:", result);
-      return result;
-    },
+    () => lib.symbols.get_all_printer_names() as Deno.PointerValue,
     (jsonString) => {
-      console.log("[DENO DEBUG] Received JSON string:", jsonString);
-      if (jsonString === null) {
-        console.log("[DENO DEBUG] JSON string is null, returning empty array");
-        return [];
-      }
+      if (jsonString === null) return [];
       try {
-        const parsed = JSON.parse(jsonString) as string[];
-        console.log("[DENO DEBUG] Parsed JSON successfully:", parsed);
-        return parsed;
-      } catch (error) {
-        console.log("[DENO DEBUG] Failed to parse JSON:", error);
+        return JSON.parse(jsonString) as string[];
+      } catch {
         return [];
       }
     },

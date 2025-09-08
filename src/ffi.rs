@@ -83,41 +83,7 @@ pub unsafe extern "C" fn printer_exists(name: *const c_char) -> i32 {
 /// This function is safe to call but returns a pointer that must be freed with free_string.
 #[no_mangle]
 pub unsafe extern "C" fn get_all_printer_names() -> *mut c_char {
-    // Debug logging for CI troubleshooting
-    let simulate_env = std::env::var("PRINTERS_JS_SIMULATE").unwrap_or_default();
-
-    // Debug: Show some environment variables that Rust can see
-    eprintln!(
-        "[RUST DEBUG] Environment check: PRINTERS_JS_SIMULATE='{}'",
-        simulate_env
-    );
-    eprintln!(
-        "[RUST DEBUG] should_simulate_printing()={}",
-        crate::core::should_simulate_printing()
-    );
-    eprintln!(
-        "[RUST DEBUG] PATH exists: {}",
-        std::env::var("PATH").is_ok()
-    );
-    eprintln!(
-        "[RUST DEBUG] HOME exists: {}",
-        std::env::var("HOME").is_ok()
-    );
-
-    // Show all environment variables containing "PRINTERS"
-    for (key, value) in std::env::vars() {
-        if key.contains("PRINTERS") || key.contains("SIMULATE") {
-            eprintln!("[RUST DEBUG] Found env var: {}={}", key, value);
-        }
-    }
-
     let names = PrinterCore::get_all_printer_names();
-
-    eprintln!(
-        "[RUST DEBUG] get_all_printer_names() returned {} items: {:?}",
-        names.len(),
-        names
-    );
 
     match serde_json::to_string(&names) {
         Ok(json) => string_to_c_string(json),
