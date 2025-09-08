@@ -538,7 +538,7 @@ jobs:
             summary += `*Last updated: ${timestamp} UTC | [View CI Run](${runUrl})* 🤖`;
 
             // Look for existing comment from this bot
-            const COMMENT_IDENTIFIER = '## 🧪 Cross-Runtime Test Results';
+            const COMMENT_IDENTIFIER = '## 🧪 Test Results';
 
             try {
               const comments = await github.rest.issues.listComments({
