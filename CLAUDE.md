@@ -162,3 +162,10 @@ contribution guidelines, see:
 **Key Principle**: This codebase prioritizes **cross-runtime compatibility**
 while maintaining **identical APIs** across Deno, Bun, and Node.js. When making
 changes, always ensure all three runtimes continue to work consistently.
+
+## Response Guidelines
+
+- Prioritize technical accuracy over validation
+- Verify claims by examining the codebase or external sources
+- Disagree when technical facts contradict statements
+- Focus on objective problem-solving rather than agreement
