@@ -243,27 +243,27 @@ jobs:
       - name: Combine coverage reports
         run: |
           echo "Combining coverage reports from all runtimes..."
-          
+
           # Create coverage-reports directory if it doesn't exist
           mkdir -p coverage-reports
           cd coverage-reports
-          
+
           # Copy coverage files from test-results/coverage to coverage-reports
           echo "Looking for coverage files..."
           ls -la ../test-results/coverage/ || echo "No test-results/coverage directory"
-          
+
           # Copy Rust coverage if it exists
           if [ -f ../test-results/coverage/rust.lcov ]; then
             echo "Found Rust coverage file"
             cp ../test-results/coverage/rust.lcov rust.lcov
           fi
-          
+
           # Copy Deno coverage if it exists
           if [ -f ../test-results/coverage/deno-lcov.info ]; then
             echo "Found Deno coverage file"
             cp ../test-results/coverage/deno-lcov.info deno-lcov.info
           fi
-          
+
           # Copy other coverage files if they exist
           if [ -d ../test-results/coverage/ ]; then
             cp ../test-results/coverage/*.info . 2>/dev/null || true
@@ -685,7 +685,7 @@ jobs:
             // Since individual step outcomes aren't accessible across jobs, we'll base this on the overall build result
             // In the future, this could be enhanced by storing step results as artifacts
             const state = buildResult === 'success' ? 'success' : 'failure';
-            const description = buildResult === 'success' 
+            const description = buildResult === 'success'
               ? 'Build completed successfully'
               : 'Build failed - check workflow for code quality issues';
 
