@@ -114,6 +114,7 @@ function isErrorCode(result: number): boolean {
 }
 
 // Load the dynamic library
+// deno-lint-ignore no-explicit-any
 let lib: Deno.DynamicLibrary<any>;
 try {
   lib = Deno.dlopen(libPath, {

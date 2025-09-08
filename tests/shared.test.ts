@@ -9,6 +9,7 @@
 import { test } from "@cross/test";
 
 // Always use the universal entrypoint for consistency
+// deno-lint-ignore no-explicit-any
 let printerAPI: any;
 try {
   printerAPI = await import("../index.ts");
