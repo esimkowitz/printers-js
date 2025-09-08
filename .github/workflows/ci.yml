@@ -645,9 +645,13 @@ jobs:
             // Check test results for each runtime
             const results = {};
 
-            // Check Deno results
-            if (fs.existsSync('test-reports/deno-test-results.xml')) {
-              const xml = fs.readFileSync('test-reports/deno-test-results.xml', 'utf8');
+            // Debug: List all available files
+            console.log('Available files in current directory:');
+            console.log(fs.readdirSync('.').filter(f => f.endsWith('.xml')));
+
+            // Check Deno results (files are flattened after artifact download)
+            if (fs.existsSync('deno-test-results.xml')) {
+              const xml = fs.readFileSync('deno-test-results.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.deno = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             } else {
@@ -655,8 +659,8 @@ jobs:
             }
 
             // Check Bun results
-            if (fs.existsSync('test-reports/bun-test-results.xml')) {
-              const xml = fs.readFileSync('test-reports/bun-test-results.xml', 'utf8');
+            if (fs.existsSync('bun-test-results.xml')) {
+              const xml = fs.readFileSync('bun-test-results.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.bun = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             } else {
@@ -664,8 +668,8 @@ jobs:
             }
 
             // Check Node.js results
-            if (fs.existsSync('test-reports/node-test-results.xml')) {
-              const xml = fs.readFileSync('test-reports/node-test-results.xml', 'utf8');
+            if (fs.existsSync('node-test-results.xml')) {
+              const xml = fs.readFileSync('node-test-results.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.node = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             } else {
@@ -674,8 +678,8 @@ jobs:
 
             // Rust tests are optional since there are no unit tests defined
             results.rust = { success: true, total: 0, errors: 0, failures: 0, passed: 0 };
-            if (fs.existsSync('test-reports/cargo.xml')) {
-              const xml = fs.readFileSync('test-reports/cargo.xml', 'utf8');
+            if (fs.existsSync('cargo.xml')) {
+              const xml = fs.readFileSync('cargo.xml', 'utf8');
               const parsed = parseJUnit(xml);
               results.rust = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             }
