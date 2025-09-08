@@ -39,6 +39,23 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
     }
 }
 
+/// Force simulation mode on (for when environment variables don't work)
+/// This sets an environment variable that the Rust code can read
+#[no_mangle]
+pub unsafe extern "C" fn force_simulation_mode(enabled: i32) {
+    eprintln!(
+        "[RUST DEBUG] force_simulation_mode called with: {}",
+        enabled
+    );
+    if enabled != 0 {
+        std::env::set_var("PRINTERS_JS_SIMULATE", "true");
+        eprintln!("[RUST DEBUG] Set PRINTERS_JS_SIMULATE=true via force_simulation_mode");
+    } else {
+        std::env::set_var("PRINTERS_JS_SIMULATE", "false");
+        eprintln!("[RUST DEBUG] Set PRINTERS_JS_SIMULATE=false via force_simulation_mode");
+    }
+}
+
 /// Find a printer by name and return its JSON representation
 ///
 /// # Safety
@@ -82,7 +99,42 @@ pub unsafe extern "C" fn printer_exists(name: *const c_char) -> i32 {
 /// This function is safe to call but returns a pointer that must be freed with free_string.
 #[no_mangle]
 pub unsafe extern "C" fn get_all_printer_names() -> *mut c_char {
+    // Debug logging for CI troubleshooting
+    let simulate_env = std::env::var("PRINTERS_JS_SIMULATE").unwrap_or_default();
+
+    // Debug: Show some environment variables that Rust can see
+    eprintln!(
+        "[RUST DEBUG] Environment check: PRINTERS_JS_SIMULATE='{}'",
+        simulate_env
+    );
+    eprintln!(
+        "[RUST DEBUG] should_simulate_printing()={}",
+        crate::core::should_simulate_printing()
+    );
+    eprintln!(
+        "[RUST DEBUG] PATH exists: {}",
+        std::env::var("PATH").is_ok()
+    );
+    eprintln!(
+        "[RUST DEBUG] HOME exists: {}",
+        std::env::var("HOME").is_ok()
+    );
+
+    // Show all environment variables containing "PRINTERS"
+    for (key, value) in std::env::vars() {
+        if key.contains("PRINTERS") || key.contains("SIMULATE") {
+            eprintln!("[RUST DEBUG] Found env var: {}={}", key, value);
+        }
+    }
+
     let names = PrinterCore::get_all_printer_names();
+
+    eprintln!(
+        "[RUST DEBUG] get_all_printer_names() returned {} items: {:?}",
+        names.len(),
+        names
+    );
+
     match serde_json::to_string(&names) {
         Ok(json) => string_to_c_string(json),
         Err(_) => std::ptr::null_mut(),
