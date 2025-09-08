@@ -46,19 +46,20 @@ RUN useradd -m -s /bin/zsh vscode \
     && usermod -aG sudo vscode \
     && echo 'vscode ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Install Deno
-RUN curl -fsSL https://deno.land/install.sh | sh \
-    && mv /root/.deno/bin/deno /usr/local/bin/deno \
-    && chmod +x /usr/local/bin/deno
+# Install Rust (stable)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && . /root/.cargo/env \
+    && rustup default stable \
+    && rustup component add clippy rustfmt
 
-# Install Bun
+# Install Deno (latest stable)
+ENV DENO_INSTALL=/usr/local
+RUN curl -fsSL https://deno.land/install.sh | sh
+
+# Install Bun (latest stable)
 RUN curl -fsSL https://bun.sh/install | bash \
     && mv /root/.bun/bin/bun /usr/local/bin/bun \
     && chmod +x /usr/local/bin/bun
-
-# Install nektos/act for local CI testing
-RUN curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash \
-    && mv ./bin/act /usr/local/bin/act
 
 # Set up CUPS for container environment
 RUN sed -i 's/Listen localhost:631/Listen 0.0.0.0:631/' /etc/cups/cupsd.conf \

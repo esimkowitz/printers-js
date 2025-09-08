@@ -102,7 +102,7 @@
     "coverage/",
     "tests/node-test-runner.ts"
   ],
-  "nodeModulesDir": "none",
+  "nodeModulesDir": "auto",
   "compilerOptions": {
     "lib": ["deno.window", "deno.unstable"],
     "strict": true
