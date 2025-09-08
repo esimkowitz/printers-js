@@ -360,27 +360,92 @@ mod tests {
 
     #[test]
     fn test_get_all_printer_names_in_simulation_mode() {
+        // Ensure clean environment state
+        env::remove_var("PRINTERS_JS_SIMULATE");
         env::set_var("PRINTERS_JS_SIMULATE", "true");
+
+        // Give a moment for environment variable to propagate
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        // Debug: verify the environment is set up correctly
+        assert!(
+            should_simulate_printing(),
+            "Simulation mode should be enabled. Env var: {:?}",
+            env::var("PRINTERS_JS_SIMULATE")
+        );
+
         let names = PrinterCore::get_all_printer_names();
-        assert_eq!(names, vec!["Mock Printer", "Test Printer"]);
+        assert_eq!(
+            names,
+            vec!["Mock Printer", "Test Printer"],
+            "Should return mock printer names in simulation mode. Simulation mode: {}",
+            should_simulate_printing()
+        );
     }
 
     #[test]
     fn test_printer_exists_in_simulation_mode() {
+        // Ensure clean environment state
+        env::remove_var("PRINTERS_JS_SIMULATE");
         env::set_var("PRINTERS_JS_SIMULATE", "true");
-        assert!(PrinterCore::printer_exists("Mock Printer"));
-        assert!(PrinterCore::printer_exists("Test Printer"));
-        assert!(!PrinterCore::printer_exists("NonExistent Printer"));
+
+        // Give a moment for environment variable to propagate
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        // Debug: verify the environment is set up correctly
+        assert!(
+            should_simulate_printing(),
+            "Simulation mode should be enabled. Env var: {:?}",
+            env::var("PRINTERS_JS_SIMULATE")
+        );
+
+        // Test that mock printers exist in simulation mode
+        assert!(
+            PrinterCore::printer_exists("Mock Printer"),
+            "Mock Printer should exist in simulation mode. Simulation mode: {}",
+            should_simulate_printing()
+        );
+        assert!(
+            PrinterCore::printer_exists("Test Printer"),
+            "Test Printer should exist in simulation mode. Simulation mode: {}",
+            should_simulate_printing()
+        );
+        assert!(
+            !PrinterCore::printer_exists("NonExistent Printer"),
+            "NonExistent Printer should not exist. Simulation mode: {}",
+            should_simulate_printing()
+        );
     }
 
     #[test]
     fn test_find_printer_by_name_in_simulation_mode() {
+        // Ensure clean environment state
+        env::remove_var("PRINTERS_JS_SIMULATE");
         env::set_var("PRINTERS_JS_SIMULATE", "true");
+
+        // Give a moment for environment variable to propagate
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        // Debug: verify the environment is set up correctly
+        assert!(
+            should_simulate_printing(),
+            "Simulation mode should be enabled. Env var: {:?}",
+            env::var("PRINTERS_JS_SIMULATE")
+        );
+
         let printer = PrinterCore::find_printer_by_name("Mock Printer");
-        assert!(printer.is_some());
+        assert!(
+            printer.is_some(),
+            "Mock Printer should be found in simulation mode. Simulation mode: {}",
+            should_simulate_printing()
+        );
 
         let printer = PrinterCore::find_printer_by_name("NonExistent Printer");
-        assert!(printer.is_none());
+        assert!(
+            printer.is_none(),
+            "NonExistent Printer should not be found. Simulation mode: {}",
+            should_simulate_printing()
+        );
     }
 
     #[test]
