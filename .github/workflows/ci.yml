@@ -262,8 +262,8 @@ jobs:
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup LCOV
-        uses: hrishikesh-kadam/setup-lcov@v1
+      # - name: Setup LCOV
+      #   uses: hrishikesh-kadam/setup-lcov@v1
 
       # Create combined coverage report from all runtimes
       - name: Combine coverage reports
