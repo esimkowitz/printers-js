@@ -418,10 +418,10 @@ jobs:
             const bunCoverage = fs.existsSync('coverage-reports/bun-lcov.info') ? 'LCOV available' : 'No coverage';
             const nodeCoverage = fs.existsSync('coverage-reports/node-lcov.info') ? 'LCOV available' : 'No coverage';
 
-            summary += `| 🦕 **Deno** | ${denoResult.status} FFI | ${denoResult.text} | ${denoCoverage} |\n`;
-            summary += `| 🦀 **Rust Core** | ${rustResult.status} Native | ${rustResult.text} | ${rustCoverage} |\n`;
-            summary += `| 🥟 **Bun** | ${bunResult.status} FFI | ${bunResult.text} | ${bunCoverage} |\n`;
-            summary += `| 🟢 **Node.js** | ${nodeResult.status} N-API+tsx | ${nodeResult.text} | ${nodeCoverage} |\n\n`;
+            summary += `| 🦕 **Deno** | ${denoResult.status} | ${denoResult.text} | ${denoCoverage} |\n`;
+            summary += `| 🦀 **Rust** | ${rustResult.status} | ${rustResult.text} | ${rustCoverage} |\n`;
+            summary += `| 🥟 **Bun** | ${bunResult.status} | ${bunResult.text} | ${bunCoverage} |\n`;
+            summary += `| 🟢 **Node.js** | ${nodeResult.status} | ${nodeResult.text} | ${nodeCoverage} |\n\n`;
 
             // List available artifacts
             summary += `### 📊 Test Artifacts Generated\n\n`;
@@ -435,13 +435,6 @@ jobs:
             if (coverageFiles.length > 0) {
               summary += `**Coverage Reports**: ${coverageFiles.join(', ')}\n\n`;
             }
-
-            summary += `### 🔧 Architecture\n\n`;
-            summary += `- **Universal Entry Point**: \`index.ts\` auto-detects runtime and loads appropriate implementation\n`;
-            summary += `- **Deno & Bun**: Use FFI → Rust native library (deno.ts, bun.ts)\n`;
-            summary += `- **Node.js**: Uses N-API bindings via TypeScript wrapper (node.ts)\n`;
-            summary += `- **Shared Tests**: Single test suite (\`shared.test.ts\`) runs on all runtimes via index.ts\n`;
-            summary += `- **Cross-Platform Scripts**: All build/test scripts are Deno TypeScript for consistency\n\n`;
 
             // Overall status
             const overallSuccess = denoResult.status === '✅' && rustResult.status === '✅' && bunResult.status === '✅' && nodeResult.status === '✅';

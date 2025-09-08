@@ -54,6 +54,13 @@ const cleanDir = Deno.build.os === "windows" && currentDir.startsWith("/")
 
 const libPath = join(cleanDir, "target", "release", getLibraryName());
 
+// Debug logging for CI troubleshooting
+if (Deno.env.get("PRINTERS_JS_SIMULATE") === "true") {
+  console.log(`[DEBUG] Loading FFI library from: ${libPath}`);
+  console.log(`[DEBUG] Current working directory: ${Deno.cwd()}`);
+  console.log(`[DEBUG] Expected library name: ${getLibraryName()}`);
+}
+
 // FFI Utilities
 function toCString(str: string): Uint8Array {
   const encoder = new TextEncoder();
@@ -107,7 +114,10 @@ function isErrorCode(result: number): boolean {
 }
 
 // Load the dynamic library
-const lib = Deno.dlopen(libPath, {
+// deno-lint-ignore no-explicit-any
+let lib: Deno.DynamicLibrary<any>;
+try {
+  lib = Deno.dlopen(libPath, {
   find_printer_by_name: {
     parameters: ["pointer"],
     result: "pointer",
@@ -205,7 +215,19 @@ const lib = Deno.dlopen(libPath, {
     parameters: [],
     result: "void",
   },
-});
+  });
+} catch (error) {
+  console.error(`Failed to load FFI library at ${libPath}:`, error);
+  try {
+    const stats = Deno.statSync(libPath);
+    console.error(`Library exists: true (size: ${stats.size} bytes)`);
+  } catch {
+    console.error(`Library exists: false`);
+  }
+  console.error(`Current working directory: ${Deno.cwd()}`);
+  console.error(`Expected library path: ${libPath}`);
+  throw new Error(`FFI library loading failed: ${error}`);
+}
 
 /**
  * Shutdown the library and cleanup all background threads
