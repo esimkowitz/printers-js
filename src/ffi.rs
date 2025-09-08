@@ -84,13 +84,20 @@ pub unsafe extern "C" fn printer_exists(name: *const c_char) -> i32 {
 pub unsafe extern "C" fn get_all_printer_names() -> *mut c_char {
     // Debug logging for CI troubleshooting
     let simulate_env = std::env::var("PRINTERS_JS_SIMULATE").unwrap_or_default();
-    eprintln!("[RUST DEBUG] Environment check: PRINTERS_JS_SIMULATE='{}', should_simulate_printing()={}", 
-              simulate_env, crate::core::should_simulate_printing());
-    
+    eprintln!(
+        "[RUST DEBUG] Environment check: PRINTERS_JS_SIMULATE='{}', should_simulate_printing()={}",
+        simulate_env,
+        crate::core::should_simulate_printing()
+    );
+
     let names = PrinterCore::get_all_printer_names();
-    
-    eprintln!("[RUST DEBUG] get_all_printer_names() returned {} items: {:?}", names.len(), names);
-    
+
+    eprintln!(
+        "[RUST DEBUG] get_all_printer_names() returned {} items: {:?}",
+        names.len(),
+        names
+    );
+
     match serde_json::to_string(&names) {
         Ok(json) => string_to_c_string(json),
         Err(_) => std::ptr::null_mut(),
