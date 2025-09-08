@@ -8,10 +8,6 @@
 A cross-runtime printer library that works seamlessly across **Deno**, **Bun**,
 and **Node.js**.
 
-> **CI Status**: The build badge above shows the overall CI pipeline status.
-> Pull requests include detailed status checks for "Cross-Runtime Tests" and
-> "Code Quality" with comprehensive coverage reporting.
-
 ## Features
 
 - 🔄 **Cross-runtime compatibility** - Single API that works in Deno, Bun, and
