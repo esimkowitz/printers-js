@@ -136,7 +136,9 @@ test(`${runtimeName}: should return typed printer instances from getAllPrinters`
   for (const printer of printers) {
     // Check that printer has the expected interface properties
     if (!printer.name || typeof printer.getName !== "function") {
-      throw new Error("Each printer should have the expected Printer interface");
+      throw new Error(
+        "Each printer should have the expected Printer interface",
+      );
     }
   }
 });

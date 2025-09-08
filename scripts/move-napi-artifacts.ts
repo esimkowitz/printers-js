@@ -30,7 +30,11 @@ for (const file of filesToMove) {
       await Deno.rename(sourcePath, destPath);
       console.log(`Moved ${file} to napi/`);
     } catch (err) {
-      console.error(`Failed to move ${file}: ${err instanceof Error ? err.message : String(err)}`);
+      console.error(
+        `Failed to move ${file}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   } catch {
     // File doesn't exist, skip silently
@@ -46,5 +50,9 @@ try {
     }
   }
 } catch (err) {
-  console.error(`Failed to read napi directory: ${err instanceof Error ? err.message : String(err)}`);
+  console.error(
+    `Failed to read napi directory: ${
+      err instanceof Error ? err.message : String(err)
+    }`,
+  );
 }
