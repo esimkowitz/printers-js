@@ -287,15 +287,8 @@ jobs:
 
       - name: Organize binaries
         run: |
-          mkdir -p target/release
           mkdir -p napi
-
-          # Copy FFI binaries for Deno/Bun
-          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
-          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so
-          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll
-          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
-          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
+          mkdir -p target/release
 
           # Copy N-API binaries for Node.js
           for dir in artifacts/bindings-*; do
@@ -304,10 +297,17 @@ jobs:
             fi
           done
 
-          echo "FFI binaries:"
-          ls -la target/release/
+          # Copy FFI binaries for potential Deno/Bun usage from Node package
+          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so 2>/dev/null || true
+          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so 2>/dev/null || true
+          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll 2>/dev/null || true
+          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll 2>/dev/null || true
+          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib 2>/dev/null || true
+
           echo "N-API binaries:"
           ls -la napi/
+          echo "FFI binaries:"
+          ls -la target/release/ || echo "No FFI binaries included"
 
       - name: Publish to JSR
         run: deno publish --allow-dirty --no-check
