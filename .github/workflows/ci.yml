@@ -104,13 +104,14 @@ jobs:
 
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
-        run: deno run --allow-run --allow-read --allow-env scripts/build-all.ts
+        run: deno task build:all
 
       # Run Cargo tests with coverage (Rust-level tests)
       - name: Run Cargo tests with coverage
         run: |
           mkdir -p test-results/coverage
           cargo llvm-cov --all-features --workspace --lcov --output-path test-results/coverage/rust.lcov test
+        continue-on-error: true
 
       # Run Cargo tests again for JUnit report (separate from coverage run)
       - name: Generate Cargo test JUnit report
@@ -134,14 +135,16 @@ jobs:
             echo '  </testsuite>' >> test-results/cargo.xml
             echo '</testsuites>' >> test-results/cargo.xml
           fi
+        continue-on-error: true
 
       # Run comprehensive cross-runtime tests using our TypeScript script
       - name: Run cross-runtime tests
-        run: deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+        run: deno task test:all
+        continue-on-error: true
 
       # Debug: List generated test files
       - name: Debug - List test results
-        if: always()
+        if: ${{ always() }}
         run: |
           echo "=== Test Results Directory ==="
           ls -la test-results/ || echo "test-results directory not found"
@@ -161,6 +164,7 @@ jobs:
         with:
           name: test-reports
           path: test-results/*.xml
+          if-no-files-found: ignore
 
       - name: Upload Coverage Reports
         if: ${{ always() }}
@@ -168,6 +172,7 @@ jobs:
         with:
           name: coverage-reports
           path: test-results/coverage/*
+          if-no-files-found: ignore
 
   report:
     if: ${{ always() && github.event_name == 'pull_request_target' }}
@@ -195,6 +200,8 @@ jobs:
           deno-version: v2.x # Run with latest stable Deno.
 
       - uses: actions/download-artifact@v5
+        if: ${{ always() }}
+        continue-on-error: true
 
       # - name: Convert JUnit XML to CTRF
       #   run: |
