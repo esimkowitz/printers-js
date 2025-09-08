@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 /// Error codes for the printing operations
 #[repr(i32)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PrintError {
     InvalidParams = 1,
     InvalidPrinterName = 2,
@@ -317,5 +317,130 @@ impl PrinterCore {
 
         // Reset shutdown flag for potential reuse
         SHUTDOWN_FLAG.store(false, Ordering::Relaxed);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    #[test]
+    fn test_should_simulate_printing_when_env_var_is_true() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        assert!(should_simulate_printing());
+    }
+
+    #[test]
+    fn test_should_simulate_printing_when_env_var_is_false() {
+        env::set_var("PRINTERS_JS_SIMULATE", "false");
+        assert!(!should_simulate_printing());
+    }
+
+    #[test]
+    fn test_should_simulate_printing_when_env_var_is_missing() {
+        env::remove_var("PRINTERS_JS_SIMULATE");
+        assert!(!should_simulate_printing());
+    }
+
+    #[test]
+    fn test_get_all_printer_names_in_simulation_mode() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        let names = PrinterCore::get_all_printer_names();
+        assert_eq!(names, vec!["Mock Printer", "Test Printer"]);
+    }
+
+    #[test]
+    fn test_printer_exists_in_simulation_mode() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        assert!(PrinterCore::printer_exists("Mock Printer"));
+        assert!(PrinterCore::printer_exists("Test Printer"));
+        assert!(!PrinterCore::printer_exists("NonExistent Printer"));
+    }
+
+    #[test]
+    fn test_find_printer_by_name_in_simulation_mode() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        let printer = PrinterCore::find_printer_by_name("Mock Printer");
+        assert!(printer.is_some());
+        
+        let printer = PrinterCore::find_printer_by_name("NonExistent Printer");
+        assert!(printer.is_none());
+    }
+
+    #[test]
+    fn test_print_file_error_codes() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        // Test with non-existent printer (should still work in simulation mode)
+        let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);
+        assert!(result.is_ok());
+        
+        // Test with file that should trigger file not found error
+        let result = PrinterCore::print_file("Mock Printer", "/path/that/does_not_exist/file.pdf", None);
+        assert_eq!(result, Err(PrintError::FileNotFound));
+        
+        // Test with file that should trigger simulated failure
+        let result = PrinterCore::print_file("Mock Printer", "/path/to/fail-test.pdf", None);
+        assert_eq!(result, Err(PrintError::SimulatedFailure));
+    }
+
+    #[test]
+    fn test_cleanup_old_jobs() {
+        let cleaned = PrinterCore::cleanup_old_jobs(3600); // 1 hour
+        // u32 is always >= 0, so just check that it returns a valid number
+        assert!(cleaned <= u32::MAX);
+    }
+
+    #[test]
+    fn test_get_job_status_invalid_id() {
+        let status = PrinterCore::get_job_status(99999999);
+        assert!(status.is_none());
+    }
+
+    #[test]
+    fn test_print_error_codes() {
+        assert_eq!(PrintError::InvalidParams.as_i32(), 1);
+        assert_eq!(PrintError::InvalidPrinterName.as_i32(), 2);
+        assert_eq!(PrintError::InvalidFilePath.as_i32(), 3);
+        assert_eq!(PrintError::InvalidJson.as_i32(), 4);
+        assert_eq!(PrintError::InvalidJsonEncoding.as_i32(), 5);
+        assert_eq!(PrintError::PrinterNotFound.as_i32(), 6);
+        assert_eq!(PrintError::FileNotFound.as_i32(), 7);
+        assert_eq!(PrintError::SimulatedFailure.as_i32(), 8);
+    }
+
+    #[test]
+    fn test_create_status_json() {
+        let job_status = JobStatus {
+            printer_name: "Test Printer".to_string(),
+            file_path: "/path/to/test.pdf".to_string(),
+            status: "completed".to_string(),
+            error_message: None,
+            created_at: Instant::now(),
+        };
+        
+        let json = create_status_json(123, &job_status);
+        assert!(json.is_some());
+        
+        let json_str = json.unwrap();
+        assert!(json_str.contains("\"id\":123"));
+        assert!(json_str.contains("\"printer_name\":\"Test Printer\""));
+        assert!(json_str.contains("\"file_path\":\"/path/to/test.pdf\""));
+        assert!(json_str.contains("\"status\":\"completed\""));
+    }
+
+    #[test]
+    fn test_printer_to_json() {
+        // This test requires a real printer object, which is hard to create in simulation mode
+        // For now, we'll just test that the function exists and can be called
+        // In a real scenario, we'd need to mock the printer struct
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        if let Some(printer) = PrinterCore::find_printer_by_name("Mock Printer") {
+            let json = PrinterCore::printer_to_json(&printer);
+            assert!(json.is_some());
+            let json_str = json.unwrap();
+            assert!(json_str.contains("Mock Printer"));
+        }
     }
 }

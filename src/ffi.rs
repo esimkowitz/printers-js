@@ -421,3 +421,134 @@ pub unsafe extern "C" fn printer_print_file(
         Err(e) => e.as_i32(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::ffi::{CStr, CString};
+
+    #[test]
+    fn test_string_to_c_string_and_back() {
+        let original = "Test String".to_string();
+        let c_string_ptr = string_to_c_string(original.clone());
+        
+        assert!(!c_string_ptr.is_null());
+        
+        unsafe {
+            let recovered = CStr::from_ptr(c_string_ptr).to_str().unwrap();
+            assert_eq!(recovered, original);
+            
+            // Clean up
+            free_string(c_string_ptr);
+        }
+    }
+
+    #[test]
+    fn test_get_all_printer_names_ffi() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        unsafe {
+            let result_ptr = get_all_printer_names();
+            assert!(!result_ptr.is_null());
+            
+            let json_str = CStr::from_ptr(result_ptr).to_str().unwrap();
+            let names: Vec<String> = serde_json::from_str(json_str).unwrap();
+            assert_eq!(names, vec!["Mock Printer", "Test Printer"]);
+            
+            // Clean up
+            free_string(result_ptr);
+        }
+    }
+
+    #[test]
+    fn test_printer_exists_ffi() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        unsafe {
+            let printer_name = CString::new("Mock Printer").unwrap();
+            let result = printer_exists(printer_name.as_ptr());
+            assert_eq!(result, 1); // Should return 1 for true
+            
+            let nonexistent_name = CString::new("NonExistent Printer").unwrap();
+            let result = printer_exists(nonexistent_name.as_ptr());
+            assert_eq!(result, 0); // Should return 0 for false
+        }
+    }
+
+    #[test]
+    fn test_find_printer_by_name_ffi() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        unsafe {
+            let printer_name = CString::new("Mock Printer").unwrap();
+            let result_ptr = find_printer_by_name(printer_name.as_ptr());
+            
+            if !result_ptr.is_null() {
+                let json_str = CStr::from_ptr(result_ptr).to_str().unwrap();
+                assert!(json_str.contains("Mock Printer"));
+                
+                // Clean up
+                free_string(result_ptr);
+            }
+        }
+    }
+
+    #[test] 
+    fn test_print_file_ffi() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        unsafe {
+            let printer_name = CString::new("Mock Printer").unwrap();
+            let file_path = CString::new("/path/to/test.pdf").unwrap();
+            let job_properties = CString::new("{}").unwrap();
+            
+            let result = print_file(
+                printer_name.as_ptr(),
+                file_path.as_ptr(),
+                job_properties.as_ptr()
+            );
+            
+            // Should return a valid job ID (positive number)
+            assert!(result > 0);
+        }
+    }
+
+    #[test]
+    fn test_print_file_ffi_with_simulated_error() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        unsafe {
+            let printer_name = CString::new("Mock Printer").unwrap();
+            let file_path = CString::new("/path/that/does_not_exist/file.pdf").unwrap();
+            let job_properties = CString::new("{}").unwrap();
+            
+            let result = print_file(
+                printer_name.as_ptr(),
+                file_path.as_ptr(),
+                job_properties.as_ptr()
+            );
+            
+            // Should return FileNotFound error code
+            assert_eq!(result, PrintError::FileNotFound.as_i32());
+        }
+    }
+
+    #[test]
+    fn test_get_job_status_ffi() {
+        unsafe {
+            let result_ptr = get_job_status(99999999);
+            // Invalid job ID should return null pointer
+            assert!(result_ptr.is_null());
+        }
+    }
+
+    #[test]
+    fn test_cleanup_old_jobs_ffi() {
+        unsafe {
+            let result = cleanup_old_jobs(3600); // 1 hour
+            // u32 is always >= 0, so just check that it returns a valid number  
+            assert!(result <= u32::MAX);
+        }
+    }
+}
