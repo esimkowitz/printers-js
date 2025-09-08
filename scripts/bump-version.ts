@@ -1,7 +1,7 @@
 #!/usr/bin/env deno run --allow-read --allow-write
 /**
  * Version bump utility script
- * Updates version in jsr.json, package.json, and Cargo.toml
+ * Updates version in deno.json, package.json, and Cargo.toml
  *
  * Usage:
  *   deno run --allow-read --allow-write scripts/bump-version.ts <type>
@@ -13,15 +13,15 @@ import { format, increment, parse } from "@std/semver";
 
 type BumpType = "major" | "minor" | "patch";
 
-async function updateJsrJson(newVersion: string): Promise<void> {
-  const jsrJsonPath = join(Deno.cwd(), "jsr.json");
-  const content = await Deno.readTextFile(jsrJsonPath);
+async function updateDenoJson(newVersion: string): Promise<void> {
+  const denoJsonPath = join(Deno.cwd(), "deno.json");
+  const content = await Deno.readTextFile(denoJsonPath);
   const config = JSON.parse(content);
 
   config.version = newVersion;
 
   await Deno.writeTextFile(
-    jsrJsonPath,
+    denoJsonPath,
     JSON.stringify(config, null, 2) + "\n",
   );
 }
@@ -52,8 +52,8 @@ async function updateCargoToml(newVersion: string): Promise<void> {
 }
 
 async function getCurrentVersion(): Promise<string> {
-  const jsrJsonPath = join(Deno.cwd(), "jsr.json");
-  const content = await Deno.readTextFile(jsrJsonPath);
+  const denoJsonPath = join(Deno.cwd(), "deno.json");
+  const content = await Deno.readTextFile(denoJsonPath);
   const config = JSON.parse(content);
   return config.version;
 }
@@ -113,7 +113,7 @@ async function main(): Promise<void> {
     if (isDryRun) {
       console.log("\n🔍 DRY RUN MODE - No files will be modified");
       console.log("\nFiles that would be updated:");
-      console.log("  - jsr.json");
+      console.log("  - deno.json");
       console.log("  - package.json");
       console.log("  - Cargo.toml");
       console.log(
@@ -121,8 +121,8 @@ async function main(): Promise<void> {
       );
     } else {
       // Update files
-      console.log("Updating jsr.json...");
-      await updateJsrJson(newVersionString);
+      console.log("Updating deno.json...");
+      await updateDenoJson(newVersionString);
 
       console.log("Updating package.json...");
       await updatePackageJson(newVersionString);

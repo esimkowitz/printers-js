@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "exports": {
     ".": "./index.ts",
@@ -102,7 +102,10 @@
   ],
   "nodeModulesDir": "auto",
   "compilerOptions": {
-    "lib": ["deno.window", "deno.unstable"],
+    "lib": [
+      "deno.window",
+      "deno.unstable"
+    ],
     "strict": true
   }
 }
