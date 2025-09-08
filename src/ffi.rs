@@ -41,6 +41,9 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
 
 /// Force simulation mode on (for when environment variables don't work)
 /// This sets an environment variable that the Rust code can read
+///
+/// # Safety
+/// This function is safe to call from any context as it only modifies environment variables.
 #[no_mangle]
 pub unsafe extern "C" fn force_simulation_mode(enabled: i32) {
     eprintln!(
