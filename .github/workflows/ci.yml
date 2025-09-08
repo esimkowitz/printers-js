@@ -112,12 +112,6 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      # Clean previous builds to ensure fresh library
-      - name: Clean previous builds
-        run: |
-          rm -rf target/release/
-          rm -rf napi/
-
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
         run: deno task build:all
@@ -136,50 +130,68 @@ jobs:
           cargo llvm-cov --all-features --workspace --lcov --output-path test-results/coverage/rust.lcov test
         continue-on-error: true
 
-      # Run Cargo tests again for JUnit report (separate from coverage run)
+      # Run Cargo tests and generate JUnit report
       - name: Generate Cargo test JUnit report
         run: |
           mkdir -p test-results
-          # Run cargo tests with JSON output and convert to JUnit
-          cargo test --all-features --workspace -- -Z unstable-options --format json --report-time 2>/dev/null | cargo2junit > test-results/cargo.xml || true
+          # Run cargo tests and capture output
+          cargo test --all-features --workspace > cargo_test_output.txt 2>&1 || true
 
-          # Fallback: If cargo2junit fails, run tests normally and create a simple JUnit file
-          if [ ! -s test-results/cargo.xml ]; then
-            echo "cargo2junit failed, generating fallback JUnit XML..."
-            cargo test --all-features --workspace > cargo_test_output.txt 2>&1
-            TEST_COUNT=$(grep -c "test result:" cargo_test_output.txt || echo "0")
-            PASSED=$(grep "test result: ok" cargo_test_output.txt | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
-            FAILED=$(grep "test result: FAILED" cargo_test_output.txt | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
+          # Parse the test results from cargo output
+          # Look for lines like "test result: ok. 16 passed; 0 failed; 0 ignored"
+          RESULT_LINE=$(grep "test result:" cargo_test_output.txt | head -1)
 
-            echo '<?xml version="1.0" encoding="UTF-8"?>' > test-results/cargo.xml
-            echo '<testsuites>' >> test-results/cargo.xml
-            echo "  <testsuite name=\"Rust Cargo Tests\" tests=\"${PASSED}\" failures=\"${FAILED}\" errors=\"0\">" >> test-results/cargo.xml
-            echo '    <testcase name="Cargo test suite" classname="cargo" />' >> test-results/cargo.xml
-            echo '  </testsuite>' >> test-results/cargo.xml
-            echo '</testsuites>' >> test-results/cargo.xml
+          if [ -n "$RESULT_LINE" ]; then
+            echo "Found test result line: $RESULT_LINE"
+
+            # Extract numbers using more robust parsing
+            PASSED=$(echo "$RESULT_LINE" | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
+            FAILED=$(echo "$RESULT_LINE" | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
+            IGNORED=$(echo "$RESULT_LINE" | grep -oE "[0-9]+ ignored" | grep -oE "[0-9]+" || echo "0")
+
+            # Calculate total tests
+            TOTAL=$((PASSED + FAILED + IGNORED))
+
+            echo "Parsed: Total=$TOTAL, Passed=$PASSED, Failed=$FAILED, Ignored=$IGNORED"
+          else
+            echo "No test result line found, using defaults"
+            TOTAL=0
+            PASSED=0
+            FAILED=0
+            IGNORED=0
           fi
+
+          # Generate JUnit XML
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > test-results/cargo.xml
+          echo '<testsuites>' >> test-results/cargo.xml
+          echo "  <testsuite name=\"Rust Cargo Tests\" tests=\"${TOTAL}\" failures=\"${FAILED}\" errors=\"0\" skipped=\"${IGNORED}\">" >> test-results/cargo.xml
+
+          # Add individual test cases from the output
+          grep "^test " cargo_test_output.txt | while IFS= read -r line; do
+            # Extract test name and status
+            TEST_NAME=$(echo "$line" | sed 's/test \(.*\) \.\.\. .*/\1/')
+            TEST_STATUS=$(echo "$line" | sed 's/.*\.\.\. \(.*\)/\1/')
+
+            if [ "$TEST_STATUS" = "ok" ]; then
+              echo "    <testcase name=\"${TEST_NAME}\" classname=\"cargo\" />" >> test-results/cargo.xml
+            elif [ "$TEST_STATUS" = "FAILED" ]; then
+              echo "    <testcase name=\"${TEST_NAME}\" classname=\"cargo\">" >> test-results/cargo.xml
+              echo "      <failure message=\"Test failed\" />" >> test-results/cargo.xml
+              echo "    </testcase>" >> test-results/cargo.xml
+            fi
+          done
+
+          echo '  </testsuite>' >> test-results/cargo.xml
+          echo '</testsuites>' >> test-results/cargo.xml
+
+          echo "Generated JUnit XML with $TOTAL tests"
+          cat test-results/cargo.xml
         continue-on-error: true
 
       # Run comprehensive cross-runtime tests using our TypeScript script
       - name: Run cross-runtime tests
         run: deno task test:all
         continue-on-error: true
-
-      # Debug: List generated test files
-      - name: Debug - List test results
-        if: ${{ always() }}
-        run: |
-          echo "=== Test Results Directory ==="
-          ls -la test-results/ || echo "test-results directory not found"
-          echo ""
-          echo "=== XML Files Content Preview ==="
-          for file in test-results/*.xml; do
-            if [ -f "$file" ]; then
-              echo "--- $file ---"
-              head -20 "$file"
-              echo ""
-            fi
-          done
 
       - name: Upload Test Reports
         if: ${{ always() }}
@@ -230,19 +242,6 @@ jobs:
           pattern: "*-reports"
           merge-multiple: true
 
-      # Debug: Show what files were actually downloaded
-      - name: Debug - List downloaded artifacts
-        if: ${{ always() }}
-        run: |
-          echo "=== Files in current directory after artifact download ==="
-          ls -la
-          echo ""
-          echo "=== XML test result files ==="
-          ls -la *.xml 2>/dev/null || echo "No XML files found"
-          echo ""
-          echo "=== Coverage files ==="
-          ls -la *.lcov *.info 2>/dev/null || echo "No coverage files found"
-
       # - name: Convert JUnit XML to CTRF
       #   run: |
       #     mkdir -p test-results/ctrf
@@ -269,55 +268,40 @@ jobs:
       # Create combined coverage report from all runtimes
       - name: Combine coverage reports
         run: |
-          echo "Combining coverage reports from all runtimes..."
-
-          # Create coverage-reports directory if it doesn't exist
-          mkdir -p coverage-reports
-          cd coverage-reports
-
           # Coverage files are flattened in current directory after artifact download
-          echo "Looking for coverage files in current directory..."
-          ls -la *.lcov *.info 2>/dev/null || echo "No coverage files found"
 
-          # Copy Rust coverage if it exists
+          # Create coverage-reports directory for organized output
+          mkdir -p coverage-reports
+
+          # Create combined report from files in current directory
           if [ -f rust.lcov ]; then
-            echo "Found Rust coverage file"
-            # File is already in correct location
-          fi
-
-          # Copy Deno coverage if it exists
-          if [ -f deno-lcov.info ]; then
-            echo "Found Deno coverage file"
-            # File is already in correct location
-          fi
-
-          # Copy other coverage files if they exist (already in current directory)
-          # Files are already flattened to current directory by artifact download
-
-          # Create individual reports and combined report
-          if [ -f rust.lcov ]; then
-            cp rust.lcov combined.lcov
+            cp rust.lcov coverage-reports/rust.lcov
+            cp rust.lcov coverage-reports/combined.lcov
           else
-            touch combined.lcov
+            touch coverage-reports/combined.lcov
           fi
 
           if [ -f deno-lcov.info ]; then
-            cat deno-lcov.info >> combined.lcov
+            cp deno-lcov.info coverage-reports/deno-lcov.info
+            cat deno-lcov.info >> coverage-reports/combined.lcov
           fi
 
-          # Note: Bun coverage is in different format, handled separately
-          echo "Coverage files available:"
-          ls -la
+          # Copy other coverage files to organized directory
+          if [ -f bun-lcov.info ]; then
+            cp bun-lcov.info coverage-reports/bun-lcov.info
+          fi
+
+          if [ -f node-lcov.info ]; then
+            cp node-lcov.info coverage-reports/node-lcov.info
+          fi
 
           # Clean up the combined coverage file to remove problematic entries
           # This filters out TLA:GNC lines which can cause genhtml errors
-          if [ -f combined.lcov ] && [ -s combined.lcov ]; then
-            echo "Cleaning combined coverage file..."
+          if [ -f coverage-reports/combined.lcov ] && [ -s coverage-reports/combined.lcov ]; then
+            cd coverage-reports
             grep -v "TLA:GNC" combined.lcov > combined_clean.lcov || cp combined.lcov combined_clean.lcov
             mv combined_clean.lcov combined.lcov
-            echo "Combined coverage file created with $(wc -l < combined.lcov) lines"
-          else
-            echo "No coverage data to combine"
+            cd ..
           fi
 
       # Report coverage for each runtime separately

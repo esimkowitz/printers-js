@@ -14,14 +14,14 @@ function getLibraryPath() {
   let libName;
   if (platform === "win32") {
     libName = arch === "arm64"
-      ? "deno_printers-arm64.dll"
-      : "deno_printers.dll";
+      ? "printers_js-arm64.dll"
+      : "printers_js.dll";
   } else if (platform === "darwin") {
-    libName = "libdeno_printers.dylib";
+    libName = "libprinters_js.dylib";
   } else if (platform === "linux") {
     libName = arch === "arm64"
-      ? "libdeno_printers-arm64.so"
-      : "libdeno_printers.so";
+      ? "libprinters_js-arm64.so"
+      : "libprinters_js.so";
   } else {
     throw new Error(`Unsupported platform: ${platform}-${arch}`);
   }
@@ -31,8 +31,23 @@ function getLibraryPath() {
 
 const libPath = getLibraryPath();
 
+// Check if library file exists
+try {
+  const fs = require('fs');
+  if (!fs.existsSync(libPath)) {
+    throw new Error(`Library file not found: ${libPath}`);
+  }
+} catch (e) {
+  if (e.message.includes('Library file not found')) {
+    throw e;
+  }
+  // File system error, continue with loading attempt
+}
+
 // Load the native library using Bun's FFI
-const lib = dlopen(libPath, {
+let lib;
+try {
+  lib = dlopen(libPath, {
   find_printer_by_name: {
     args: [FFIType.ptr],
     returns: FFIType.ptr,
@@ -129,7 +144,10 @@ const lib = dlopen(libPath, {
     args: [FFIType.ptr, FFIType.ptr, FFIType.ptr],
     returns: FFIType.i32,
   },
-});
+  });
+} catch (e) {
+  throw new Error(`Failed to load printer library from ${libPath}: ${e.message}`);
+}
 
 // Utility functions for C string conversion
 function cString(str) {

@@ -67,24 +67,24 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: libdeno_printers.so
-            release_name: libdeno_printers-linux-amd64.so
+            artifact_name: libprinters_js.so
+            release_name: libprinters_js-linux-amd64.so
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: libdeno_printers.so
-            release_name: libdeno_printers-linux-arm64.so
+            artifact_name: libprinters_js.so
+            release_name: libprinters_js-linux-arm64.so
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            artifact_name: deno_printers.dll
-            release_name: deno_printers-windows-amd64.dll
+            artifact_name: printers_js.dll
+            release_name: printers_js-windows-amd64.dll
           - target: aarch64-pc-windows-msvc
             os: windows-latest
-            artifact_name: deno_printers.dll
-            release_name: deno_printers-windows-arm64.dll
+            artifact_name: printers_js.dll
+            release_name: printers_js-windows-arm64.dll
           - target: aarch64-apple-darwin
             os: macos-latest
-            artifact_name: libdeno_printers.dylib
-            release_name: libdeno_printers-macos-arm64.dylib
+            artifact_name: libprinters_js.dylib
+            release_name: libprinters_js-macos-arm64.dylib
 
     steps:
       - uses: actions/checkout@v5
@@ -179,11 +179,11 @@ jobs:
           mkdir -p target/release
 
           # Copy and rename binaries with architecture suffixes
-          cp artifacts/x86_64-unknown-linux-gnu/libdeno_printers-linux-amd64.so target/release/libdeno_printers.so
-          cp artifacts/aarch64-unknown-linux-gnu/libdeno_printers-linux-arm64.so target/release/libdeno_printers-arm64.so
-          cp artifacts/x86_64-pc-windows-msvc/deno_printers-windows-amd64.dll target/release/deno_printers.dll
-          cp artifacts/aarch64-pc-windows-msvc/deno_printers-windows-arm64.dll target/release/deno_printers-arm64.dll
-          cp artifacts/aarch64-apple-darwin/libdeno_printers-macos-arm64.dylib target/release/libdeno_printers.dylib
+          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
+          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so
+          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll
+          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
+          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
           ls -la target/release/
 

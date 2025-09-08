@@ -253,13 +253,13 @@ PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/shared.test.ts
 
 ### FFI Binaries (Deno/Bun)
 
-| Platform | Architecture | Binary                      |
-| -------- | ------------ | --------------------------- |
-| Windows  | AMD64        | `deno_printers.dll`         |
-| Windows  | ARM64        | `deno_printers-arm64.dll`   |
-| Linux    | AMD64        | `libdeno_printers.so`       |
-| Linux    | ARM64        | `libdeno_printers-arm64.so` |
-| macOS    | ARM64        | `libdeno_printers.dylib`    |
+| Platform | Architecture | Binary                    |
+| -------- | ------------ | ------------------------- |
+| Windows  | AMD64        | `printers_js.dll`         |
+| Windows  | ARM64        | `printers_js-arm64.dll`   |
+| Linux    | AMD64        | `libprinters_js.so`       |
+| Linux    | ARM64        | `libprinters_js-arm64.so` |
+| macOS    | ARM64        | `libprinters_js.dylib`    |
 
 ### N-API Binaries (Node.js)
 

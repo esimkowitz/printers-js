@@ -41,7 +41,7 @@ All runtimes expose the same consistent API:
 ## Key Design Patterns
 
 - **Dual-Binary Architecture**:
-  - FFI binaries for Deno/Bun: `libdeno_printers.{dylib,so,dll}`
+  - FFI binaries for Deno/Bun: `libprinters_js.{dylib,so,dll}`
   - N-API binaries for Node.js: `printers.{platform}-{arch}.node`
 - **Runtime Detection**: Automatic JavaScript runtime detection with fallbacks
 - **Asynchronous Job Tracking**: Print jobs run in background threads with
@@ -58,7 +58,7 @@ All runtimes expose the same consistent API:
 ### **Deno** (`mod.ts`)
 
 - Uses `Deno.dlopen()` with FFI function signatures
-- Loads `libdeno_printers.dylib` (universal binary)
+- Loads `libprinters_js.dylib` (universal binary)
 - C string conversion via `CString` utility functions
 - Permissions required: `--allow-ffi --allow-env`
 
@@ -66,7 +66,7 @@ All runtimes expose the same consistent API:
 
 - Uses `dlopen()` from `bun:ffi` with similar signatures to Deno
 - CString handling via Bun's built-in `CString` class
-- Same binary as Deno: `libdeno_printers.dylib`
+- Same binary as Deno: `libprinters_js.dylib`
 - Supports simulation mode and all printer operations
 
 ### **Node.js** (`node.mjs` + `napi/`)
@@ -349,7 +349,7 @@ If you encounter segfaults in the future:
 │   ├── index.js       # Platform detection & loading
 │   └── *.node         # Platform-specific binaries
 └── target/release/    # FFI binaries
-    └── libdeno_printers.{dylib,so,dll}
+    └── libprinters_js.{dylib,so,dll}
 ```
 
 ## Known Issues
