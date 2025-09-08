@@ -4,7 +4,9 @@
  * Can be run directly or imported by runtime-specific test files
  */
 
-// deno-lint-ignore-file no-process-global
+// Declare process as an ambient variable for runtime detection (may be undefined)
+// deno-lint-ignore no-explicit-any no-var
+declare var process: any;
 
 import { test } from "@cross/test";
 
@@ -29,6 +31,7 @@ if (typeof Deno !== "undefined") {
     // Ensure simulation mode is enabled for safe testing in Deno
     Deno.env.set("PRINTERS_JS_SIMULATE", "true");
   }
+  // @ts-ignore - Bun provides Bun global
 } else if (typeof Bun !== "undefined") {
   runtimeName = "Bun";
   // Ensure simulation mode is enabled for safe testing in Bun
@@ -73,11 +76,15 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
   console.log(
     `Debug: Runtime=${runtimeName}, isSimulationMode=${isSimulationMode}, printerNames.length=${printerNames.length}`,
   );
+
+  // @ts-ignore: process may not be defined in all runtimes
   console.log(
     `Debug: PRINTERS_JS_SIMULATE environment variable:`,
     typeof Deno !== "undefined"
       ? Deno.env.get("PRINTERS_JS_SIMULATE")
+      // @ts-ignore: process may not be defined in all runtimes
       : typeof process !== "undefined"
+      // @ts-ignore: process may not be defined in all runtimes
       ? process?.env?.PRINTERS_JS_SIMULATE
       : "unknown",
   );
@@ -247,7 +254,7 @@ test(`${runtimeName}: should reflect environment in isSimulationMode`, () => {
   if (typeof Deno !== "undefined") {
     envSimulate = Deno.env.get("PRINTERS_JS_SIMULATE") === "true";
   } else {
-    // @ts-ignore - Node.js/Bun provide process global
+    // @ts-ignore - process may not be defined in all runtimes
     envSimulate = typeof process !== "undefined" &&
       process.env.PRINTERS_JS_SIMULATE === "true";
   }

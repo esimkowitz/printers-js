@@ -172,6 +172,7 @@ const isSimulationMode = process.env.PRINTERS_JS_SIMULATE === "true";
 
 // Printer class
 class Printer {
+  [x: string]: any;
   constructor(printerPtr) {
     if (!printerPtr) {
       throw new Error("Invalid printer pointer");
@@ -276,7 +277,7 @@ class Printer {
     this._checkDisposed();
     if (isSimulationMode) return ["none"];
     const reasonsStr = readCString(
-      lib.symbols.printer_get_state_reasons(this._ptr),
+      lib.symbols.printer_get_state_reasons(this._ptr)
     );
     try {
       return JSON.parse(reasonsStr);
@@ -320,15 +321,18 @@ class Printer {
       if (Object.keys(jobProperties).length > 0) {
         console.log(`[SIMULATION] Job properties:`, jobProperties);
       }
-      
+
       // Simulate errors for specific test filenames
       if (filePath.includes("fail-test")) {
         throw new Error("Simulated failure for testing");
       }
-      if (filePath.includes("nonexistent") || filePath.includes("does_not_exist")) {
+      if (
+        filePath.includes("nonexistent") ||
+        filePath.includes("does_not_exist")
+      ) {
         throw new Error("File not found");
       }
-      
+
       return;
     }
 
@@ -336,11 +340,11 @@ class Printer {
     const jobPropsStr = JSON.stringify(jobProperties);
     const jobPropsPtr = cString(jobPropsStr);
 
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const jobId = lib.symbols.printer_print_file(
         this._ptr,
         filePathPtr,
-        jobPropsPtr,
+        jobPropsPtr
       );
 
       if (jobId < 0) {

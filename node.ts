@@ -41,6 +41,7 @@ if (isSimulationMode) {
 
 // Wrapper class that provides the same API as the Deno Printer class
 class PrinterWrapper {
+  [x: string]: any;
   constructor(nativePrinter) {
     this._native = nativePrinter;
   }

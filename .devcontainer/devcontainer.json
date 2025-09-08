@@ -20,12 +20,6 @@
     "ghcr.io/devcontainers/features/rust:1": {
       "version": "latest",
       "profile": "default"
-    },
-    "ghcr.io/devcontainers-contrib/features/deno:1": {
-      "version": "latest"
-    },
-    "ghcr.io/devcontainers-contrib/features/bun:2": {
-      "version": "latest"
     }
   },
 
@@ -44,7 +38,6 @@
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
         "deno.enable": true,
-        "deno.unstable": true,
         "deno.config": "./deno.json",
         "eslint.enable": true,
         "eslint.workingDirectories": ["."],

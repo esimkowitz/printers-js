@@ -42,6 +42,10 @@
   "imports": {
     "#cross/test": "jsr:@cross/test@0.0.10"
   },
+  "dependencies": {
+    "@types/bun": "^1.2.21",
+    "@types/node": "^24.3.1"
+  },
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
     "@napi-rs/cli": "^3.1.5",
