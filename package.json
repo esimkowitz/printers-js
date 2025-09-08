@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
-    "@napi-rs/cli": "^2.18.4",
+    "@napi-rs/cli": "^3.1.5",
     "@std/assert": "npm:@jsr/std__assert@^1.0.14",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
