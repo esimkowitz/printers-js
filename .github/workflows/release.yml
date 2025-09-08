@@ -196,6 +196,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Speed up apt-get operations by disabling unnecessary man-db auto-update
+      - name: Disable man-db auto-update
+        if: runner.os == 'Linux'
+        run: |
+          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+
       - name: Setup node
         uses: actions/setup-node@v5
         with:
