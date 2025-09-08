@@ -107,11 +107,6 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         if: runner.os == 'Linux'
@@ -172,53 +167,6 @@ jobs:
           name: ${{ matrix.target }}
           path: artifacts/*
 
-  publish-jsr:
-    name: Publish to JSR
-    runs-on: ubuntu-latest
-    needs: [build-native, build-napi]
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: artifacts
-
-      - name: Organize binaries
-        run: |
-          mkdir -p target/release
-          mkdir -p napi
-
-          # Copy FFI binaries for Deno/Bun
-          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
-          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so
-          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll
-          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
-          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
-
-          # Copy N-API binaries for Node.js
-          for dir in artifacts/bindings-*; do
-            if [ -d "$dir" ]; then
-              cp "$dir"/*.node napi/ 2>/dev/null || true
-            fi
-          done
-
-          echo "FFI binaries:"
-          ls -la target/release/
-          echo "N-API binaries:"
-          ls -la napi/
-
-      - name: Publish to JSR
-        run: deno publish --allow-dirty
-
   build-napi:
     name: Build N-API modules
     runs-on: ${{ matrix.settings.host }}
@@ -253,6 +201,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -304,6 +257,53 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: napi/*.node
           if-no-files-found: error
+
+  publish-jsr:
+    name: Publish to JSR
+    runs-on: ubuntu-latest
+    needs: [build-native, build-napi]
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Organize binaries
+        run: |
+          mkdir -p target/release
+          mkdir -p napi
+
+          # Copy FFI binaries for Deno/Bun
+          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
+          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so
+          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll
+          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
+          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
+
+          # Copy N-API binaries for Node.js
+          for dir in artifacts/bindings-*; do
+            if [ -d "$dir" ]; then
+              cp "$dir"/*.node napi/ 2>/dev/null || true
+            fi
+          done
+
+          echo "FFI binaries:"
+          ls -la target/release/
+          echo "N-API binaries:"
+          ls -la napi/
+
+      - name: Publish to JSR
+        run: deno publish --allow-dirty
 
   publish-npm:
     name: Publish to NPM
