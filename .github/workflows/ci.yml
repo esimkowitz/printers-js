@@ -82,25 +82,35 @@ jobs:
         with:
           bun-version: latest
 
-      # Code quality checks
+      # Code quality checks (continue on error to gather all results)
       - name: Check Rust formatting
+        id: rust-fmt
         run: cargo fmt --check
+        continue-on-error: true
 
       - name: Run Rust linter (Clippy)
+        id: rust-lint
         run: cargo clippy -- -D warnings
+        continue-on-error: true
 
       - name: Check Deno formatting
+        id: deno-fmt
         run: deno task fmt
+        continue-on-error: true
 
       - name: Run Deno linter
+        id: deno-lint
         run: deno task lint
+        continue-on-error: true
 
       # Install Node.js dependencies
       - name: Install Node.js dependencies
         run: npm install
 
       - name: Run ESLint for non-Deno files
+        id: eslint
         run: npm run lint
+        continue-on-error: true
 
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
@@ -623,4 +633,69 @@ jobs:
             // Also fail the job if tests failed so the workflow shows failure
             if (!overallSuccess) {
               core.setFailed(`Cross-runtime tests failed: ${description}`);
+            }
+
+      # Create code quality status check
+      - name: Create code quality status check
+        if: ${{ always() }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Check code quality step results
+            const steps = context.payload.workflow_run?.jobs?.[0]?.steps || [];
+            
+            // Get step outcomes from the build job
+            const buildJob = context.payload.workflow_run?.jobs?.find(job => job.name === 'build');
+            
+            // Check each linting/formatting step result
+            const rustFmt = '${{ steps.rust-fmt.outcome }}';
+            const rustLint = '${{ steps.rust-lint.outcome }}';
+            const denoFmt = '${{ steps.deno-fmt.outcome }}';
+            const denoLint = '${{ steps.deno-lint.outcome }}';
+            const eslint = '${{ steps.eslint.outcome }}';
+            
+            console.log('Code Quality Step Results:');
+            console.log(`- Rust formatting: ${rustFmt}`);
+            console.log(`- Rust linter (Clippy): ${rustLint}`);
+            console.log(`- Deno formatting: ${denoFmt}`);
+            console.log(`- Deno linter: ${denoLint}`);
+            console.log(`- ESLint: ${eslint}`);
+            
+            // Count failures
+            const checks = [
+              { name: 'Rust formatting', result: rustFmt },
+              { name: 'Rust linter', result: rustLint },
+              { name: 'Deno formatting', result: denoFmt },
+              { name: 'Deno linter', result: denoLint },
+              { name: 'ESLint', result: eslint }
+            ];
+            
+            const failed = checks.filter(check => check.result === 'failure');
+            const passed = checks.filter(check => check.result === 'success');
+            const skipped = checks.filter(check => check.result === 'skipped');
+            
+            const allPassed = failed.length === 0;
+            const state = allPassed ? 'success' : 'failure';
+            
+            let description;
+            if (allPassed) {
+              description = `All code quality checks passed (${passed.length}/${checks.length})`;
+            } else {
+              const failedNames = failed.map(f => f.name).join(', ');
+              description = `Code quality issues: ${failedNames} (${passed.length}/${checks.length} passed)`;
+            }
+            
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.payload.pull_request?.head?.sha || context.sha,
+                state: state,
+                target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                description: description,
+                context: 'Code Quality'
+              });
+              console.log(`Code quality status check created: ${state} - ${description}`);
+            } catch (error) {
+              console.error('Failed to create code quality status check:', error);
             }
