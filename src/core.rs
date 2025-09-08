@@ -338,27 +338,49 @@ impl PrinterCore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env;
 
     #[test]
+    #[serial]
     fn test_should_simulate_printing_when_env_var_is_true() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
         assert!(should_simulate_printing());
     }
 
     #[test]
+    #[serial]
     fn test_should_simulate_printing_when_env_var_is_false() {
+        // Store original value to restore later
+        let original = env::var("PRINTERS_JS_SIMULATE").ok();
+
         env::set_var("PRINTERS_JS_SIMULATE", "false");
         assert!(!should_simulate_printing());
+
+        // Restore original environment state
+        match original {
+            Some(val) => env::set_var("PRINTERS_JS_SIMULATE", val),
+            None => env::remove_var("PRINTERS_JS_SIMULATE"),
+        }
     }
 
     #[test]
+    #[serial]
     fn test_should_simulate_printing_when_env_var_is_missing() {
+        // Store original value to restore later
+        let original = env::var("PRINTERS_JS_SIMULATE").ok();
+
         env::remove_var("PRINTERS_JS_SIMULATE");
         assert!(!should_simulate_printing());
+
+        // Restore original environment state
+        if let Some(val) = original {
+            env::set_var("PRINTERS_JS_SIMULATE", val);
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_all_printer_names_in_simulation_mode() {
         // Ensure clean environment state
         env::remove_var("PRINTERS_JS_SIMULATE");
@@ -384,6 +406,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_printer_exists_in_simulation_mode() {
         // Ensure clean environment state
         env::remove_var("PRINTERS_JS_SIMULATE");
@@ -418,6 +441,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_find_printer_by_name_in_simulation_mode() {
         // Ensure clean environment state
         env::remove_var("PRINTERS_JS_SIMULATE");
@@ -449,6 +473,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_print_file_error_codes() {
         // Ensure clean environment state
         env::remove_var("PRINTERS_JS_SIMULATE");
