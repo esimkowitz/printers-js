@@ -185,7 +185,7 @@ jobs:
           if-no-files-found: ignore
 
   report:
-    if: ${{ always() && github.event_name == 'pull_request_target' }}
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') }}
     runs-on: ubuntu-latest
     needs: build
     permissions:
@@ -212,6 +212,9 @@ jobs:
       - uses: actions/download-artifact@v5
         if: ${{ always() }}
         continue-on-error: true
+        with:
+          pattern: "*-reports"
+          merge-multiple: true
 
       # - name: Convert JUnit XML to CTRF
       #   run: |
@@ -675,43 +678,16 @@ jobs:
             // Get step outcomes from the build job
             const buildJob = context.payload.workflow_run?.jobs?.find(job => job.name === 'build');
 
-            // Check each linting/formatting step result
-            const rustFmt = '${{ steps.rust-fmt.outcome }}';
-            const rustLint = '${{ steps.rust-lint.outcome }}';
-            const denoFmt = '${{ steps.deno-fmt.outcome }}';
-            const denoLint = '${{ steps.deno-lint.outcome }}';
-            const eslint = '${{ steps.eslint.outcome }}';
+            // Check the overall build job result (individual step outcomes aren't accessible across jobs)
+            const buildResult = '${{ needs.build.result }}';
+            console.log(`Build job result: ${buildResult}`);
 
-            console.log('Code Quality Step Results:');
-            console.log(`- Rust formatting: ${rustFmt}`);
-            console.log(`- Rust linter (Clippy): ${rustLint}`);
-            console.log(`- Deno formatting: ${denoFmt}`);
-            console.log(`- Deno linter: ${denoLint}`);
-            console.log(`- ESLint: ${eslint}`);
-
-            // Count failures
-            const checks = [
-              { name: 'Rust formatting', result: rustFmt },
-              { name: 'Rust linter', result: rustLint },
-              { name: 'Deno formatting', result: denoFmt },
-              { name: 'Deno linter', result: denoLint },
-              { name: 'ESLint', result: eslint }
-            ];
-
-            const failed = checks.filter(check => check.result === 'failure');
-            const passed = checks.filter(check => check.result === 'success');
-            const skipped = checks.filter(check => check.result === 'skipped');
-
-            const allPassed = failed.length === 0;
-            const state = allPassed ? 'success' : 'failure';
-
-            let description;
-            if (allPassed) {
-              description = `All code quality checks passed (${passed.length}/${checks.length})`;
-            } else {
-              const failedNames = failed.map(f => f.name).join(', ');
-              description = `Code quality issues: ${failedNames} (${passed.length}/${checks.length} passed)`;
-            }
+            // Since individual step outcomes aren't accessible across jobs, we'll base this on the overall build result
+            // In the future, this could be enhanced by storing step results as artifacts
+            const state = buildResult === 'success' ? 'success' : 'failure';
+            const description = buildResult === 'success' 
+              ? 'Build completed successfully'
+              : 'Build failed - check workflow for code quality issues';
 
             try {
               await github.rest.repos.createCommitStatus({
