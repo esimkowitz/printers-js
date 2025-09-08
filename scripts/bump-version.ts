@@ -63,13 +63,17 @@ function showUsage(): void {
     "Usage: deno run --allow-read --allow-write scripts/bump-version.ts <type> [--dry-run]",
   );
   console.log("  where <type> is one of: major, minor, patch");
-  console.log("  --dry-run: Show what would be changed without modifying files");
+  console.log(
+    "  --dry-run: Show what would be changed without modifying files",
+  );
   console.log("");
   console.log("Examples:");
   console.log("  deno task bump:patch         # 0.1.3 -> 0.1.4");
   console.log("  deno task bump:minor         # 0.1.3 -> 0.2.0");
   console.log("  deno task bump:major         # 0.1.3 -> 1.0.0");
-  console.log("  deno run --allow-read scripts/bump-version.ts patch --dry-run  # Preview changes");
+  console.log(
+    "  deno run --allow-read scripts/bump-version.ts patch --dry-run  # Preview changes",
+  );
 }
 
 async function main(): Promise<void> {
@@ -77,9 +81,12 @@ async function main(): Promise<void> {
 
   // Parse arguments
   const isDryRun = args.includes("--dry-run");
-  const filteredArgs = args.filter(arg => arg !== "--dry-run");
+  const filteredArgs = args.filter((arg) => arg !== "--dry-run");
 
-  if (filteredArgs.length !== 1 || !["major", "minor", "patch"].includes(filteredArgs[0])) {
+  if (
+    filteredArgs.length !== 1 ||
+    !["major", "minor", "patch"].includes(filteredArgs[0])
+  ) {
     showUsage();
     Deno.exit(1);
   }

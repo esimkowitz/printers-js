@@ -20,6 +20,12 @@
     "ghcr.io/devcontainers/features/rust:1": {
       "version": "latest",
       "profile": "default"
+    },
+    "ghcr.io/devcontainers-contrib/features/deno:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/bun:2": {
+      "version": "latest"
     }
   },
 
@@ -29,16 +35,19 @@
         "denoland.vscode-deno",
         "oven.bun-vscode",
         "rust-lang.rust-analyzer",
+        "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "editorconfig.editorconfig",
         "ms-vscode.test-adapter-converter",
-        "orta.vscode-jest",
         "swellaby.vscode-rust-test-adapter"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
         "deno.enable": true,
         "deno.unstable": true,
+        "deno.config": "./deno.json",
+        "eslint.enable": true,
+        "eslint.workingDirectories": ["."],
         "rust-analyzer.cargo.buildScripts.enable": true,
         "rust-analyzer.procMacro.enable": true
       }

@@ -13,7 +13,8 @@ different native bindings but exposes the same interface.
 
 ### Primary Entrypoint
 
-**⭐ Always use `index.ts` as the primary entrypoint** - it auto-detects the runtime and loads the appropriate implementation:
+**⭐ Always use `index.ts` as the primary entrypoint** - it auto-detects the
+runtime and loads the appropriate implementation:
 
 ```bash
 # Universal entrypoint (RECOMMENDED - works in all runtimes)
@@ -78,25 +79,30 @@ deno task bump:major    # 0.1.4 -> 1.0.0
 ## Architecture Summary
 
 ### Primary Entry Point
+
 - **`index.ts`**: ⭐ **PRIMARY UNIVERSAL ENTRY POINT** - auto-detects runtime
   and loads appropriate implementation. Always use this for consistent behavior.
 
 ### Runtime-Specific Implementation Files
+
 - **`deno.ts`**: Deno-specific implementation (FFI-based)
 - **`bun.js`**: Bun-specific implementation (FFI-based)
 - **`node.js`**: Node.js-specific implementation (N-API wrapper)
 
 ### Backend
+
 - **`src/core.rs`**: Shared business logic for all runtimes
 - **`src/ffi.rs`**: FFI bindings for Deno/Bun
 - **`src/napi.rs`**: N-API bindings for Node.js
 
 ### Testing
+
 - **`tests/shared.test.ts`**: Cross-runtime test suite using index.ts
 - **`tests/node-test-runner.mjs`**: Custom Node.js test runner with TypeScript
   support and c8 coverage generation
 
 ### Automation
+
 - **`scripts/`**: Cross-platform Deno TypeScript automation scripts
 
 ## Safety Reminders
@@ -115,7 +121,10 @@ ALWAYS run these after changes:
 
 - `deno fmt` - Format TypeScript/JavaScript
 - `cargo fmt` - Format Rust code
-- `deno lint` - Lint Deno files
+- `deno lint` - Lint Deno-managed files (deno.ts, tests/shared.test.ts,
+  scripts/)
+- `npm run lint` - Lint non-Deno files (index.ts, node.ts, bun.ts,
+  tests/node-test-runner.ts)
 - `cargo clippy` - Lint Rust code
 
 ## File Organization
@@ -140,14 +149,14 @@ ALWAYS run these after changes:
 5. **Thread cleanup**: The library automatically handles background thread
    cleanup
 6. **CI testing**: Use `deno run scripts/run-ci-local.ts` to test workflows
-  locally
+   locally
 7. **Coverage reporting**: Tests generate consistent JUnit XML and LCOV coverage
-  reports (deno-lcov.info, node-lcov.info, bun-lcov.info)
-8. **Cross-platform scripts**: All build and test scripts are now Deno TypeScript
-  for cross-platform compatibility
-9. **Universal entrypoint**: Always import from `index.ts` for consistent runtime
-  detection and behavior
-8. **Android support**: Intentionally excluded from N-API builds
+   reports (deno-lcov.info, node-lcov.info, bun-lcov.info)
+8. **Cross-platform scripts**: All build and test scripts are now Deno
+   TypeScript for cross-platform compatibility
+9. **Universal entrypoint**: Always import from `index.ts` for consistent
+   runtime detection and behavior
+10. **Android support**: Intentionally excluded from N-API builds
 
 ## Detailed Documentation
 

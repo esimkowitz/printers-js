@@ -7,6 +7,7 @@
     "swellaby.vscode-rust-test-adapter",
     "rust-lang.rust-analyzer",
     "ms-vscode.test-adapter-converter",
-    "orta.vscode-jest"
+    "orta.vscode-jest",
+    "dbaeumer.vscode-eslint"
   ]
 }

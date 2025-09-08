@@ -43,15 +43,20 @@
     "#cross/test": "jsr:@cross/test@0.0.10"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.4",
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
+    "@napi-rs/cli": "^2.18.4",
     "@std/assert": "npm:@jsr/std__assert@^1.0.14",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
     "c8": "^10.1.2",
+    "eslint": "^9.35.0",
     "tsx": "^4.20.5"
   },
   "scripts": {
     "build": "napi build --platform --release && mkdir -p napi && mv index.js index.d.ts *.node napi/ 2>/dev/null || true",
     "build:debug": "napi build --platform && mkdir -p napi && mv index.js index.d.ts *.node napi/ 2>/dev/null || true",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "prepublishOnly": "napi prepublish -t npm",
     "artifacts": "napi artifacts",
     "universal": "napi universal",

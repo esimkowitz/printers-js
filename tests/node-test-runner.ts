@@ -5,7 +5,7 @@
  */
 
 import { execSync } from 'child_process';
-import { writeFileSync, mkdirSync, existsSync, readFileSync, cpSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, cpSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -44,7 +44,7 @@ async function runTests() {
         }
       );
       testsPassed = true;
-    } catch (error) {
+    } catch (_error) {
       // Tests may fail but coverage might still be generated
       console.log('Note: Some tests may have failed, but coverage was still generated');
     }

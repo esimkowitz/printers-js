@@ -4,28 +4,34 @@
  * Can be run directly or imported by runtime-specific test files
  */
 
+// deno-lint-ignore-file no-process-global
+
 import { test } from "@cross/test";
 
 // Always use the universal entrypoint for consistency
 const printerAPI = await import("../index.ts");
 
-// Determine which runtime we're in for test naming
+// Runtime detection and simulation mode setup
 let runtimeName: string;
-if (typeof Deno !== "undefined" && Deno.env.get("FORCE_NODE_RUNTIME") === "true") {
-  runtimeName = "Node.js"; // Force Node.js testing when running in Deno with this env var
-} else if (typeof Deno !== "undefined") {
-  runtimeName = "Deno";
+if (typeof Deno !== "undefined") {
+  if (Deno.env.get("FORCE_NODE_RUNTIME") === "true") {
+    runtimeName = "Node.js"; // Force Node.js testing when running in Deno with this env var
+  } else {
+    runtimeName = "Deno";
+    // Ensure simulation mode is enabled for safe testing in Deno
+    Deno.env.set("PRINTERS_JS_SIMULATE", "true");
+  }
 } else if (typeof Bun !== "undefined") {
-  runtimeName = "Bun"; 
-} else if (typeof process !== "undefined") {
-  runtimeName = "Node.js";
+  runtimeName = "Bun";
+  // Ensure simulation mode is enabled for safe testing in Bun
+  // @ts-ignore - Bun provides process global
+  if (typeof process !== "undefined") process.env.PRINTERS_JS_SIMULATE = "true";
 } else {
-  runtimeName = "Unknown";
-}
-
-// Ensure simulation mode is enabled for safe testing
-if (typeof process !== "undefined") {
-  process.env.PRINTERS_JS_SIMULATE = "true";
+  // Node.js runtime
+  runtimeName = "Node.js";
+  // Ensure simulation mode is enabled for safe testing in Node.js
+  // @ts-ignore - Node.js provides process global
+  if (typeof process !== "undefined") process.env.PRINTERS_JS_SIMULATE = "true";
 }
 
 // Extract API functions
@@ -41,7 +47,7 @@ const {
   shutdown,
   PrintError,
   isSimulationMode,
-  runtimeInfo
+  runtimeInfo,
 } = printerAPI;
 
 // Core cross-runtime tests
@@ -50,7 +56,7 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
   if (!Array.isArray(printerNames)) {
     throw new Error("getAllPrinterNames should return an array");
   }
-  
+
   // In simulation mode, we should get at least some printers
   if (isSimulationMode && printerNames.length === 0) {
     throw new Error("Should have at least 1 printer in simulation mode");
@@ -62,7 +68,7 @@ test(`${runtimeName}: should return an array of Printer objects from getAllPrint
   if (!Array.isArray(printers)) {
     throw new Error("getAllPrinters should return an array");
   }
-  
+
   for (const printer of printers) {
     if (!printer.name) {
       throw new Error("Each printer should have a name");
@@ -81,7 +87,7 @@ test(`${runtimeName}: should return typed printer instances from getTypedPrinter
   if (!Array.isArray(printers)) {
     throw new Error("getTypedPrinters should return an array");
   }
-  
+
   for (const printer of printers) {
     if (!(printer instanceof Printer)) {
       throw new Error("Each printer should be a Printer instance");
@@ -92,14 +98,18 @@ test(`${runtimeName}: should return typed printer instances from getTypedPrinter
 test(`${runtimeName}: should return false for non-existent printer in printerExists`, () => {
   const exists = printerExists("NonExistentPrinter12345");
   if (exists !== false) {
-    throw new Error("printerExists should return false for non-existent printer");
+    throw new Error(
+      "printerExists should return false for non-existent printer",
+    );
   }
 });
 
 test(`${runtimeName}: should return null for non-existent printer in getPrinterByName`, () => {
   const printer = getPrinterByName("NonExistentPrinter12345");
   if (printer !== null) {
-    throw new Error("getPrinterByName should return null for non-existent printer");
+    throw new Error(
+      "getPrinterByName should return null for non-existent printer",
+    );
   }
 });
 
@@ -108,9 +118,9 @@ test(`${runtimeName}: should have working Printer class methods`, () => {
   if (printers.length === 0) {
     return; // Skip if no printers available
   }
-  
+
   const printer = printers[0];
-  
+
   if (!printer.name) {
     throw new Error("Printer should have a name");
   }
@@ -120,7 +130,7 @@ test(`${runtimeName}: should have working Printer class methods`, () => {
   if (typeof printer.toString() !== "string") {
     throw new Error("toString() should return string");
   }
-  
+
   // Test comparison
   const samePrinter = Printer.fromName(printer.name);
   if (samePrinter && !printer.equals(samePrinter)) {
@@ -133,10 +143,10 @@ test(`${runtimeName}: should handle printFile operations`, async () => {
   if (printers.length === 0) {
     return; // Skip if no printers
   }
-  
+
   const printer = printers[0];
   const nonExistentFile = "/path/that/does/not/exist/file.pdf";
-  
+
   // In simulation mode, this might not throw as expected
   try {
     await printer.printFile(nonExistentFile);
@@ -192,14 +202,21 @@ test(`${runtimeName}: should reflect environment in isSimulationMode`, () => {
   if (typeof isSimulationMode !== "boolean") {
     throw new Error("isSimulationMode should be boolean");
   }
-  
+
   // Check if PRINTERS_JS_SIMULATE environment variable matches
-  const envSimulate = 
-    (typeof Deno !== "undefined" && Deno.env.get("PRINTERS_JS_SIMULATE") === "true") ||
-    (typeof process !== "undefined" && process.env.PRINTERS_JS_SIMULATE === "true");
-  
+  let envSimulate = false;
+  if (typeof Deno !== "undefined") {
+    envSimulate = Deno.env.get("PRINTERS_JS_SIMULATE") === "true";
+  } else {
+    // @ts-ignore - Node.js/Bun provide process global
+    envSimulate = typeof process !== "undefined" &&
+      process.env.PRINTERS_JS_SIMULATE === "true";
+  }
+
   if (envSimulate && !isSimulationMode) {
-    throw new Error("isSimulationMode should be true when PRINTERS_JS_SIMULATE=true");
+    throw new Error(
+      "isSimulationMode should be true when PRINTERS_JS_SIMULATE=true",
+    );
   }
 });
 
@@ -208,7 +225,9 @@ test(`${runtimeName}: should have consistent API across getAllPrinterNames and g
   const printers = getAllPrinters();
 
   if (printerNames.length !== printers.length) {
-    throw new Error("getAllPrinterNames and getAllPrinters should return same count");
+    throw new Error(
+      "getAllPrinterNames and getAllPrinters should return same count",
+    );
   }
 
   // Test printer existence
@@ -232,10 +251,13 @@ test(`${runtimeName}: should have runtimeInfo with name and version`, () => {
   if (!runtimeInfo.version) {
     throw new Error("Runtime version should be available");
   }
-  
+
   const expectedRuntimes = ["Deno", "Bun", "Node.js", "deno", "bun", "node"];
   if (!expectedRuntimes.includes(runtimeInfo.name)) {
-    throw new Error(`Runtime should be one of ${expectedRuntimes.join(", ")}, got ${runtimeInfo.name}`);
+    throw new Error(
+      `Runtime should be one of ${
+        expectedRuntimes.join(", ")
+      }, got ${runtimeInfo.name}`,
+    );
   }
 });
-

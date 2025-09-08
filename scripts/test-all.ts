@@ -6,18 +6,21 @@
 
 // Colors for output
 const colors = {
-  red: '\x1b[0;31m',
-  green: '\x1b[0;32m',
-  yellow: '\x1b[1;33m',
-  blue: '\x1b[0;34m',
-  reset: '\x1b[0m', // No Color
+  red: "\x1b[0;31m",
+  green: "\x1b[0;32m",
+  yellow: "\x1b[1;33m",
+  blue: "\x1b[0;34m",
+  reset: "\x1b[0m", // No Color
 };
 
 function colorize(color: keyof typeof colors, text: string): string {
   return `${colors[color]}${text}${colors.reset}`;
 }
 
-async function runCommand(command: string[], options: { cwd?: string; env?: Record<string, string> } = {}): Promise<{ success: boolean; output: string }> {
+async function runCommand(
+  command: string[],
+  options: { cwd?: string; env?: Record<string, string> } = {},
+): Promise<{ success: boolean; output: string }> {
   try {
     const cmd = new Deno.Command(command[0], {
       args: command.slice(1),
@@ -31,8 +34,9 @@ async function runCommand(command: string[], options: { cwd?: string; env?: Reco
     });
 
     const { code, stdout, stderr } = await cmd.output();
-    const output = new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr);
-    
+    const output = new TextDecoder().decode(stdout) +
+      new TextDecoder().decode(stderr);
+
     return {
       success: code === 0,
       output,
@@ -40,7 +44,9 @@ async function runCommand(command: string[], options: { cwd?: string; env?: Reco
   } catch (error) {
     return {
       success: false,
-      output: `Command failed: ${error instanceof Error ? error.message : String(error)}`,
+      output: `Command failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     };
   }
 }
@@ -89,11 +95,14 @@ async function main() {
   console.log("=================================");
 
   const denoResult = await runCommand([
-    "deno", "test",
-    "--allow-ffi", "--allow-env", "--no-check",
+    "deno",
+    "test",
+    "--allow-ffi",
+    "--allow-env",
+    "--no-check",
     "tests/shared.test.ts",
     "--junit-path=test-results/deno-test-results.xml",
-    "--coverage=test-results/coverage/deno"
+    "--coverage=test-results/coverage/deno",
   ], { env: testEnv });
 
   if (!denoResult.success) {
@@ -106,14 +115,20 @@ async function main() {
 
   // Copy LCOV coverage report for Deno (generated during test run)
   console.log("📊 Processing Deno LCOV coverage...");
-  const denoLcovExists = await fileExists("test-results/coverage/deno/lcov.info");
+  const denoLcovExists = await fileExists(
+    "test-results/coverage/deno/lcov.info",
+  );
   if (denoLcovExists) {
-    await copyFile("test-results/coverage/deno/lcov.info", "test-results/coverage/deno-lcov.info");
-    console.log("📊 Generated Deno LCOV coverage report: test-results/coverage/deno-lcov.info");
+    await copyFile(
+      "test-results/coverage/deno/lcov.info",
+      "test-results/coverage/deno-lcov.info",
+    );
+    console.log(
+      "📊 Generated Deno LCOV coverage report: test-results/coverage/deno-lcov.info",
+    );
   } else {
     console.log(colorize("yellow", "⚠️  Deno coverage file not found"));
   }
-
 
   // 2. Run Bun tests
   console.log();
@@ -123,9 +138,13 @@ async function main() {
   await ensureDirectory("test-results/coverage/bun");
 
   const bunResult = await runCommand([
-    "bun", "test", "tests/",
-    "--coverage", "--coverage-dir=test-results/coverage/bun",
-    "--reporter=junit", "--reporter-outfile=test-results/bun-test-results.xml"
+    "bun",
+    "test",
+    "tests/",
+    "--coverage",
+    "--coverage-dir=test-results/coverage/bun",
+    "--reporter=junit",
+    "--reporter-outfile=test-results/bun-test-results.xml",
   ], { env: testEnv });
 
   if (!bunResult.success) {
@@ -134,7 +153,9 @@ async function main() {
     allTestsSucceeded = false;
   } else {
     console.log(colorize("green", "✅ Bun tests passed"));
-    console.log("📊 Generated Bun JUnit XML report: test-results/bun-test-results.xml");
+    console.log(
+      "📊 Generated Bun JUnit XML report: test-results/bun-test-results.xml",
+    );
   }
 
   // Convert Bun coverage to LCOV format if available
@@ -144,18 +165,33 @@ async function main() {
   if (bunCoverageExists) {
     // Try Bun's built-in LCOV export
     await runCommand([
-      "bun", "test", "tests/",
-      "--coverage", "--coverage-reporter=lcov",
-      "--coverage-dir=test-results/coverage/bun"
+      "bun",
+      "test",
+      "tests/",
+      "--coverage",
+      "--coverage-reporter=lcov",
+      "--coverage-dir=test-results/coverage/bun",
     ], { env: testEnv });
 
     // Check if LCOV file was generated and copy it
-    const bunLcovExists = await fileExists("test-results/coverage/bun/lcov.info");
+    const bunLcovExists = await fileExists(
+      "test-results/coverage/bun/lcov.info",
+    );
     if (bunLcovExists) {
-      await copyFile("test-results/coverage/bun/lcov.info", "test-results/coverage/bun-lcov.info");
-      console.log("📊 Generated Bun LCOV coverage report: test-results/coverage/bun-lcov.info");
+      await copyFile(
+        "test-results/coverage/bun/lcov.info",
+        "test-results/coverage/bun-lcov.info",
+      );
+      console.log(
+        "📊 Generated Bun LCOV coverage report: test-results/coverage/bun-lcov.info",
+      );
     } else {
-      console.log(colorize("yellow", "⚠️  Bun LCOV conversion not available, using native coverage format"));
+      console.log(
+        colorize(
+          "yellow",
+          "⚠️  Bun LCOV conversion not available, using native coverage format",
+        ),
+      );
     }
   } else {
     console.log(colorize("yellow", "⚠️  No Bun coverage data found"));
@@ -169,7 +205,9 @@ async function main() {
   // Run Node.js tests using custom test runner
   console.log("Running Node.js tests using custom test runner...");
   const nodeResult = await runCommand([
-    "npx", "tsx", "tests/node-test-runner.ts"
+    "npx",
+    "tsx",
+    "tests/node-test-runner.ts",
   ], { env: testEnv });
 
   let nodeStatus: string;
@@ -208,7 +246,7 @@ async function main() {
   console.log("Coverage Reports (LCOV):");
   console.log("• test-results/coverage/deno-lcov.info ✅");
   console.log("• test-results/coverage/node-lcov.info ✅");
-  
+
   // Check if Bun LCOV was actually generated
   const bunLcovExists = await fileExists("test-results/coverage/bun-lcov.info");
   if (bunLcovExists) {

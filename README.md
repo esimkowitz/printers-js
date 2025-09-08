@@ -200,8 +200,8 @@ deno run --allow-ffi --allow-env your-script.ts
 
 ### Node.js / Bun
 
-No special permissions are required for Node.js or Bun - the library uses
-native N-API bindings that work out of the box
+No special permissions are required for Node.js or Bun - the library uses native
+N-API bindings that work out of the box
 
 ## Testing & Safety
 

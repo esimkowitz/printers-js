@@ -143,7 +143,7 @@ function readCString(ptr) {
     const result = cstring.toString();
     lib.symbols.free_string(ptr);
     return result;
-  } catch (e) {
+  } catch (_e) {
     lib.symbols.free_string(ptr); // Always free even on error
     return "";
   }
@@ -344,7 +344,7 @@ class Printer {
             } else {
               setTimeout(pollJob, 100);
             }
-          } catch (e) {
+          } catch (_e) {
             reject(new Error("Failed to parse job status"));
           }
         } else {

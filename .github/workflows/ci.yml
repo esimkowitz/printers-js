@@ -99,6 +99,9 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install
 
+      - name: Run ESLint for non-Deno files
+        run: npm run lint
+
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
         run: deno run --allow-run --allow-read --allow-env scripts/build-all.ts
@@ -115,7 +118,7 @@ jobs:
           mkdir -p test-results
           # Run cargo tests with JSON output and convert to JUnit
           cargo test --all-features --workspace -- -Z unstable-options --format json --report-time 2>/dev/null | cargo2junit > test-results/cargo.xml || true
-          
+
           # Fallback: If cargo2junit fails, run tests normally and create a simple JUnit file
           if [ ! -s test-results/cargo.xml ]; then
             echo "cargo2junit failed, generating fallback JUnit XML..."
@@ -123,7 +126,7 @@ jobs:
             TEST_COUNT=$(grep -c "test result:" cargo_test_output.txt || echo "0")
             PASSED=$(grep "test result: ok" cargo_test_output.txt | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
             FAILED=$(grep "test result: FAILED" cargo_test_output.txt | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
-            
+
             echo '<?xml version="1.0" encoding="UTF-8"?>' > test-results/cargo.xml
             echo '<testsuites>' >> test-results/cargo.xml
             echo "  <testsuite name=\"Rust Cargo Tests\" tests=\"${PASSED}\" failures=\"${FAILED}\" errors=\"0\">" >> test-results/cargo.xml
@@ -289,13 +292,13 @@ jobs:
               // Try multiple patterns for different JUnit formats
               // Pattern 1: Standard JUnit with tests, errors, failures attributes
               let testMatch = xmlContent.match(/<testsuite[^>]*tests="(\d+)"[^>]*errors="(\d+)"[^>]*failures="(\d+)"/);
-              
+
               // Pattern 2: Alternative format with different attribute order
               if (!testMatch) {
                 const testsMatch = xmlContent.match(/tests="(\d+)"/);
                 const errorsMatch = xmlContent.match(/errors="(\d+)"/);
                 const failuresMatch = xmlContent.match(/failures="(\d+)"/);
-                
+
                 if (testsMatch) {
                   const tests = parseInt(testsMatch[1]);
                   const errors = errorsMatch ? parseInt(errorsMatch[1]) : 0;
@@ -308,13 +311,13 @@ jobs:
                   };
                 }
               }
-              
+
               // Pattern 3: Count individual testcase elements
               if (!testMatch) {
                 const testcases = (xmlContent.match(/<testcase/g) || []).length;
                 const failures = (xmlContent.match(/<failure/g) || []).length;
                 const errors = (xmlContent.match(/<error/g) || []).length;
-                
+
                 if (testcases > 0) {
                   return {
                     total: testcases,
@@ -324,7 +327,7 @@ jobs:
                   };
                 }
               }
-              
+
               if (testMatch) {
                 return {
                   total: parseInt(testMatch[1]),
@@ -333,7 +336,7 @@ jobs:
                   passed: parseInt(testMatch[1]) - parseInt(testMatch[2]) - parseInt(testMatch[3])
                 };
               }
-              
+
               return { total: 0, errors: 0, failures: 0, passed: 0 };
             }
 

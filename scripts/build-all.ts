@@ -6,17 +6,20 @@
 
 // Colors for output
 const colors = {
-  red: '\x1b[0;31m',
-  green: '\x1b[0;32m',
-  yellow: '\x1b[1;33m',
-  reset: '\x1b[0m', // No Color
+  red: "\x1b[0;31m",
+  green: "\x1b[0;32m",
+  yellow: "\x1b[1;33m",
+  reset: "\x1b[0m", // No Color
 };
 
 function colorize(color: keyof typeof colors, text: string): string {
   return `${colors[color]}${text}${colors.reset}`;
 }
 
-async function runCommand(command: string[], options: { cwd?: string; env?: Record<string, string> } = {}): Promise<{ success: boolean; output: string }> {
+async function runCommand(
+  command: string[],
+  options: { cwd?: string; env?: Record<string, string> } = {},
+): Promise<{ success: boolean; output: string }> {
   try {
     const cmd = new Deno.Command(command[0], {
       args: command.slice(1),
@@ -30,8 +33,9 @@ async function runCommand(command: string[], options: { cwd?: string; env?: Reco
     });
 
     const { code, stdout, stderr } = await cmd.output();
-    const output = new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr);
-    
+    const output = new TextDecoder().decode(stdout) +
+      new TextDecoder().decode(stderr);
+
     return {
       success: code === 0,
       output,
@@ -39,7 +43,9 @@ async function runCommand(command: string[], options: { cwd?: string; env?: Reco
   } catch (error) {
     return {
       success: false,
-      output: `Command failed: ${error instanceof Error ? error.message : String(error)}`,
+      output: `Command failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     };
   }
 }
@@ -93,7 +99,7 @@ async function main(): Promise<void> {
 
   if (npxExists && packageJsonExists) {
     console.log(colorize("yellow", "Building N-API library for Node.js..."));
-    
+
     // Install dependencies if needed
     const nodeModulesExists = await directoryExists("node_modules");
     if (!nodeModulesExists) {
@@ -105,11 +111,11 @@ async function main(): Promise<void> {
         buildSuccess = false;
       }
     }
-    
+
     if (buildSuccess || nodeModulesExists) {
       // Build with napi-rs CLI
       const napiResult = await runCommand(["npm", "run", "build"]);
-      
+
       if (napiResult.success) {
         console.log(colorize("green", "✓ N-API library built successfully"));
       } else {
@@ -120,7 +126,12 @@ async function main(): Promise<void> {
       }
     }
   } else {
-    console.log(colorize("yellow", "Skipping N-API build (Node.js/npm not available or package.json missing)"));
+    console.log(
+      colorize(
+        "yellow",
+        "Skipping N-API build (Node.js/npm not available or package.json missing)",
+      ),
+    );
   }
 
   console.log();
@@ -136,7 +147,11 @@ async function main(): Promise<void> {
 
   // Detect platform and show appropriate library files
   const os = Deno.build.os;
-  const libExtension = os === "windows" ? ".dll" : os === "darwin" ? ".dylib" : ".so";
+  const libExtension = os === "windows"
+    ? ".dll"
+    : os === "darwin"
+    ? ".dylib"
+    : ".so";
   const libPrefix = os === "windows" ? "" : "lib";
   const libName = `${libPrefix}deno_printers${libExtension}`;
 
