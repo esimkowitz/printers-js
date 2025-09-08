@@ -26,3 +26,6 @@ napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
 
 [lib]
 crate-type = ["cdylib"]
+
+[package.metadata.napi]
+package-name = "@printers/printers"

@@ -174,7 +174,7 @@ jobs:
   publish-jsr:
     name: Publish to JSR
     runs-on: ubuntu-latest
-    needs: build-native
+    needs: [build-native, build-napi]
     permissions:
       contents: read
       id-token: write
@@ -194,15 +194,26 @@ jobs:
       - name: Organize binaries
         run: |
           mkdir -p target/release
+          mkdir -p napi
 
-          # Copy and rename binaries with architecture suffixes
+          # Copy FFI binaries for Deno/Bun
           cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
           cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so
           cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll
           cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
           cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
+          # Copy N-API binaries for Node.js
+          for dir in artifacts/bindings-*; do
+            if [ -d "$dir" ]; then
+              cp "$dir"/*.node napi/ 2>/dev/null || true
+            fi
+          done
+
+          echo "FFI binaries:"
           ls -la target/release/
+          echo "N-API binaries:"
+          ls -la napi/
 
       - name: Publish to JSR
         run: deno publish --allow-dirty
@@ -264,23 +275,6 @@ jobs:
             target/
           key: ${{ matrix.settings.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      # Speed up apt-get operations by disabling unnecessary man-db auto-update
-      - name: Disable man-db auto-update
-        if: matrix.settings.docker && runner.os == 'Linux'
-        run: |
-          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
-          sudo rm -f /var/lib/man-db/auto-update
-
-      - name: Install dependencies in Docker
-        if: matrix.settings.docker && runner.os == 'Linux'
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ${{ matrix.settings.docker }}
-          options: "--user 0:0"
-          run: |
-            apt-get update
-            apt-get install -y libcups2-dev pkg-config clang
-
       - name: Install dependencies
         run: npm ci
 
@@ -290,7 +284,10 @@ jobs:
         with:
           image: ${{ matrix.settings.docker }}
           options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache:/root/.cargo/registry/cache -v ${{ github.workspace }}/.cargo:/root/.cargo -v ${{ github.workspace }}:/build -w /build"
-          run: npm run build -- --target ${{ matrix.settings.target }}
+          run: |
+            apt-get update
+            apt-get install -y libcups2-dev pkg-config clang
+            npm run build -- --target ${{ matrix.settings.target }}
 
       - name: Build
         run: npm run build -- --target ${{ matrix.settings.target }}
@@ -316,7 +313,7 @@ jobs:
   publish-npm:
     name: Publish to NPM
     runs-on: ubuntu-latest
-    needs: build-napi
+    needs: [build-native, build-napi]
     env:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for tests
     steps:
@@ -332,20 +329,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Download all N-API artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v5
         with:
           path: artifacts
 
-      - name: Move N-API artifacts
+      - name: Organize all binaries
         run: |
           mkdir -p napi
+          mkdir -p target/release
+
+          # Copy N-API binaries for Node.js
           for dir in artifacts/bindings-*; do
             if [ -d "$dir" ]; then
               cp "$dir"/*.node napi/ 2>/dev/null || true
             fi
           done
+
+          # Copy FFI binaries for potential Deno/Bun usage from Node package
+          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so 2>/dev/null || true
+          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so 2>/dev/null || true
+          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll 2>/dev/null || true
+          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll 2>/dev/null || true
+          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib 2>/dev/null || true
+
+          echo "N-API binaries:"
           ls -la napi/
+          echo "FFI binaries:"
+          ls -la target/release/ || echo "No FFI binaries included"
 
       - name: Test Node.js package before publishing
         run: PRINTERS_JS_SIMULATE=true npm test
