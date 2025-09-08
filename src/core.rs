@@ -92,13 +92,27 @@ impl PrinterCore {
             // In simulation mode, only return printer if name matches simulated printers
             let simulated_names = ["Mock Printer", "Test Printer"];
             if simulated_names.contains(&name) {
-                // Return first real printer as template, but with the requested name
+                // Try to use a real printer as template, but with the requested name
                 if let Some(mut printer) = printers::get_printers().first().cloned() {
                     printer.name = name.to_string();
                     Some(printer)
                 } else {
-                    // No real printers available - return None to avoid struct creation
-                    None
+                    // No real printers available - create a mock printer struct
+                    Some(Printer {
+                        name: name.to_string(),
+                        system_name: name.to_string(),
+                        driver_name: "Mock Driver".to_string(),
+                        uri: "mock://printer".to_string(),
+                        location: "Test Location".to_string(),
+                        description: "Mock printer for testing".to_string(),
+                        port_name: "MOCK:".to_string(),
+                        processor: "Mock Processor".to_string(),
+                        data_type: "RAW".to_string(),
+                        is_shared: false,
+                        is_default: false,
+                        state: printers::common::base::printer::PrinterState::READY,
+                        state_reasons: Vec::new(),
+                    })
                 }
             } else {
                 None
