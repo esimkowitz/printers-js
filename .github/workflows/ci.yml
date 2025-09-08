@@ -99,9 +99,12 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install
 
-      # Build all runtime libraries using our comprehensive script
+      - name: Run ESLint for non-Deno files
+        run: npm run lint
+
+      # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
-        run: ./scripts/build-all.sh
+        run: deno run --allow-run --allow-read --allow-env scripts/build-all.ts
 
       # Run Cargo tests with coverage (Rust-level tests)
       - name: Run Cargo tests with coverage
@@ -109,15 +112,48 @@ jobs:
           mkdir -p test-results/coverage
           cargo llvm-cov --all-features --workspace --lcov --output-path test-results/coverage/rust.lcov test
 
-      # Generate Cargo test JUnit report
+      # Run Cargo tests again for JUnit report (separate from coverage run)
       - name: Generate Cargo test JUnit report
         run: |
           mkdir -p test-results
-          RUSTC_BOOTSTRAP=1 cargo test -- -Z unstable-options --format json --report-time | cargo2junit > test-results/cargo.xml
+          # Run cargo tests with JSON output and convert to JUnit
+          cargo test --all-features --workspace -- -Z unstable-options --format json --report-time 2>/dev/null | cargo2junit > test-results/cargo.xml || true
 
-      # Run comprehensive cross-runtime tests using our test-all.sh script
+          # Fallback: If cargo2junit fails, run tests normally and create a simple JUnit file
+          if [ ! -s test-results/cargo.xml ]; then
+            echo "cargo2junit failed, generating fallback JUnit XML..."
+            cargo test --all-features --workspace > cargo_test_output.txt 2>&1
+            TEST_COUNT=$(grep -c "test result:" cargo_test_output.txt || echo "0")
+            PASSED=$(grep "test result: ok" cargo_test_output.txt | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
+            FAILED=$(grep "test result: FAILED" cargo_test_output.txt | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
+
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > test-results/cargo.xml
+            echo '<testsuites>' >> test-results/cargo.xml
+            echo "  <testsuite name=\"Rust Cargo Tests\" tests=\"${PASSED}\" failures=\"${FAILED}\" errors=\"0\">" >> test-results/cargo.xml
+            echo '    <testcase name="Cargo test suite" classname="cargo" />' >> test-results/cargo.xml
+            echo '  </testsuite>' >> test-results/cargo.xml
+            echo '</testsuites>' >> test-results/cargo.xml
+          fi
+
+      # Run comprehensive cross-runtime tests using our TypeScript script
       - name: Run cross-runtime tests
-        run: ./scripts/test-all.sh
+        run: deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+
+      # Debug: List generated test files
+      - name: Debug - List test results
+        if: always()
+        run: |
+          echo "=== Test Results Directory ==="
+          ls -la test-results/ || echo "test-results directory not found"
+          echo ""
+          echo "=== XML Files Content Preview ==="
+          for file in test-results/*.xml; do
+            if [ -f "$file" ]; then
+              echo "--- $file ---"
+              head -20 "$file"
+              echo ""
+            fi
+          done
 
       - name: Upload Test Reports
         if: ${{ always() }}
@@ -251,9 +287,47 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            // Function to parse JUnit XML
+            // Function to parse JUnit XML (handles different formats)
             function parseJUnit(xmlContent) {
-              const testMatch = xmlContent.match(/<testsuite[^>]*tests="(\d+)"[^>]*errors="(\d+)"[^>]*failures="(\d+)"/);
+              // Try multiple patterns for different JUnit formats
+              // Pattern 1: Standard JUnit with tests, errors, failures attributes
+              let testMatch = xmlContent.match(/<testsuite[^>]*tests="(\d+)"[^>]*errors="(\d+)"[^>]*failures="(\d+)"/);
+
+              // Pattern 2: Alternative format with different attribute order
+              if (!testMatch) {
+                const testsMatch = xmlContent.match(/tests="(\d+)"/);
+                const errorsMatch = xmlContent.match(/errors="(\d+)"/);
+                const failuresMatch = xmlContent.match(/failures="(\d+)"/);
+
+                if (testsMatch) {
+                  const tests = parseInt(testsMatch[1]);
+                  const errors = errorsMatch ? parseInt(errorsMatch[1]) : 0;
+                  const failures = failuresMatch ? parseInt(failuresMatch[1]) : 0;
+                  return {
+                    total: tests,
+                    errors: errors,
+                    failures: failures,
+                    passed: tests - errors - failures
+                  };
+                }
+              }
+
+              // Pattern 3: Count individual testcase elements
+              if (!testMatch) {
+                const testcases = (xmlContent.match(/<testcase/g) || []).length;
+                const failures = (xmlContent.match(/<failure/g) || []).length;
+                const errors = (xmlContent.match(/<error/g) || []).length;
+
+                if (testcases > 0) {
+                  return {
+                    total: testcases,
+                    errors: errors,
+                    failures: failures,
+                    passed: testcases - errors - failures
+                  };
+                }
+              }
+
               if (testMatch) {
                 return {
                   total: parseInt(testMatch[1]),
@@ -262,6 +336,7 @@ jobs:
                   passed: parseInt(testMatch[1]) - parseInt(testMatch[2]) - parseInt(testMatch[3])
                 };
               }
+
               return { total: 0, errors: 0, failures: 0, passed: 0 };
             }
 
@@ -283,8 +358,12 @@ jobs:
             try {
               if (fs.existsSync('test-reports/deno-test-results.xml')) {
                 const denoXml = fs.readFileSync('test-reports/deno-test-results.xml', 'utf8');
+                console.log('Deno XML preview:', denoXml.substring(0, 500));
                 const parsed = parseJUnit(denoXml);
+                console.log('Deno parsed result:', parsed);
                 denoResult = formatTestResult(parsed);
+              } else {
+                console.log('Deno test results file not found');
               }
             } catch (e) {
               console.log('Error reading Deno results:', e.message);
@@ -329,12 +408,13 @@ jobs:
             // Check for coverage files
             const denoCoverage = fs.existsSync('coverage-reports/deno-lcov.info') ? 'LCOV available' : 'No coverage';
             const rustCoverage = fs.existsSync('coverage-reports/rust.lcov') ? 'LCOV available' : 'No coverage';
-            const bunCoverage = fs.existsSync('coverage-reports/bun') ? 'Coverage available' : 'No coverage';
+            const bunCoverage = fs.existsSync('coverage-reports/bun-lcov.info') ? 'LCOV available' : 'No coverage';
+            const nodeCoverage = fs.existsSync('coverage-reports/node-lcov.info') ? 'LCOV available' : 'No coverage';
 
             summary += `| 🦕 **Deno** | ${denoResult.status} FFI | ${denoResult.text} | ${denoCoverage} |\n`;
             summary += `| 🦀 **Rust Core** | ${rustResult.status} Native | ${rustResult.text} | ${rustCoverage} |\n`;
-            summary += `| 🥖 **Bun** | ${bunResult.status} FFI | ${bunResult.text} | ${bunCoverage} |\n`;
-            summary += `| 🟢 **Node.js** | ${nodeResult.status} N-API | ${nodeResult.text} | N-API fallback |\n\n`;
+            summary += `| 🥟 **Bun** | ${bunResult.status} FFI | ${bunResult.text} | ${bunCoverage} |\n`;
+            summary += `| 🟢 **Node.js** | ${nodeResult.status} N-API+tsx | ${nodeResult.text} | ${nodeCoverage} |\n\n`;
 
             // List available artifacts
             summary += `### 📊 Test Artifacts Generated\n\n`;
@@ -350,12 +430,14 @@ jobs:
             }
 
             summary += `### 🔧 Architecture\n\n`;
-            summary += `- **Deno & Bun**: Use FFI → Rust native library\n`;
-            summary += `- **Node.js**: Uses simulation mode (N-API module has compatibility issues)\n`;
-            summary += `- **Universal API**: Consistent interface across all runtimes\n\n`;
+            summary += `- **Universal Entry Point**: \`index.ts\` auto-detects runtime and loads appropriate implementation\n`;
+            summary += `- **Deno & Bun**: Use FFI → Rust native library (deno.ts, bun.ts)\n`;
+            summary += `- **Node.js**: Uses N-API bindings via TypeScript wrapper (node.ts)\n`;
+            summary += `- **Shared Tests**: Single test suite (\`shared.test.ts\`) runs on all runtimes via index.ts\n`;
+            summary += `- **Cross-Platform Scripts**: All build/test scripts are Deno TypeScript for consistency\n\n`;
 
             // Overall status
-            const overallSuccess = denoResult.status === '✅' && rustResult.status === '✅';
+            const overallSuccess = denoResult.status === '✅' && rustResult.status === '✅' && bunResult.status === '✅' && nodeResult.status === '✅';
             const overallStatus = overallSuccess ? '✅ All tests passing' : '❌ Some tests failed';
             summary += `**Overall Status**: ${overallStatus}\n\n`;
 

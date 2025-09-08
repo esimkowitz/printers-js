@@ -25,7 +25,7 @@ npm install
 
 # Build all runtimes
 echo "🔨 Building all runtimes..."
-./scripts/build-all.sh || echo "⚠️  Build failed - this is expected in CI environment"
+deno run --allow-run --allow-read --allow-env scripts/build-all.ts || echo "⚠️  Build failed - this is expected in CI environment"
 
 # Set up git (if not configured)
 if [ -z "$(git config --global user.name)" ]; then
@@ -45,22 +45,28 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 # Make scripts executable
-chmod +x scripts/*.sh
+chmod +x scripts/*.ts scripts/*.sh || echo "⚠️  Some scripts may not need execute permissions"
 
 echo "✅ Development environment setup complete!"
 echo ""
 echo "🧪 Available commands:"
-echo "  ./scripts/test-all.sh       - Run all tests across runtimes"
-echo "  ./scripts/build-all.sh      - Build all runtime libraries"
-echo "  ./scripts/run-ci-local.sh   - Run CI workflows locally with act"
-echo "  deno task test              - Run Deno tests"
-echo "  npm run test:jest           - Run Node.js Jest tests"  
-echo "  bun test                    - Run Bun tests"
+echo "  deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts    - Run all tests across runtimes"
+echo "  deno run --allow-run --allow-read --allow-env scripts/build-all.ts                - Build all runtime libraries"
+echo "  deno run --allow-run --allow-env --allow-read scripts/run-ci-local.ts --build     - Run CI workflows locally with act"
+echo "  deno task test                    - Run Deno tests (shared.test.ts)"
+echo "  npx tsx tests/node-test-runner.ts - Run Node.js tests with coverage"
+echo "  bun test tests/                   - Run Bun tests"
+echo ""
+echo "🔧 Linting commands:"
+echo "  deno lint                         - Lint Deno-managed files (deno.ts, scripts/, tests/shared.test.ts)"
+echo "  npm run lint                      - Lint non-Deno files (index.ts, node.ts, bun.ts, tests/node-test-runner.ts)"
+echo "  cargo clippy                      - Lint Rust code"
 echo ""
 echo "🔧 Development workflow:"
 echo "  1. Make your changes"
-echo "  2. Run ./scripts/test-all.sh to test all runtimes"
-echo "  3. Run ./scripts/run-ci-local.sh --build to test CI locally"
-echo "  4. Commit and push"
+echo "  2. Run linters: deno lint && npm run lint && cargo clippy"
+echo "  3. Run cross-platform test script to test all runtimes"
+echo "  4. Run local CI script to test CI workflows locally"
+echo "  5. Commit and push"
 echo ""
 echo "⚠️  Note: Set PRINTERS_JS_SIMULATE=false to test real printing (USE WITH CAUTION)"

@@ -5,11 +5,7 @@
  * the appropriate implementation. Works with Deno, Node.js, and Bun.
  */
 
-// Type declarations for global variables (Deno type checking compatibility)
-declare global {
-  const process: any;
-  const Bun: any;
-}
+// Runtime detection helpers
 
 // Runtime detection
 const isNode = typeof (globalThis as any).process !== "undefined" &&
@@ -73,10 +69,10 @@ if (isDeno) {
   printerModule = await import("./deno.ts");
 } else if (isBun) {
   // Bun runtime
-  printerModule = await import("./bun.js");
+  printerModule = await import("./bun.ts");
 } else if (isNode) {
   // Node.js runtime
-  const nodeModule = await import("./node.js");
+  const nodeModule = await import("./node.ts");
   printerModule = nodeModule;
 } else {
   throw new Error(

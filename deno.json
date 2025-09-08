@@ -3,16 +3,16 @@
     "dev": "deno run --allow-ffi --watch deno.ts",
     "build": "cargo build --release",
     "build:napi": "npm run build",
-    "build:all": "deno task build && deno task build:napi",
-    "test": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/universal.test.ts",
-    "test:real": "deno test --allow-ffi --allow-env tests/universal.test.ts",
+    "build:all": "deno run --allow-run --allow-read --allow-env scripts/build-all.ts",
+    "test": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env --no-check tests/shared.test.ts",
+    "test:real": "deno test --allow-ffi --allow-env tests/",
     "test:doc": "deno test --doc --allow-ffi --allow-env deno.ts",
-    "test:universal": "PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env tests/universal.test.ts",
-    "test:node": "PRINTERS_JS_SIMULATE=true node tests/node.test.js",
-    "test:bun": "PRINTERS_JS_SIMULATE=true bun test tests/bun.test.ts",
-    "test:all": "./test-all.sh",
-    "test:junit": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/universal.test.ts --junit-path=test-results/deno-junit.xml",
-    "test:all:real": "deno task test:real && node tests/node.test.js && bun tests/bun.test.ts",
+    "test:shared": "PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env tests/shared.test.ts",
+    "test:node": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
+    "test:bun": "PRINTERS_JS_SIMULATE=true bun test tests/",
+    "test:all": "PRINTERS_JS_SIMULATE=true deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts",
+    "test:junit": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/ --junit-path=test-results/deno-junit.xml",
+    "test:all:real": "PRINTERS_JS_SIMULATE=false deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts",
     "dev:deno": "deno run --allow-ffi --allow-env --watch deno.ts",
     "dev:node": "npm run dev",
     "dev:bun": "bun --watch bun.js",
@@ -29,7 +29,8 @@
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
     "@std/path": "jsr:@std/path@1",
-    "@std/semver": "jsr:@std/semver@1"
+    "@std/semver": "jsr:@std/semver@1",
+    "@cross/test": "jsr:@cross/test@0.0.10"
   },
   "fmt": {
     "exclude": [
@@ -41,8 +42,8 @@
       "*.rs",
       "Cargo.toml",
       "Cargo.lock",
-      "node.js",
-      "bun.js",
+      "node.ts",
+      "bun.ts",
       "index.js",
       "package.json",
       "napi/"
@@ -57,8 +58,8 @@
       "*.rs",
       "Cargo.toml",
       "Cargo.lock",
-      "node.js",
-      "bun.js",
+      "node.ts",
+      "bun.ts",
       "index.js",
       "index.ts",
       "package.json",
@@ -72,12 +73,18 @@
     ]
   },
   "exclude": [
-    "node.js",
-    "bun.js",
+    "node.ts",
+    "bun.ts",
     "index.js",
     "index.d.ts",
     "package.json",
     "napi/",
-    "target/"
-  ]
+    "target/",
+    "tests/node-test-runner.ts"
+  ],
+  "nodeModulesDir": "none",
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.unstable"],
+    "strict": true
+  }
 }

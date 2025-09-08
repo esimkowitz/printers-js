@@ -27,7 +27,7 @@ All runtimes provide the same consistent API for printer operations.
 
 - **`deno.ts`**: Deno entry point using `Deno.dlopen()` FFI
 - **`bun.js`**: Bun entry point using `dlopen()` FFI with `CString` handling
-- **`node.js`**: Node.js wrapper around N-API module
+- **`node.mjs`**: Node.js wrapper around N-API module (ES module)
 - **`napi/index.js`**: Auto-generated N-API module loader (in subdirectory)
 
 ### 3. **Unified API Surface**
@@ -69,7 +69,7 @@ All runtimes expose the same consistent API:
 - Same binary as Deno: `libdeno_printers.dylib`
 - Supports simulation mode and all printer operations
 
-### **Node.js** (`node.js` + `napi/`)
+### **Node.js** (`node.mjs` + `napi/`)
 
 - Uses N-API via `napi-rs` framework with `AsyncTask` pattern
 - Auto-generated platform-specific binaries: `printers.darwin-arm64.node`
@@ -106,7 +106,7 @@ deno run --allow-ffi --allow-env mod.ts
 bun bun.js
 
 # Test Node.js
-node node.js
+node node.mjs
 ```
 
 ### Running
@@ -344,7 +344,7 @@ If you encounter segfaults in the future:
 │   └── lib.rs         # Module orchestration
 ├── mod.ts             # Deno entry point
 ├── bun.js             # Bun entry point
-├── node.js            # Node.js wrapper
+├── node.mjs           # Node.js wrapper (ES module)
 ├── napi/              # Auto-generated N-API modules
 │   ├── index.js       # Platform detection & loading
 │   └── *.node         # Platform-specific binaries
