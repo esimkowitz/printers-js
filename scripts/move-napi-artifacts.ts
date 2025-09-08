@@ -28,6 +28,7 @@ filesToMove.forEach((file) => {
     try {
       renameSync(sourcePath, destPath);
       console.log(`Moved ${file} to napi/`);
+      // deno-lint-ignore no-explicit-any
     } catch (err: any) {
       console.error(`Failed to move ${file}: ${err.message}`);
     }
