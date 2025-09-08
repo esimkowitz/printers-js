@@ -3,20 +3,18 @@
   "version": "0.2.0",
   "license": "MIT",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./deno": "./deno.ts"
   },
   "publish": {
     "include": [
       "index.ts",
       "deno.ts",
-      "bun.js",
-      "node.js",
       "README.md",
       "LICENSE",
       "target/release/*.dll",
       "target/release/*.dylib",
-      "target/release/*.so",
-      "napi/"
+      "target/release/*.so"
     ]
   },
   "tasks": {
@@ -38,8 +36,8 @@
     "dev:bun": "bun --watch bun.js",
     "lint": "deno lint",
     "fmt": "deno fmt",
-    "check": "deno check deno.ts index.ts",
-    "check:all": "deno check deno.ts index.ts && npm run build && echo 'All runtimes checked successfully'",
+    "check": "deno check deno.ts",
+    "check:all": "deno check deno.ts && npm run build && echo 'All runtimes checked successfully'",
     "bump:patch": "deno run --allow-read --allow-write scripts/bump-version.ts patch",
     "bump:minor": "deno run --allow-read --allow-write scripts/bump-version.ts minor",
     "bump:major": "deno run --allow-read --allow-write scripts/bump-version.ts major",

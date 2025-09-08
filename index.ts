@@ -8,10 +8,10 @@
 // Runtime detection helpers
 
 // Runtime detection
-const isNode = typeof (globalThis as any).process !== "undefined" &&
+const isNode: boolean = typeof (globalThis as any).process !== "undefined" &&
   (globalThis as any).process?.versions?.node;
-const isBun = typeof (globalThis as any).Bun !== "undefined";
-const isDeno = typeof Deno !== "undefined";
+const isBun: boolean = typeof (globalThis as any).Bun !== "undefined";
+const isDeno: boolean = typeof Deno !== "undefined";
 
 // Type definitions (shared across all runtimes)
 export enum PrintError {
@@ -68,11 +68,13 @@ if (isDeno) {
   // Deno runtime
   printerModule = await import("./deno.ts");
 } else if (isBun) {
-  // Bun runtime
-  printerModule = await import("./bun.ts");
+  // Bun runtime - use dynamic string to prevent type checking
+  const bunPath = "./bun" + ".ts";
+  printerModule = await import(bunPath);
 } else if (isNode) {
-  // Node.js runtime
-  const nodeModule = await import("./node.ts");
+  // Node.js runtime - use dynamic string to prevent type checking
+  const nodePath = "./node" + ".ts";
+  const nodeModule = await import(nodePath);
   printerModule = nodeModule;
 } else {
   throw new Error(
@@ -81,16 +83,14 @@ if (isDeno) {
 }
 
 // Re-export all functionality from the runtime-specific module
-export const {
-  getAllPrinters,
-  getAllPrinterNames,
-  getPrinterByName,
-  printerExists,
-  getJobStatus,
-  cleanupOldJobs,
-  shutdown,
-  Printer,
-} = printerModule;
+export const getAllPrinters = printerModule.getAllPrinters;
+export const getAllPrinterNames = printerModule.getAllPrinterNames;
+export const getPrinterByName = printerModule.getPrinterByName;
+export const printerExists = printerModule.printerExists;
+export const getJobStatus = printerModule.getJobStatus;
+export const cleanupOldJobs = printerModule.cleanupOldJobs;
+export const shutdown = printerModule.shutdown;
+export const Printer = printerModule.Printer;
 
 // Runtime information
 export const runtimeInfo = {
@@ -108,7 +108,7 @@ export const runtimeInfo = {
 };
 
 // Simulation mode detection (works across all runtimes)
-export const isSimulationMode =
+export const isSimulationMode: boolean =
   (isDeno && Deno?.env?.get?.("PRINTERS_JS_SIMULATE") === "true") ||
   (isNode &&
     (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true") ||
