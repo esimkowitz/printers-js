@@ -85,7 +85,8 @@
       "package.json",
       "napi/",
       "tests/node-test-runner.ts",
-      "examples/"
+      "examples/",
+      "scripts/move-napi-artifacts.ts"
     ]
   },
   "exclude": [
@@ -95,7 +96,8 @@
     ".zed/",
     "test-results/",
     "coverage/",
-    "tests/node-test-runner.ts"
+    "tests/node-test-runner.ts",
+    "scripts/move-napi-artifacts.js"
   ],
   "nodeModulesDir": "auto",
   "compilerOptions": {

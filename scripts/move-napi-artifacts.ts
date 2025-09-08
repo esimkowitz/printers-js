@@ -1,58 +1,46 @@
-#!/usr/bin/env deno run --allow-read --allow-write
+#!/usr/bin/env npx tsx
 
-import { join } from "@std/path";
+import { existsSync, mkdirSync, readdirSync, renameSync } from 'fs';
+import { join } from 'path';
 
 // Create napi directory if it doesn't exist
-try {
-  await Deno.stat("napi");
-} catch {
-  await Deno.mkdir("napi", { recursive: true });
+if (!existsSync('napi')) {
+  mkdirSync('napi', { recursive: true });
 }
 
 // Move files to napi directory
-const filesToMove: string[] = ["index.js", "index.d.ts"];
+const filesToMove: string[] = ['index.js', 'index.d.ts'];
+const files = readdirSync('.');
 
 // Add all .node files from current directory
-for await (const dirEntry of Deno.readDir(".")) {
-  if (dirEntry.isFile && dirEntry.name.endsWith(".node")) {
-    filesToMove.push(dirEntry.name);
+for (const file of files) {
+  if (file.endsWith('.node')) {
+    filesToMove.push(file);
   }
 }
 
 // Move each file
 for (const file of filesToMove) {
-  const sourcePath = join(".", file);
-  const destPath = join("napi", file);
+  const sourcePath = join('.', file);
+  const destPath = join('napi', file);
 
-  try {
-    await Deno.stat(sourcePath);
+  if (existsSync(sourcePath)) {
     try {
-      await Deno.rename(sourcePath, destPath);
+      renameSync(sourcePath, destPath);
       console.log(`Moved ${file} to napi/`);
-    } catch (err) {
-      console.error(
-        `Failed to move ${file}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+    } catch (err: any) {
+      console.error(`Failed to move ${file}: ${err.message}`);
     }
-  } catch {
-    // File doesn't exist, skip silently
   }
 }
 
 // List contents of napi directory
-console.log("\nContents of napi/ directory:");
+console.log('\nContents of napi/ directory:');
 try {
-  for await (const dirEntry of Deno.readDir("napi")) {
-    if (dirEntry.isFile) {
-      console.log(`  ${dirEntry.name}`);
-    }
+  const napiFiles = readdirSync('napi');
+  for (const file of napiFiles) {
+    console.log(`  ${file}`);
   }
-} catch (err) {
-  console.error(
-    `Failed to read napi directory: ${
-      err instanceof Error ? err.message : String(err)
-    }`,
-  );
+} catch (err: any) {
+  console.error(`Failed to read napi directory: ${err.message}`);
 }
