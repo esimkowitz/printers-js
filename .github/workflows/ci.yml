@@ -130,28 +130,62 @@ jobs:
           cargo llvm-cov --all-features --workspace --lcov --output-path test-results/coverage/rust.lcov test
         continue-on-error: true
 
-      # Run Cargo tests again for JUnit report (separate from coverage run)
+      # Run Cargo tests and generate JUnit report
       - name: Generate Cargo test JUnit report
         run: |
           mkdir -p test-results
-          # Run cargo tests with JSON output and convert to JUnit
-          cargo test --all-features --workspace -- -Z unstable-options --format json --report-time 2>/dev/null | cargo2junit > test-results/cargo.xml || true
+          # Run cargo tests and capture output
+          cargo test --all-features --workspace > cargo_test_output.txt 2>&1 || true
 
-          # Fallback: If cargo2junit fails, run tests normally and create a simple JUnit file
-          if [ ! -s test-results/cargo.xml ]; then
-            echo "cargo2junit failed, generating fallback JUnit XML..."
-            cargo test --all-features --workspace > cargo_test_output.txt 2>&1
-            TEST_COUNT=$(grep -c "test result:" cargo_test_output.txt || echo "0")
-            PASSED=$(grep "test result: ok" cargo_test_output.txt | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
-            FAILED=$(grep "test result: FAILED" cargo_test_output.txt | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
+          # Parse the test results from cargo output
+          # Look for lines like "test result: ok. 16 passed; 0 failed; 0 ignored"
+          RESULT_LINE=$(grep "test result:" cargo_test_output.txt | head -1)
 
-            echo '<?xml version="1.0" encoding="UTF-8"?>' > test-results/cargo.xml
-            echo '<testsuites>' >> test-results/cargo.xml
-            echo "  <testsuite name=\"Rust Cargo Tests\" tests=\"${PASSED}\" failures=\"${FAILED}\" errors=\"0\">" >> test-results/cargo.xml
-            echo '    <testcase name="Cargo test suite" classname="cargo" />' >> test-results/cargo.xml
-            echo '  </testsuite>' >> test-results/cargo.xml
-            echo '</testsuites>' >> test-results/cargo.xml
+          if [ -n "$RESULT_LINE" ]; then
+            echo "Found test result line: $RESULT_LINE"
+
+            # Extract numbers using more robust parsing
+            PASSED=$(echo "$RESULT_LINE" | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
+            FAILED=$(echo "$RESULT_LINE" | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
+            IGNORED=$(echo "$RESULT_LINE" | grep -oE "[0-9]+ ignored" | grep -oE "[0-9]+" || echo "0")
+
+            # Calculate total tests
+            TOTAL=$((PASSED + FAILED + IGNORED))
+
+            echo "Parsed: Total=$TOTAL, Passed=$PASSED, Failed=$FAILED, Ignored=$IGNORED"
+          else
+            echo "No test result line found, using defaults"
+            TOTAL=0
+            PASSED=0
+            FAILED=0
+            IGNORED=0
           fi
+
+          # Generate JUnit XML
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > test-results/cargo.xml
+          echo '<testsuites>' >> test-results/cargo.xml
+          echo "  <testsuite name=\"Rust Cargo Tests\" tests=\"${TOTAL}\" failures=\"${FAILED}\" errors=\"0\" skipped=\"${IGNORED}\">" >> test-results/cargo.xml
+
+          # Add individual test cases from the output
+          grep "^test " cargo_test_output.txt | while IFS= read -r line; do
+            # Extract test name and status
+            TEST_NAME=$(echo "$line" | sed 's/test \(.*\) \.\.\. .*/\1/')
+            TEST_STATUS=$(echo "$line" | sed 's/.*\.\.\. \(.*\)/\1/')
+
+            if [ "$TEST_STATUS" = "ok" ]; then
+              echo "    <testcase name=\"${TEST_NAME}\" classname=\"cargo\" />" >> test-results/cargo.xml
+            elif [ "$TEST_STATUS" = "FAILED" ]; then
+              echo "    <testcase name=\"${TEST_NAME}\" classname=\"cargo\">" >> test-results/cargo.xml
+              echo "      <failure message=\"Test failed\" />" >> test-results/cargo.xml
+              echo "    </testcase>" >> test-results/cargo.xml
+            fi
+          done
+
+          echo '  </testsuite>' >> test-results/cargo.xml
+          echo '</testsuites>' >> test-results/cargo.xml
+
+          echo "Generated JUnit XML with $TOTAL tests"
+          cat test-results/cargo.xml
         continue-on-error: true
 
       # Run comprehensive cross-runtime tests using our TypeScript script
