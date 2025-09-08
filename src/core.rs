@@ -385,6 +385,11 @@ mod tests {
     #[test]
     fn test_print_file_error_codes() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        // Debug: verify the environment is set up correctly
+        assert!(should_simulate_printing(), "Simulation mode should be enabled");
+        assert!(PrinterCore::printer_exists("Mock Printer"), "Mock Printer should exist in simulation mode");
+        assert!(PrinterCore::find_printer_by_name("Mock Printer").is_some(), "Should be able to find Mock Printer");
 
         // Test with non-existent printer (should still work in simulation mode)
         let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);
