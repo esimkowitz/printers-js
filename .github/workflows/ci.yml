@@ -330,7 +330,7 @@ jobs:
 
       # Add/update dynamic test summary comment based on actual results
       - name: Update Test Summary Comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -590,7 +590,7 @@ jobs:
 
       # Create status check based on test results
       - name: Create status check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -723,7 +723,7 @@ jobs:
       # Create code quality status check
       - name: Create code quality status check
         if: ${{ always() }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // Check code quality step results
