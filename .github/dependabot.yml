@@ -9,19 +9,34 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
   - package-ecosystem: "devcontainers" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
   - package-ecosystem: "rust-toolchain" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
