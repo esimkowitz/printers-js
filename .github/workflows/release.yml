@@ -187,7 +187,7 @@ jobs:
           deno-version: v2.x
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: artifacts
 
@@ -318,7 +318,7 @@ jobs:
         run: npm ci
 
       - name: Download all N-API artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: artifacts
 
