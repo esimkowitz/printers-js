@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 /// Error codes for the printing operations
 #[repr(i32)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PrintError {
     InvalidParams = 1,
     InvalidPrinterName = 2,
@@ -92,13 +92,27 @@ impl PrinterCore {
             // In simulation mode, only return printer if name matches simulated printers
             let simulated_names = ["Mock Printer", "Test Printer"];
             if simulated_names.contains(&name) {
-                // Return first real printer as template, but with the requested name
+                // Try to use a real printer as template, but with the requested name
                 if let Some(mut printer) = printers::get_printers().first().cloned() {
                     printer.name = name.to_string();
                     Some(printer)
                 } else {
-                    // No real printers available - return None to avoid struct creation
-                    None
+                    // No real printers available - create a mock printer struct
+                    Some(Printer {
+                        name: name.to_string(),
+                        system_name: name.to_string(),
+                        driver_name: "Mock Driver".to_string(),
+                        uri: "mock://printer".to_string(),
+                        location: "Test Location".to_string(),
+                        description: "Mock printer for testing".to_string(),
+                        port_name: "MOCK:".to_string(),
+                        processor: "Mock Processor".to_string(),
+                        data_type: "RAW".to_string(),
+                        is_shared: false,
+                        is_default: false,
+                        state: printers::common::base::printer::PrinterState::READY,
+                        state_reasons: Vec::new(),
+                    })
                 }
             } else {
                 None
@@ -317,5 +331,89 @@ impl PrinterCore {
 
         // Reset shutdown flag for potential reuse
         SHUTDOWN_FLAG.store(false, Ordering::Relaxed);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    #[test]
+    fn test_should_simulate_printing_when_env_var_is_true() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        assert!(should_simulate_printing());
+    }
+
+    #[test]
+    fn test_should_simulate_printing_when_env_var_is_false() {
+        env::set_var("PRINTERS_JS_SIMULATE", "false");
+        assert!(!should_simulate_printing());
+    }
+
+    #[test]
+    fn test_should_simulate_printing_when_env_var_is_missing() {
+        env::remove_var("PRINTERS_JS_SIMULATE");
+        assert!(!should_simulate_printing());
+    }
+
+    #[test]
+    fn test_get_all_printer_names_in_simulation_mode() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        let names = PrinterCore::get_all_printer_names();
+        assert_eq!(names, vec!["Mock Printer", "Test Printer"]);
+    }
+
+    #[test]
+    fn test_printer_exists_in_simulation_mode() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        assert!(PrinterCore::printer_exists("Mock Printer"));
+        assert!(PrinterCore::printer_exists("Test Printer"));
+        assert!(!PrinterCore::printer_exists("NonExistent Printer"));
+    }
+
+    #[test]
+    fn test_find_printer_by_name_in_simulation_mode() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        let printer = PrinterCore::find_printer_by_name("Mock Printer");
+        assert!(printer.is_some());
+
+        let printer = PrinterCore::find_printer_by_name("NonExistent Printer");
+        assert!(printer.is_none());
+    }
+
+    #[test]
+    fn test_print_file_error_codes() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+        
+        // Debug: verify the environment is set up correctly
+        assert!(should_simulate_printing(), "Simulation mode should be enabled");
+        assert!(PrinterCore::printer_exists("Mock Printer"), "Mock Printer should exist in simulation mode");
+        assert!(PrinterCore::find_printer_by_name("Mock Printer").is_some(), "Should be able to find Mock Printer");
+
+        // Test with non-existent printer (should still work in simulation mode)
+        let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);
+        assert!(result.is_ok());
+
+        // Test with file that should trigger file not found error
+        let result =
+            PrinterCore::print_file("Mock Printer", "/path/that/does_not_exist/file.pdf", None);
+        assert_eq!(result, Err(PrintError::FileNotFound));
+
+        // Test with file that should trigger simulated failure
+        let result = PrinterCore::print_file("Mock Printer", "/path/to/fail-test.pdf", None);
+        assert_eq!(result, Err(PrintError::SimulatedFailure));
+    }
+
+    #[test]
+    fn test_print_error_codes() {
+        assert_eq!(PrintError::InvalidParams.as_i32(), 1);
+        assert_eq!(PrintError::InvalidPrinterName.as_i32(), 2);
+        assert_eq!(PrintError::InvalidFilePath.as_i32(), 3);
+        assert_eq!(PrintError::InvalidJson.as_i32(), 4);
+        assert_eq!(PrintError::InvalidJsonEncoding.as_i32(), 5);
+        assert_eq!(PrintError::PrinterNotFound.as_i32(), 6);
+        assert_eq!(PrintError::FileNotFound.as_i32(), 7);
+        assert_eq!(PrintError::SimulatedFailure.as_i32(), 8);
     }
 }
