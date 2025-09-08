@@ -56,6 +56,8 @@ const libPath = join(cleanDir, "target", "release", getLibraryName());
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
+// Debug logging for development
+if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
   console.log(`[DEBUG] Loading FFI library from: ${libPath}`);
   console.log(`[DEBUG] Current working directory: ${Deno.cwd()}`);
   console.log(`[DEBUG] Expected library name: ${getLibraryName()}`);
@@ -230,7 +232,6 @@ try {
 }
 
 // Simulation mode is handled entirely within the Rust library using environment variables
-// The library will automatically detect PRINTERS_JS_SIMULATE and use simulation mode
 
 /**
  * Shutdown the library and cleanup all background threads

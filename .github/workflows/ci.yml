@@ -193,6 +193,7 @@ jobs:
       pull-requests: write
       actions: read
       checks: write
+      statuses: write
     steps:
       - name: Checkout merge commit
         uses: actions/checkout@v5
