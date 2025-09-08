@@ -175,23 +175,30 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-latest
+          # macOS builds
+          - host: macos-13  # Intel Mac
             target: x86_64-apple-darwin
-
-          - host: macos-latest
+            
+          - host: macos-14  # Apple Silicon
             target: aarch64-apple-darwin
 
+          # Windows builds  
           - host: windows-latest
             target: x86_64-pc-windows-msvc
 
+          # Windows ARM64 requires cross-compilation
           - host: windows-latest
             target: aarch64-pc-windows-msvc
+            cross: true
 
+          # Linux builds
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
 
+          # Linux ARM64 requires cross-compilation
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            cross: true
 
     steps:
       - uses: actions/checkout@v5
@@ -246,7 +253,10 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build -- --target ${{ matrix.settings.target }}
+        run: |
+          # For cross-compilation, we need to ensure the correct target is used
+          echo "Building for target: ${{ matrix.settings.target }}"
+          npm run build -- --target ${{ matrix.settings.target }}
 
       - name: Debug build output
         shell: bash
@@ -287,8 +297,15 @@ jobs:
 
       - name: Organize binaries
         run: |
-          mkdir -p napi
           mkdir -p target/release
+          mkdir -p napi
+
+          # Copy FFI binaries for Deno/Bun
+          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
+          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so
+          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll
+          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
+          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
           # Copy N-API binaries for Node.js
           for dir in artifacts/bindings-*; do
@@ -297,17 +314,10 @@ jobs:
             fi
           done
 
-          # Copy FFI binaries for potential Deno/Bun usage from Node package
-          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so 2>/dev/null || true
-          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so 2>/dev/null || true
-          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll 2>/dev/null || true
-          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll 2>/dev/null || true
-          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib 2>/dev/null || true
-
+          echo "FFI binaries:"
+          ls -la target/release/
           echo "N-API binaries:"
           ls -la napi/
-          echo "FFI binaries:"
-          ls -la target/release/ || echo "No FFI binaries included"
 
       - name: Publish to JSR
         run: deno publish --allow-dirty --no-check
