@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
   "main": "index.ts",
