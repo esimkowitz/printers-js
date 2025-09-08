@@ -39,7 +39,6 @@ pub unsafe extern "C" fn free_string(s: *mut c_char) {
     }
 }
 
-
 /// Find a printer by name and return its JSON representation
 ///
 /// # Safety
@@ -83,7 +82,23 @@ pub unsafe extern "C" fn printer_exists(name: *const c_char) -> i32 {
 /// This function is safe to call but returns a pointer that must be freed with free_string.
 #[no_mangle]
 pub unsafe extern "C" fn get_all_printer_names() -> *mut c_char {
+    // Add debug logging for CI troubleshooting
+    eprintln!("[RUST DEBUG] get_all_printer_names called");
+    eprintln!(
+        "[RUST DEBUG] PRINTERS_JS_SIMULATE env var: {:?}",
+        std::env::var("PRINTERS_JS_SIMULATE")
+    );
+    eprintln!(
+        "[RUST DEBUG] should_simulate_printing(): {}",
+        crate::core::should_simulate_printing()
+    );
+
     let names = PrinterCore::get_all_printer_names();
+    eprintln!(
+        "[RUST DEBUG] Found {} printer names: {:?}",
+        names.len(),
+        names
+    );
 
     match serde_json::to_string(&names) {
         Ok(json) => string_to_c_string(json),

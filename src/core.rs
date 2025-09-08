@@ -40,7 +40,13 @@ type JobIdGenerator = Arc<Mutex<JobId>>;
 
 /// Check if we should use simulated printing (for testing)
 pub fn should_simulate_printing() -> bool {
-    env::var("PRINTERS_JS_SIMULATE").unwrap_or_default() == "true"
+    let env_var = env::var("PRINTERS_JS_SIMULATE").unwrap_or_default();
+    let result = env_var == "true";
+    eprintln!(
+        "[CORE DEBUG] should_simulate_printing: PRINTERS_JS_SIMULATE = '{}', returning {}",
+        env_var, result
+    );
+    result
 }
 
 /// Generate the next job ID
@@ -129,13 +135,20 @@ impl PrinterCore {
 
     /// Get all printer names
     pub fn get_all_printer_names() -> Vec<String> {
-        if should_simulate_printing() {
+        let simulate = should_simulate_printing();
+        eprintln!(
+            "[CORE DEBUG] get_all_printer_names: should_simulate_printing() = {}",
+            simulate
+        );
+
+        if simulate {
+            eprintln!("[CORE DEBUG] Returning mock printers");
             vec!["Mock Printer".to_string(), "Test Printer".to_string()]
         } else {
-            printers::get_printers()
-                .into_iter()
-                .map(|p| p.name.clone())
-                .collect()
+            eprintln!("[CORE DEBUG] Getting real printers");
+            let real_printers = printers::get_printers();
+            eprintln!("[CORE DEBUG] Found {} real printers", real_printers.len());
+            real_printers.into_iter().map(|p| p.name.clone()).collect()
         }
     }
 
@@ -385,11 +398,20 @@ mod tests {
     #[test]
     fn test_print_file_error_codes() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
-        
+
         // Debug: verify the environment is set up correctly
-        assert!(should_simulate_printing(), "Simulation mode should be enabled");
-        assert!(PrinterCore::printer_exists("Mock Printer"), "Mock Printer should exist in simulation mode");
-        assert!(PrinterCore::find_printer_by_name("Mock Printer").is_some(), "Should be able to find Mock Printer");
+        assert!(
+            should_simulate_printing(),
+            "Simulation mode should be enabled"
+        );
+        assert!(
+            PrinterCore::printer_exists("Mock Printer"),
+            "Mock Printer should exist in simulation mode"
+        );
+        assert!(
+            PrinterCore::find_printer_by_name("Mock Printer").is_some(),
+            "Should be able to find Mock Printer"
+        );
 
         // Test with non-existent printer (should still work in simulation mode)
         let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);

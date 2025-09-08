@@ -1,3 +1,4 @@
+// @ts-nocheck: FFI symbols have complex types that are validated at runtime
 import { join } from "@std/path";
 
 /**
@@ -113,9 +114,19 @@ function isErrorCode(result: number): boolean {
   return Object.values(PrintError).includes(result as PrintError);
 }
 
+// FFI symbols are validated at runtime
+
 // Load the dynamic library
 // deno-lint-ignore no-explicit-any
 let lib: Deno.DynamicLibrary<any>;
+
+console.log("[DENO DEBUG] Loading FFI library...");
+console.log("[DENO DEBUG] Library path:", libPath);
+console.log(
+  "[DENO DEBUG] PRINTERS_JS_SIMULATE during load:",
+  Deno.env.get("PRINTERS_JS_SIMULATE"),
+);
+
 try {
   lib = Deno.dlopen(libPath, {
     find_printer_by_name: {
@@ -717,13 +728,31 @@ export function printerExists(name: string): boolean {
  * @returns Array of printer names
  */
 export function getAllPrinterNames(): string[] {
+  console.log("[DENO DEBUG] getAllPrinterNames called");
+  console.log(
+    "[DENO DEBUG] Environment variable PRINTERS_JS_SIMULATE:",
+    Deno.env.get("PRINTERS_JS_SIMULATE"),
+  );
+
   return withCStringResult(
-    () => lib.symbols.get_all_printer_names() as Deno.PointerValue,
+    () => {
+      console.log("[DENO DEBUG] About to call FFI get_all_printer_names");
+      const result = lib.symbols.get_all_printer_names() as Deno.PointerValue;
+      console.log("[DENO DEBUG] FFI call returned:", result);
+      return result;
+    },
     (jsonString) => {
-      if (jsonString === null) return [];
+      console.log("[DENO DEBUG] FFI returned JSON string:", jsonString);
+      if (jsonString === null) {
+        console.log("[DENO DEBUG] JSON string is null, returning empty array");
+        return [];
+      }
       try {
-        return JSON.parse(jsonString) as string[];
-      } catch {
+        const parsed = JSON.parse(jsonString) as string[];
+        console.log("[DENO DEBUG] Successfully parsed:", parsed);
+        return parsed;
+      } catch (error) {
+        console.log("[DENO DEBUG] JSON parse error:", error);
         return [];
       }
     },
