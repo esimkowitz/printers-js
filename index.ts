@@ -11,6 +11,7 @@
 const isNode: boolean = typeof (globalThis as any).process !== "undefined" &&
   (globalThis as any).process?.versions?.node;
 const isBun: boolean = typeof (globalThis as any).Bun !== "undefined";
+// @ts-expect-error: Deno namespace exists
 const isDeno: boolean = typeof Deno !== "undefined";
 
 // Type definitions (shared across all runtimes)
