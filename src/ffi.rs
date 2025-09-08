@@ -426,6 +426,7 @@ pub unsafe extern "C" fn printer_print_file(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env;
     use std::ffi::{CStr, CString};
 
@@ -446,6 +447,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_all_printer_names_ffi() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
 
@@ -463,6 +465,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_printer_exists_ffi() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
 
@@ -478,6 +481,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_find_printer_by_name_ffi() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
 
@@ -496,6 +500,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_print_file_ffi() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
 
@@ -516,6 +521,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_print_file_ffi_with_simulated_error() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
 

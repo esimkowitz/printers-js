@@ -116,13 +116,6 @@ jobs:
       - name: Build all runtime libraries
         run: deno task build:all
 
-      # Verify library was built correctly and can detect simulation mode
-      - name: Verify library simulation mode detection
-        run: |
-          echo "Testing library simulation mode detection..."
-          echo "Environment variable: $PRINTERS_JS_SIMULATE"
-          PRINTERS_JS_SIMULATE=true cargo test test_should_simulate_printing_when_env_var_is_true -- --nocapture
-
       # Run Cargo tests with coverage (Rust-level tests)
       - name: Run Cargo tests with coverage
         run: |
@@ -262,8 +255,8 @@ jobs:
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup LCOV
-        uses: hrishikesh-kadam/setup-lcov@v1
+      # - name: Setup LCOV
+      #   uses: hrishikesh-kadam/setup-lcov@v1
 
       # Create combined coverage report from all runtimes
       - name: Combine coverage reports
@@ -545,7 +538,7 @@ jobs:
             summary += `*Last updated: ${timestamp} UTC | [View CI Run](${runUrl})* 🤖`;
 
             // Look for existing comment from this bot
-            const COMMENT_IDENTIFIER = '## 🧪 Cross-Runtime Test Results';
+            const COMMENT_IDENTIFIER = '## 🧪 Test Results';
 
             try {
               const comments = await github.rest.issues.listComments({
