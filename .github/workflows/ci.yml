@@ -165,22 +165,6 @@ jobs:
         run: deno task test:all
         continue-on-error: true
 
-      # Debug: List generated test files
-      - name: Debug - List test results
-        if: ${{ always() }}
-        run: |
-          echo "=== Test Results Directory ==="
-          ls -la test-results/ || echo "test-results directory not found"
-          echo ""
-          echo "=== XML Files Content Preview ==="
-          for file in test-results/*.xml; do
-            if [ -f "$file" ]; then
-              echo "--- $file ---"
-              head -20 "$file"
-              echo ""
-            fi
-          done
-
       - name: Upload Test Reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -230,19 +214,6 @@ jobs:
           pattern: "*-reports"
           merge-multiple: true
 
-      # Debug: Show what files were actually downloaded
-      - name: Debug - List downloaded artifacts
-        if: ${{ always() }}
-        run: |
-          echo "=== Files in current directory after artifact download ==="
-          ls -la
-          echo ""
-          echo "=== XML test result files ==="
-          ls -la *.xml 2>/dev/null || echo "No XML files found"
-          echo ""
-          echo "=== Coverage files ==="
-          ls -la *.lcov *.info 2>/dev/null || echo "No coverage files found"
-
       # - name: Convert JUnit XML to CTRF
       #   run: |
       #     mkdir -p test-results/ctrf
@@ -269,18 +240,13 @@ jobs:
       # Create combined coverage report from all runtimes
       - name: Combine coverage reports
         run: |
-          echo "Combining coverage reports from all runtimes..."
-
           # Coverage files are flattened in current directory after artifact download
-          echo "Looking for coverage files in current directory..."
-          ls -la *.lcov *.info 2>/dev/null || echo "No coverage files found"
 
           # Create coverage-reports directory for organized output
           mkdir -p coverage-reports
 
           # Create combined report from files in current directory
           if [ -f rust.lcov ]; then
-            echo "Found Rust coverage file"
             cp rust.lcov coverage-reports/rust.lcov
             cp rust.lcov coverage-reports/combined.lcov
           else
@@ -288,42 +254,27 @@ jobs:
           fi
 
           if [ -f deno-lcov.info ]; then
-            echo "Found Deno coverage file"
             cp deno-lcov.info coverage-reports/deno-lcov.info
             cat deno-lcov.info >> coverage-reports/combined.lcov
           fi
 
           # Copy other coverage files to organized directory
           if [ -f bun-lcov.info ]; then
-            echo "Found Bun coverage file"
             cp bun-lcov.info coverage-reports/bun-lcov.info
           fi
 
           if [ -f node-lcov.info ]; then
-            echo "Found Node coverage file"
             cp node-lcov.info coverage-reports/node-lcov.info
           fi
-
-          # Note: Bun coverage is in different format, handled separately
-          echo "Coverage files available:"
-          ls -la
 
           # Clean up the combined coverage file to remove problematic entries
           # This filters out TLA:GNC lines which can cause genhtml errors
           if [ -f coverage-reports/combined.lcov ] && [ -s coverage-reports/combined.lcov ]; then
-            echo "Cleaning combined coverage file..."
             cd coverage-reports
             grep -v "TLA:GNC" combined.lcov > combined_clean.lcov || cp combined.lcov combined_clean.lcov
             mv combined_clean.lcov combined.lcov
-            echo "Combined coverage file created with $(wc -l < combined.lcov) lines"
             cd ..
-          else
-            echo "No coverage data to combine"
           fi
-
-          # Show final coverage directory structure
-          echo "Final coverage-reports directory:"
-          ls -la coverage-reports/ || echo "No coverage-reports directory"
 
       # Report coverage for each runtime separately
       # - name: Report Rust code coverage

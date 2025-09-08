@@ -120,13 +120,6 @@ function isErrorCode(result: number): boolean {
 // deno-lint-ignore no-explicit-any
 let lib: Deno.DynamicLibrary<any>;
 
-console.log("[DENO DEBUG] Loading FFI library...");
-console.log("[DENO DEBUG] Library path:", libPath);
-console.log(
-  "[DENO DEBUG] PRINTERS_JS_SIMULATE during load:",
-  Deno.env.get("PRINTERS_JS_SIMULATE"),
-);
-
 try {
   lib = Deno.dlopen(libPath, {
     find_printer_by_name: {
@@ -728,31 +721,13 @@ export function printerExists(name: string): boolean {
  * @returns Array of printer names
  */
 export function getAllPrinterNames(): string[] {
-  console.log("[DENO DEBUG] getAllPrinterNames called");
-  console.log(
-    "[DENO DEBUG] Environment variable PRINTERS_JS_SIMULATE:",
-    Deno.env.get("PRINTERS_JS_SIMULATE"),
-  );
-
   return withCStringResult(
-    () => {
-      console.log("[DENO DEBUG] About to call FFI get_all_printer_names");
-      const result = lib.symbols.get_all_printer_names() as Deno.PointerValue;
-      console.log("[DENO DEBUG] FFI call returned:", result);
-      return result;
-    },
+    () => lib.symbols.get_all_printer_names() as Deno.PointerValue,
     (jsonString) => {
-      console.log("[DENO DEBUG] FFI returned JSON string:", jsonString);
-      if (jsonString === null) {
-        console.log("[DENO DEBUG] JSON string is null, returning empty array");
-        return [];
-      }
+      if (jsonString === null) return [];
       try {
-        const parsed = JSON.parse(jsonString) as string[];
-        console.log("[DENO DEBUG] Successfully parsed:", parsed);
-        return parsed;
-      } catch (error) {
-        console.log("[DENO DEBUG] JSON parse error:", error);
+        return JSON.parse(jsonString) as string[];
+      } catch {
         return [];
       }
     },
