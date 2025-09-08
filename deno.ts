@@ -118,103 +118,107 @@ function isErrorCode(result: number): boolean {
 let lib: Deno.DynamicLibrary<any>;
 try {
   lib = Deno.dlopen(libPath, {
-  find_printer_by_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_exists: {
-    parameters: ["pointer"],
-    result: "i32",
-  },
-  free_string: {
-    parameters: ["pointer"],
-    result: "void",
-  },
-  get_all_printer_names: {
-    parameters: [],
-    result: "pointer",
-  },
-  print_file: {
-    parameters: ["pointer", "pointer", "pointer"],
-    result: "i32",
-  },
-  get_job_status: {
-    parameters: ["u32"],
-    result: "pointer",
-  },
-  cleanup_old_jobs: {
-    parameters: ["u64"],
-    result: "u32",
-  },
-  // New Printer struct functions
-  printer_create: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_free: {
-    parameters: ["pointer"],
-    result: "void",
-  },
-  printer_get_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_system_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_driver_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_uri: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_port_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_processor: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_data_type: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_description: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_location: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_is_default: {
-    parameters: ["pointer"],
-    result: "i32",
-  },
-  printer_get_is_shared: {
-    parameters: ["pointer"],
-    result: "i32",
-  },
-  printer_get_state: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_state_reasons: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_print_file: {
-    parameters: ["pointer", "pointer", "pointer"],
-    result: "i32",
-  },
-  shutdown_library: {
-    parameters: [],
-    result: "void",
-  },
+    find_printer_by_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_exists: {
+      parameters: ["pointer"],
+      result: "i32",
+    },
+    free_string: {
+      parameters: ["pointer"],
+      result: "void",
+    },
+    get_all_printer_names: {
+      parameters: [],
+      result: "pointer",
+    },
+    print_file: {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "i32",
+    },
+    get_job_status: {
+      parameters: ["u32"],
+      result: "pointer",
+    },
+    cleanup_old_jobs: {
+      parameters: ["u64"],
+      result: "u32",
+    },
+    // New Printer struct functions
+    printer_create: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_free: {
+      parameters: ["pointer"],
+      result: "void",
+    },
+    printer_get_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_system_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_driver_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_uri: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_port_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_processor: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_data_type: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_description: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_location: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_is_default: {
+      parameters: ["pointer"],
+      result: "i32",
+    },
+    printer_get_is_shared: {
+      parameters: ["pointer"],
+      result: "i32",
+    },
+    printer_get_state: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_state_reasons: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_print_file: {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "i32",
+    },
+    shutdown_library: {
+      parameters: [],
+      result: "void",
+    },
+    force_simulation_mode: {
+      parameters: ["i32"],
+      result: "void",
+    },
   });
 } catch (error) {
   console.error(`Failed to load FFI library at ${libPath}:`, error);
@@ -227,6 +231,13 @@ try {
   console.error(`Current working directory: ${Deno.cwd()}`);
   console.error(`Expected library path: ${libPath}`);
   throw new Error(`FFI library loading failed: ${error}`);
+}
+
+// Force simulation mode if the environment variable is set
+// This is a workaround for CI environments where env vars don't propagate to FFI libraries
+if (Deno.env.get("PRINTERS_JS_SIMULATE") === "true") {
+  console.log("[DENO DEBUG] Forcing simulation mode in Rust library");
+  lib.symbols.force_simulation_mode(1);
 }
 
 /**
@@ -715,13 +726,28 @@ export function printerExists(name: string): boolean {
  * @returns Array of printer names
  */
 export function getAllPrinterNames(): string[] {
+  console.log("[DENO DEBUG] Calling getAllPrinterNames()");
   return withCStringResult(
-    () => lib.symbols.get_all_printer_names() as Deno.PointerValue,
+    () => {
+      console.log(
+        "[DENO DEBUG] About to call lib.symbols.get_all_printer_names()",
+      );
+      const result = lib.symbols.get_all_printer_names() as Deno.PointerValue;
+      console.log("[DENO DEBUG] FFI call returned:", result);
+      return result;
+    },
     (jsonString) => {
-      if (jsonString === null) return [];
+      console.log("[DENO DEBUG] Received JSON string:", jsonString);
+      if (jsonString === null) {
+        console.log("[DENO DEBUG] JSON string is null, returning empty array");
+        return [];
+      }
       try {
-        return JSON.parse(jsonString) as string[];
-      } catch {
+        const parsed = JSON.parse(jsonString) as string[];
+        console.log("[DENO DEBUG] Parsed JSON successfully:", parsed);
+        return parsed;
+      } catch (error) {
+        console.log("[DENO DEBUG] Failed to parse JSON:", error);
         return [];
       }
     },
