@@ -9,7 +9,14 @@
 import { test } from "@cross/test";
 
 // Always use the universal entrypoint for consistency
-const printerAPI = await import("../index.ts");
+let printerAPI: any;
+try {
+  printerAPI = await import("../index.ts");
+  console.log("Debug: Successfully imported index.ts");
+} catch (error) {
+  console.error("Error importing index.ts:", error);
+  throw error;
+}
 
 // Runtime detection and simulation mode setup
 let runtimeName: string;
@@ -50,6 +57,10 @@ const {
   runtimeInfo,
 } = printerAPI;
 
+console.log("Debug: Available API functions:", Object.keys(printerAPI));
+console.log("Debug: isSimulationMode =", isSimulationMode);
+console.log("Debug: typeof getAllPrinterNames =", typeof getAllPrinterNames);
+
 // Core cross-runtime tests
 test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
   const printerNames = getAllPrinterNames();
@@ -57,8 +68,23 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
     throw new Error("getAllPrinterNames should return an array");
   }
 
+  // Debug: Print current state for troubleshooting
+  console.log(`Debug: Runtime=${runtimeName}, isSimulationMode=${isSimulationMode}, printerNames.length=${printerNames.length}`);
+  console.log(`Debug: PRINTERS_JS_SIMULATE environment variable:`, 
+    typeof Deno !== "undefined" ? Deno.env.get("PRINTERS_JS_SIMULATE") : 
+    typeof process !== "undefined" ? process?.env?.PRINTERS_JS_SIMULATE : "unknown");
+  console.log(`Debug: Printer names received:`, JSON.stringify(printerNames));
+  
   // In simulation mode, we should get at least some printers
   if (isSimulationMode && printerNames.length === 0) {
+    console.error("ERROR: No printers found in simulation mode. This indicates a library loading issue.");
+    console.error("Debug: getAllPrinterNames function type:", typeof getAllPrinterNames);
+    console.error("Debug: getAllPrinterNames result:", getAllPrinterNames());
+    
+    // Try to get more information about what's loaded
+    console.error("Debug: Available API:", Object.keys(printerAPI));
+    console.error("Debug: Runtime info:", JSON.stringify(runtimeInfo));
+    
     throw new Error("Should have at least 1 printer in simulation mode");
   }
 });
@@ -245,6 +271,8 @@ test(`${runtimeName}: should have consistent API across getAllPrinterNames and g
 });
 
 test(`${runtimeName}: should have runtimeInfo with name and version`, () => {
+  console.log("Debug: runtimeInfo =", JSON.stringify(runtimeInfo));
+  
   if (!runtimeInfo.name) {
     throw new Error("Runtime name should be available");
   }
