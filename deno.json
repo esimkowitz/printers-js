@@ -3,15 +3,17 @@
   "version": "0.2.1",
   "license": "MIT",
   "exports": {
-    ".": "./index.ts",
-    "./deno": "./deno.ts"
+    ".": "./index.ts"
   },
   "publish": {
     "include": [
       "index.ts",
+      "node.ts",
+      "bun.ts",
       "deno.ts",
       "README.md",
       "LICENSE",
+      "napi/",
       "target/release/*.dll",
       "target/release/*.dylib",
       "target/release/*.so"
@@ -62,7 +64,7 @@
       "Cargo.lock",
       "node.ts",
       "bun.ts",
-      "index.js",
+      "index.ts",
       "package.json",
       "napi/"
     ]
@@ -87,12 +89,7 @@
     ]
   },
   "exclude": [
-    "node.ts",
-    "bun.ts",
-    "index.d.ts",
     "package.json",
-    "napi/",
-    "target/",
     ".devcontainer/",
     ".vscode/",
     ".zed/",

@@ -70,7 +70,7 @@ async function runTests() {
         testCases: [
           { name: 'Node.js: should return an array from getAllPrinterNames', duration: 0.001, status: 'passed' },
           { name: 'Node.js: should return an array of Printer objects from getAllPrinters', duration: 0.002, status: 'passed' },
-          { name: 'Node.js: should return typed printer instances from getTypedPrinters', duration: 0.001, status: 'passed' },
+          { name: 'Node.js: should return typed printer instances from getAllPrinters', duration: 0.001, status: 'passed' },
           { name: 'Node.js: should return false for non-existent printer in printerExists', duration: 0.001, status: 'passed' },
           { name: 'Node.js: should return null for non-existent printer in getPrinterByName', duration: 0.001, status: 'passed' },
           { name: 'Node.js: should have working Printer class methods', duration: 0.002, status: 'passed' },

@@ -8,8 +8,8 @@
     "start": "bun run main.ts",
     "dev": "bun --watch main.ts"
   },
-  "imports": {
-    "@printers/printers": "jsr:@printers/printers@^0.1.4"
+  "dependencies": {
+    "@printers/printers": "npm:@jsr/printers__printers@^0.1.4"
   },
   "engines": {
     "bun": ">= 1.0"

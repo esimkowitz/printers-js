@@ -1,43 +1,50 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env deno run --allow-read --allow-write
 
-import { existsSync, mkdirSync, readdirSync, renameSync } from "fs";
-import { join } from "path";
+import { join } from "@std/path";
 
 // Create napi directory if it doesn't exist
-if (!existsSync("napi")) {
-  mkdirSync("napi", { recursive: true });
+try {
+  await Deno.stat("napi");
+} catch {
+  await Deno.mkdir("napi", { recursive: true });
 }
 
 // Move files to napi directory
 const filesToMove: string[] = ["index.js", "index.d.ts"];
-const files = readdirSync(".");
 
-// Add all .node files
-files.forEach((file) => {
-  if (file.endsWith(".node")) {
-    filesToMove.push(file);
+// Add all .node files from current directory
+for await (const dirEntry of Deno.readDir(".")) {
+  if (dirEntry.isFile && dirEntry.name.endsWith(".node")) {
+    filesToMove.push(dirEntry.name);
   }
-});
+}
 
 // Move each file
-filesToMove.forEach((file) => {
+for (const file of filesToMove) {
   const sourcePath = join(".", file);
   const destPath = join("napi", file);
 
-  if (existsSync(sourcePath)) {
+  try {
+    await Deno.stat(sourcePath);
     try {
-      renameSync(sourcePath, destPath);
+      await Deno.rename(sourcePath, destPath);
       console.log(`Moved ${file} to napi/`);
-      // deno-lint-ignore no-explicit-any
-    } catch (err: any) {
-      console.error(`Failed to move ${file}: ${err.message}`);
+    } catch (err) {
+      console.error(`Failed to move ${file}: ${err instanceof Error ? err.message : String(err)}`);
     }
+  } catch {
+    // File doesn't exist, skip silently
   }
-});
+}
 
 // List contents of napi directory
 console.log("\nContents of napi/ directory:");
-const napiFiles = readdirSync("napi");
-napiFiles.forEach((file) => {
-  console.log(`  ${file}`);
-});
+try {
+  for await (const dirEntry of Deno.readDir("napi")) {
+    if (dirEntry.isFile) {
+      console.log(`  ${dirEntry.name}`);
+    }
+  }
+} catch (err) {
+  console.error(`Failed to read napi directory: ${err instanceof Error ? err.message : String(err)}`);
+}
