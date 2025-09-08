@@ -118,103 +118,103 @@ function isErrorCode(result: number): boolean {
 let lib: Deno.DynamicLibrary<any>;
 try {
   lib = Deno.dlopen(libPath, {
-  find_printer_by_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_exists: {
-    parameters: ["pointer"],
-    result: "i32",
-  },
-  free_string: {
-    parameters: ["pointer"],
-    result: "void",
-  },
-  get_all_printer_names: {
-    parameters: [],
-    result: "pointer",
-  },
-  print_file: {
-    parameters: ["pointer", "pointer", "pointer"],
-    result: "i32",
-  },
-  get_job_status: {
-    parameters: ["u32"],
-    result: "pointer",
-  },
-  cleanup_old_jobs: {
-    parameters: ["u64"],
-    result: "u32",
-  },
-  // New Printer struct functions
-  printer_create: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_free: {
-    parameters: ["pointer"],
-    result: "void",
-  },
-  printer_get_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_system_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_driver_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_uri: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_port_name: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_processor: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_data_type: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_description: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_location: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_is_default: {
-    parameters: ["pointer"],
-    result: "i32",
-  },
-  printer_get_is_shared: {
-    parameters: ["pointer"],
-    result: "i32",
-  },
-  printer_get_state: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_get_state_reasons: {
-    parameters: ["pointer"],
-    result: "pointer",
-  },
-  printer_print_file: {
-    parameters: ["pointer", "pointer", "pointer"],
-    result: "i32",
-  },
-  shutdown_library: {
-    parameters: [],
-    result: "void",
-  },
+    find_printer_by_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_exists: {
+      parameters: ["pointer"],
+      result: "i32",
+    },
+    free_string: {
+      parameters: ["pointer"],
+      result: "void",
+    },
+    get_all_printer_names: {
+      parameters: [],
+      result: "pointer",
+    },
+    print_file: {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "i32",
+    },
+    get_job_status: {
+      parameters: ["u32"],
+      result: "pointer",
+    },
+    cleanup_old_jobs: {
+      parameters: ["u64"],
+      result: "u32",
+    },
+    // New Printer struct functions
+    printer_create: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_free: {
+      parameters: ["pointer"],
+      result: "void",
+    },
+    printer_get_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_system_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_driver_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_uri: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_port_name: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_processor: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_data_type: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_description: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_location: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_is_default: {
+      parameters: ["pointer"],
+      result: "i32",
+    },
+    printer_get_is_shared: {
+      parameters: ["pointer"],
+      result: "i32",
+    },
+    printer_get_state: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_get_state_reasons: {
+      parameters: ["pointer"],
+      result: "pointer",
+    },
+    printer_print_file: {
+      parameters: ["pointer", "pointer", "pointer"],
+      result: "i32",
+    },
+    shutdown_library: {
+      parameters: [],
+      result: "void",
+    },
   });
 } catch (error) {
   console.error(`Failed to load FFI library at ${libPath}:`, error);

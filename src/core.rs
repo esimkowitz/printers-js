@@ -363,7 +363,7 @@ mod tests {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
         let printer = PrinterCore::find_printer_by_name("Mock Printer");
         assert!(printer.is_some());
-        
+
         let printer = PrinterCore::find_printer_by_name("NonExistent Printer");
         assert!(printer.is_none());
     }
@@ -371,15 +371,16 @@ mod tests {
     #[test]
     fn test_print_file_error_codes() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
-        
+
         // Test with non-existent printer (should still work in simulation mode)
         let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);
         assert!(result.is_ok());
-        
+
         // Test with file that should trigger file not found error
-        let result = PrinterCore::print_file("Mock Printer", "/path/that/does_not_exist/file.pdf", None);
+        let result =
+            PrinterCore::print_file("Mock Printer", "/path/that/does_not_exist/file.pdf", None);
         assert_eq!(result, Err(PrintError::FileNotFound));
-        
+
         // Test with file that should trigger simulated failure
         let result = PrinterCore::print_file("Mock Printer", "/path/to/fail-test.pdf", None);
         assert_eq!(result, Err(PrintError::SimulatedFailure));
@@ -388,7 +389,7 @@ mod tests {
     #[test]
     fn test_cleanup_old_jobs() {
         let cleaned = PrinterCore::cleanup_old_jobs(3600); // 1 hour
-        // u32 is always >= 0, so just check that it returns a valid number
+                                                           // u32 is always >= 0, so just check that it returns a valid number
         assert!(cleaned <= u32::MAX);
     }
 
@@ -419,10 +420,10 @@ mod tests {
             error_message: None,
             created_at: Instant::now(),
         };
-        
+
         let json = create_status_json(123, &job_status);
         assert!(json.is_some());
-        
+
         let json_str = json.unwrap();
         assert!(json_str.contains("\"id\":123"));
         assert!(json_str.contains("\"printer_name\":\"Test Printer\""));
