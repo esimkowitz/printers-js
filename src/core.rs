@@ -338,27 +338,49 @@ impl PrinterCore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env;
 
     #[test]
+    #[serial]
     fn test_should_simulate_printing_when_env_var_is_true() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
         assert!(should_simulate_printing());
     }
 
     #[test]
+    #[serial]
     fn test_should_simulate_printing_when_env_var_is_false() {
+        // Store original value to restore later
+        let original = env::var("PRINTERS_JS_SIMULATE").ok();
+
         env::set_var("PRINTERS_JS_SIMULATE", "false");
         assert!(!should_simulate_printing());
+
+        // Restore original environment state
+        match original {
+            Some(val) => env::set_var("PRINTERS_JS_SIMULATE", val),
+            None => env::remove_var("PRINTERS_JS_SIMULATE"),
+        }
     }
 
     #[test]
+    #[serial]
     fn test_should_simulate_printing_when_env_var_is_missing() {
+        // Store original value to restore later
+        let original = env::var("PRINTERS_JS_SIMULATE").ok();
+
         env::remove_var("PRINTERS_JS_SIMULATE");
         assert!(!should_simulate_printing());
+
+        // Restore original environment state
+        if let Some(val) = original {
+            env::set_var("PRINTERS_JS_SIMULATE", val);
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_all_printer_names_in_simulation_mode() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
         let names = PrinterCore::get_all_printer_names();
@@ -366,6 +388,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_printer_exists_in_simulation_mode() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
         assert!(PrinterCore::printer_exists("Mock Printer"));
@@ -374,6 +397,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_find_printer_by_name_in_simulation_mode() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
         let printer = PrinterCore::find_printer_by_name("Mock Printer");
@@ -384,37 +408,13 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_print_file_error_codes() {
-        // Ensure clean environment state
-        env::remove_var("PRINTERS_JS_SIMULATE");
         env::set_var("PRINTERS_JS_SIMULATE", "true");
 
-        // Give a moment for environment variable to propagate
-        std::thread::sleep(std::time::Duration::from_millis(10));
-
-        // Debug: verify the environment is set up correctly
-        assert!(
-            should_simulate_printing(),
-            "Simulation mode should be enabled. Env var: {:?}",
-            env::var("PRINTERS_JS_SIMULATE")
-        );
-        assert!(
-            PrinterCore::printer_exists("Mock Printer"),
-            "Mock Printer should exist in simulation mode"
-        );
-        assert!(
-            PrinterCore::find_printer_by_name("Mock Printer").is_some(),
-            "Should be able to find Mock Printer"
-        );
-
-        // Test with non-existent printer (should still work in simulation mode)
+        // Test successful print job
         let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);
-        assert!(
-            result.is_ok(),
-            "Print job should succeed in simulation mode for normal file paths. Got error: {:?}, simulation mode: {}",
-            result.err(),
-            should_simulate_printing()
-        );
+        assert!(result.is_ok());
 
         // Test with file that should trigger file not found error
         let result =

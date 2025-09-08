@@ -147,6 +147,37 @@ deno task test:real
 ./scripts/run-ci-local.sh --dry-run
 ```
 
+### GitHub Actions CI Pipeline
+
+The CI system provides comprehensive automated testing and reporting:
+
+#### **Test Execution**
+
+- Cross-runtime compatibility tests (Deno, Bun, Node.js)
+- Rust library unit tests with simulation mode
+- Code quality checks (formatting, linting, Clippy)
+
+#### **Test Reporting**
+
+- Automated PR status checks for "Cross-Runtime Tests" and "Code Quality"
+- JUnit XML test reports uploaded as artifacts
+- LCOV coverage reports with actual percentage calculations
+- Detailed PR comments with test results and coverage metrics
+
+#### **Coverage Analysis**
+
+- Rust core library coverage via `cargo llvm-cov`
+- JavaScript runtime coverage via native tooling
+- Combined coverage reporting with file-specific breakdowns
+- Coverage percentages displayed as `"48% (349/721)"` format
+
+#### **Status Check Integration**
+
+- PR gates block merging on test failures
+- Status checks automatically update based on test results
+- Artifact download and parsing handles flattened file structures
+- Debug logging helps troubleshoot CI issues
+
 ### Manual Commands
 
 ```bash

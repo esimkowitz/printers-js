@@ -23,6 +23,16 @@ node -e "import('./index.ts')"
 bun index.ts
 ```
 
+### CI and Status Checks
+
+The CI system provides comprehensive testing with:
+
+- **Cross-runtime compatibility tests** across Deno, Bun, and Node.js
+- **Rust library unit tests** with simulation mode
+- **Automated PR status checks** with detailed test result reporting
+- **LCOV coverage analysis** with actual percentage calculations
+- **JUnit XML test reports** for all runtimes
+
 ### Building and Testing
 
 ```bash
@@ -150,8 +160,9 @@ ALWAYS run these after changes:
    cleanup
 6. **CI testing**: Use `deno run scripts/run-ci-local.ts` to test workflows
    locally
-7. **Coverage reporting**: Tests generate consistent JUnit XML and LCOV coverage
-   reports (deno-lcov.info, node-lcov.info, bun-lcov.info)
+7. **Coverage reporting**: Tests generate comprehensive JUnit XML and LCOV
+   coverage reports with actual percentage calculations (deno-lcov.info,
+   node-lcov.info, bun-lcov.info, rust.lcov)
 8. **Cross-platform scripts**: All build and test scripts are now Deno
    TypeScript for cross-platform compatibility
 9. **Universal entrypoint**: Always import from `index.ts` for consistent

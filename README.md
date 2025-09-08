@@ -8,6 +8,10 @@
 A cross-runtime printer library that works seamlessly across **Deno**, **Bun**,
 and **Node.js**.
 
+> **CI Status**: The build badge above shows the overall CI pipeline status.
+> Pull requests include detailed status checks for "Cross-Runtime Tests" and
+> "Code Quality" with comprehensive coverage reporting.
+
 ## Features
 
 - 🔄 **Cross-runtime compatibility** - Single API that works in Deno, Bun, and
@@ -239,12 +243,17 @@ deno run --allow-ffi --allow-env your-script.ts
 # Comprehensive cross-runtime tests (recommended)
 deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
 
-# Individual runtime tests
-deno task test                    # Deno tests
-npx tsx tests/node-test-runner.ts # Node.js tests with coverage
-bun test tests/                   # Bun tests
+# Individual runtime tests  
+deno task test                    # Deno tests with LCOV coverage
+npx tsx tests/node-test-runner.ts # Node.js tests with c8 coverage
+bun test tests/                   # Bun tests with built-in coverage
+cargo test                        # Rust library tests with llvm-cov
 
-# Safe simulation mode (default)
+# Coverage and reporting
+cargo llvm-cov --lcov --output-path rust.lcov  # Generate Rust LCOV
+# Test reports include JUnit XML and LCOV with actual percentages
+
+# Safe simulation mode (default - prevents actual printing)
 PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/shared.test.ts
 ```
 
