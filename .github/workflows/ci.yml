@@ -112,12 +112,6 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      # Clean previous builds to ensure fresh library
-      - name: Clean previous builds
-        run: |
-          rm -rf target/release/
-          rm -rf napi/
-
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
         run: deno task build:all
