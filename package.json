@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
   "main": "index.ts",
@@ -37,10 +37,6 @@
   "imports": {
     "#cross/test": "jsr:@cross/test@0.0.10"
   },
-  "dependencies": {
-    "@types/bun": "^1.2.21",
-    "@types/node": "^24.3.1"
-  },
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
     "@napi-rs/cli": "^3.1.5",
@@ -49,7 +45,9 @@
     "@typescript-eslint/parser": "^8.42.0",
     "c8": "^10.1.2",
     "eslint": "^9.35.0",
-    "tsx": "^4.20.5"
+    "tsx": "^4.20.5",
+    "@types/bun": "^1.2.21",
+    "@types/node": "^24.3.1"
   },
   "scripts": {
     "build": "napi build --platform --release --features napi && npx tsx scripts/move-napi-artifacts.ts && npx tsx scripts/remove-env-check.ts",
