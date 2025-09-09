@@ -10,11 +10,11 @@
       "*.ts",
       "README.md",
       "LICENSE",
-      "napi/**/*.{node,js,d.ts}",
+      "napi/**",
       "target/release/*.{dll,dylib,so}"
     ],
     "exclude": [
-      "!napi/**"
+      "!napi"
     ]
   },
   "tasks": {

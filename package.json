@@ -52,8 +52,8 @@
     "tsx": "^4.20.5"
   },
   "scripts": {
-    "build": "napi build --platform --release --features napi && npx tsx scripts/move-napi-artifacts.ts",
-    "build:debug": "napi build --platform --features napi && npx tsx scripts/move-napi-artifacts.ts",
+    "build": "napi build --platform --release --features napi && npx tsx scripts/move-napi-artifacts.ts && deno run --allow-read --allow-write scripts/remove-env-check.ts",
+    "build:debug": "napi build --platform --features napi && npx tsx scripts/move-napi-artifacts.ts && deno run --allow-read --allow-write scripts/remove-env-check.ts",
     "test": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
