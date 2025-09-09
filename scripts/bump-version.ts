@@ -140,7 +140,9 @@ async function main(): Promise<void> {
       });
       const npmResult = await npmInstall.output();
       if (!npmResult.success) {
-        console.warn("⚠️ npm install failed, package-lock.json may be out of sync");
+        console.warn(
+          "⚠️ npm install failed, package-lock.json may be out of sync",
+        );
       }
 
       console.log("Updating Cargo.lock...");
