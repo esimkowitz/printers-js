@@ -12,6 +12,8 @@ jobs:
     env:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
 
@@ -77,6 +79,8 @@ jobs:
     name: Build native libraries
     runs-on: ${{ matrix.os }}
     needs: test-cross-runtime
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -171,6 +175,8 @@ jobs:
     name: Build N-API modules
     runs-on: ${{ matrix.settings.host }}
     needs: test-cross-runtime
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -313,6 +319,8 @@ jobs:
     needs: [build-native, build-napi]
     env:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for tests
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
 
