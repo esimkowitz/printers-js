@@ -12,8 +12,7 @@ jobs:
     env:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
-    permissions:
-      contents: read
+    permissions: {}
     steps:
       - uses: actions/checkout@v5
 
@@ -31,14 +30,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 20
-          cache: npm
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-cross-runtime
 
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -71,8 +65,7 @@ jobs:
     name: Build native libraries
     runs-on: ${{ matrix.os }}
     needs: test-cross-runtime
-    permissions:
-      contents: read
+    permissions: {}
     strategy:
       matrix:
         include:
@@ -102,10 +95,6 @@ jobs:
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-native-${{ matrix.target }}
 
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -160,8 +149,7 @@ jobs:
     name: Build N-API modules
     runs-on: ${{ matrix.settings.host }}
     needs: test-cross-runtime
-    permissions:
-      contents: read
+    permissions: {}
     strategy:
       fail-fast: false
       matrix:
@@ -203,14 +191,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 20
-          cache: npm
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-napi-${{ matrix.settings.target }}
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -306,7 +289,6 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 20
-          cache: npm
           registry-url: https://registry.npmjs.org/
 
       - name: Install dependencies
