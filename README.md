@@ -19,13 +19,32 @@ Cross-runtime printer library for Deno, Bun, and Node.js.
 
 ## Installation
 
-### Deno (via JSR)
+### JSR (Recommended)
+
+JSR provides smaller bundle sizes through tree-shaking and is recommended for
+new projects.
+
+**Deno:**
 
 ```bash
 deno add @printers/printers
 ```
 
-### Node.js / Bun (via NPM)
+**Node.js:**
+
+```bash
+npx jsr add @printers/printers
+```
+
+**Bun:**
+
+```bash
+bunx jsr add @printers/printers
+```
+
+### NPM
+
+**Node.js:**
 
 ```bash
 npm install @printers/printers
@@ -33,7 +52,11 @@ npm install @printers/printers
 yarn add @printers/printers
 # or
 pnpm add @printers/printers
-# or
+```
+
+**Bun:**
+
+```bash
 bun add @printers/printers
 ```
 
