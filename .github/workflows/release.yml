@@ -227,6 +227,17 @@ jobs:
           path: napi/*.node
           if-no-files-found: error
 
+      # Upload index.js and index.d.ts only once (from the first job that completes)
+      - name: Upload N-API JavaScript files
+        if: matrix.settings.target == 'x86_64-apple-darwin'
+        uses: actions/upload-artifact@v4
+        with:
+          name: napi-js-files
+          path: |
+            napi/index.js
+            napi/index.d.ts
+          if-no-files-found: error
+
   publish-jsr:
     name: Publish to JSR
     runs-on: ubuntu-latest
@@ -259,7 +270,12 @@ jobs:
           cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
           cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
-          # Copy N-API binaries for Node.js
+          # Copy N-API JavaScript files (index.js and index.d.ts)
+          if [ -d "artifacts/napi-js-files" ]; then
+            cp artifacts/napi-js-files/* napi/
+          fi
+
+          # Copy N-API platform-specific binaries
           for dir in artifacts/bindings-*; do
             if [ -d "$dir" ]; then
               cp "$dir"/*.node napi/ 2>/dev/null || true
@@ -268,7 +284,7 @@ jobs:
 
           echo "FFI binaries:"
           ls -la target/release/
-          echo "N-API binaries:"
+          echo "N-API binaries and files:"
           ls -la napi/
 
       - name: Publish to JSR
@@ -301,27 +317,32 @@ jobs:
 
       - name: Organize all binaries
         run: |
-          mkdir -p napi
           mkdir -p target/release
+          mkdir -p napi
 
-          # Copy N-API binaries for Node.js
+          # Copy FFI binaries for Deno/Bun
+          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
+          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so
+          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll
+          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
+          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
+
+          # Copy N-API JavaScript files (index.js and index.d.ts)
+          if [ -d "artifacts/napi-js-files" ]; then
+            cp artifacts/napi-js-files/* napi/
+          fi
+
+          # Copy N-API platform-specific binaries
           for dir in artifacts/bindings-*; do
             if [ -d "$dir" ]; then
               cp "$dir"/*.node napi/ 2>/dev/null || true
             fi
           done
 
-          # Copy FFI binaries for potential Deno/Bun usage from Node package
-          cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so 2>/dev/null || true
-          cp artifacts/aarch64-unknown-linux-gnu/libprinters_js-linux-arm64.so target/release/libprinters_js-arm64.so 2>/dev/null || true
-          cp artifacts/x86_64-pc-windows-msvc/printers_js-windows-amd64.dll target/release/printers_js.dll 2>/dev/null || true
-          cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll 2>/dev/null || true
-          cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib 2>/dev/null || true
-
-          echo "N-API binaries:"
-          ls -la napi/
           echo "FFI binaries:"
-          ls -la target/release/ || echo "No FFI binaries included"
+          ls -la target/release/
+          echo "N-API binaries and files:"
+          ls -la napi/
 
       - name: Test Node.js package before publishing
         run: PRINTERS_JS_SIMULATE=true npm test
