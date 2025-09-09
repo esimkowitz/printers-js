@@ -14,8 +14,7 @@ jobs:
     env:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
-    permissions:
-      contents: read
+    permissions: {}
     steps:
       - name: Checkout base branch
         if: ${{ github.event_name == 'push' }}
