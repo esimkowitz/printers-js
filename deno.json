@@ -11,7 +11,9 @@
       "README.md",
       "LICENSE",
       "napi/**",
-      "target/release/**"
+      "target/release/*.dll",
+      "target/release/*.dylib",
+      "target/release/*.so"
     ],
     "exclude": [
       "!napi",
