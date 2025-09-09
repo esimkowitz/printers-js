@@ -83,7 +83,8 @@
       "bun.ts",
       "index.ts",
       "tests/node-test-runner.ts",
-      "scripts/move-napi-artifacts.ts"
+      "scripts/move-napi-artifacts.ts",
+      "scripts/remove-env-check.ts"
     ]
   },
   "exclude": [

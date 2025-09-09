@@ -5,21 +5,37 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/esimkowitz/printers-js/blob/main/LICENSE)
 [![Build](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml)
 
-A cross-runtime printer library that works seamlessly across **Deno**, **Bun**,
-and **Node.js**.
+Cross-runtime printer library for Deno, Bun, and Node.js.
 
 ## Features
 
-- 🔄 **Cross-runtime compatibility** - Single API that works in Deno, Bun, and
-  Node.js
-- 🖨️ **Cross-platform printing** - Works on Windows, macOS, and Linux
-- 🦀 **Native performance** - Powered by Rust's `printers` crate
-- 🏗️ **Multi-architecture support** - AMD64 and ARM64 binaries included
-- 🔒 **Safe testing** - Built-in simulation mode prevents accidental printing
-- ⚡ **Async job tracking** - Non-blocking print jobs with status monitoring
-- 📊 **Comprehensive API** - List printers, check status, manage print jobs
-- 🔍 **Rich printer metadata** - Access all printer properties (driver, state,
-  location, etc.)
+- 🔄 Cross-runtime compatibility - works in Deno, Bun, and Node.js
+- 🖨️ Cross-platform printing - Windows, macOS, and Linux
+- 🦀 Native performance - Rust backend using the `printers` crate
+- 🏗️ Multi-architecture support - AMD64 and ARM64 binaries
+- 🔒 Safe testing - simulation mode prevents accidental printing
+- 📊 Async job tracking - non-blocking print jobs with status monitoring
+- 🔍 Rich printer metadata - access all printer properties
+
+## Installation
+
+### Deno (via JSR)
+
+```bash
+deno add @printers/printers
+```
+
+### Node.js / Bun (via NPM)
+
+```bash
+npm install @printers/printers
+# or
+yarn add @printers/printers
+# or
+pnpm add @printers/printers
+# or
+bun add @printers/printers
+```
 
 ## Quick Start
 
@@ -49,8 +65,6 @@ try {
 
 ```javascript
 import { getAllPrinters } from "@printers/printers";
-// Or for local development:
-// import { getAllPrinters } from "./bun.js";
 
 const printers = getAllPrinters();
 const printer = printers[0];
@@ -61,32 +75,10 @@ await printer.printFile("document.pdf");
 
 ```javascript
 const { getAllPrinters } = require("@printers/printers");
-// Or for local development:
-// const { getAllPrinters } = require("./node.ts");
 
 const printers = getAllPrinters();
 const printer = printers[0];
 await printer.printFile("document.pdf");
-```
-
-## Installation
-
-### Deno (via JSR)
-
-```bash
-deno add @printers/printers
-```
-
-### Node.js / Bun (via NPM)
-
-```bash
-npm install @printers/printers
-# or
-yarn add @printers/printers
-# or
-pnpm add @printers/printers
-# or
-bun add @printers/printers
 ```
 
 ## API Reference
@@ -119,19 +111,15 @@ Remove old completed/failed jobs and return the count removed.
 
 #### `shutdown(): void`
 
-Shutdown the library and cleanup all background threads. This function is
-automatically called on process exit, but can be manually invoked if needed.
+Shutdown the library and cleanup all background threads. Called automatically on process exit.
 
 ### Classes
 
 #### `Printer`
 
-Represents a system printer with comprehensive metadata and printing
-capabilities. Printer instances are created via `Printer.fromName()` or
-`getPrinterByName()` and automatically manage native memory using
-FinalizationRegistry.
+Represents a system printer with metadata and printing capabilities.
 
-**Properties (getters):**
+**Properties:**
 
 - `name: string` - Printer display name
 - `systemName: string` - System-level printer name
@@ -149,17 +137,12 @@ FinalizationRegistry.
 
 **Methods:**
 
-- `static fromName(name: string): Printer | null` - Create printer instance from
-  name
+- `static fromName(name: string): Printer | null` - Create printer instance from name
 - `exists(): boolean` - Check if printer is available
-- `toString(): string` - Get comprehensive string representation with all fields
+- `toString(): string` - Get string representation with all fields
 - `equals(other: Printer): boolean` - Compare with another printer by name
-- `dispose(): void` - Manually release printer resources (optional - automatic
-  cleanup available)
-- `getName(): string` - Backward compatibility method (use `.name` property
-  instead)
-- `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` -
-  Print a file
+- `dispose(): void` - Manually release printer resources (automatic cleanup available)
+- `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` - Print a file
 
 ### Interfaces
 
@@ -182,101 +165,45 @@ interface JobStatus {
 type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 ```
 
-Note: The actual printer state comes from the native printer system and may
-include values like "READY", "OFFLINE", "PAUSED", etc.
+Note: The actual printer state comes from the native printer system and may include values like "READY", "OFFLINE", "PAUSED", etc.
 
 ## Permissions
 
 ### Deno
-
-This library requires the following Deno permissions:
 
 ```bash
 deno run --allow-ffi --allow-env your-script.ts
 ```
 
 - `--allow-ffi` - Required for loading the native library
-- `--allow-env` - Optional, for reading `PRINTERS_JS_SIMULATE` environment
-  variable
+- `--allow-env` - Optional, for reading `PRINTERS_JS_SIMULATE` environment variable
 
 ### Node.js / Bun
 
-No special permissions are required for Node.js or Bun - the library uses native
-N-API bindings that work out of the box
+No special permissions required - uses native N-API bindings.
 
 ## Testing & Safety
 
 ### Simulation Mode
 
-Set the `PRINTERS_JS_SIMULATE=true` environment variable to enable simulation
-mode, which prevents actual printing while testing all functionality:
+Set `PRINTERS_JS_SIMULATE=true` to enable simulation mode, which prevents actual printing while testing all functionality:
 
 **Unix/Linux/macOS:**
-
 ```bash
 PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env your-script.ts
 ```
 
-**Windows:**
-
-Command Prompt:
-
+**Windows Command Prompt:**
 ```cmd
 set PRINTERS_JS_SIMULATE=true
 deno run --allow-ffi --allow-env your-script.ts
 ```
 
-PowerShell:
-
+**Windows PowerShell:**
 ```powershell
 $env:PRINTERS_JS_SIMULATE="true"
 deno run --allow-ffi --allow-env your-script.ts
 ```
-
-### Running Tests
-
-```bash
-# Comprehensive cross-runtime tests (recommended)
-deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
-
-# Individual runtime tests  
-deno task test                    # Deno tests with LCOV coverage
-npx tsx tests/node-test-runner.ts # Node.js tests with c8 coverage
-bun test tests/                   # Bun tests with built-in coverage
-cargo test                        # Rust library tests with llvm-cov
-
-# Coverage and reporting
-cargo llvm-cov --lcov --output-path rust.lcov  # Generate Rust LCOV
-# Test reports include JUnit XML and LCOV with actual percentages
-
-# Safe simulation mode (default - prevents actual printing)
-PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/shared.test.ts
-```
-
-## Platform Support
-
-### FFI Binaries (Deno/Bun)
-
-| Platform | Architecture | Binary                    |
-| -------- | ------------ | ------------------------- |
-| Windows  | AMD64        | `printers_js.dll`         |
-| Windows  | ARM64        | `printers_js-arm64.dll`   |
-| Linux    | AMD64        | `libprinters_js.so`       |
-| Linux    | ARM64        | `libprinters_js-arm64.so` |
-| macOS    | ARM64        | `libprinters_js.dylib`    |
-
-### N-API Binaries (Node.js)
-
-Node.js uses platform-specific `.node` binaries that are automatically
-downloaded during installation for the following platforms:
-
-- Windows (x86, x64, ARM64)
-- macOS (x64, ARM64)
-- Linux (x64, ARM64, ARMv7)
-- FreeBSD (x64)
-
-The library automatically detects your platform and architecture to load the
-correct binary.
 
 ## Examples
 
@@ -297,32 +224,10 @@ if (printers.length > 0) {
 
   try {
     await printer.printFile("document.pdf");
-    console.log("✅ Print successful");
+    console.log("Print successful");
   } catch (error) {
-    console.log("❌ Print failed:", error.message);
+    console.log("Print failed:", error.message);
   }
-}
-```
-
-### Advanced Job Tracking
-
-```typescript
-import { getAllPrinters, getJobStatus } from "@printers/printers";
-
-const printer = getAllPrinters()[0];
-
-// Start print job (non-blocking)
-const jobPromise = printer.printFile("large-document.pdf");
-
-// You can do other work while printing...
-console.log("Print job started, doing other work...");
-
-// Wait for completion
-try {
-  await jobPromise;
-  console.log("Print completed!");
-} catch (error) {
-  console.log("Print failed:", error.message);
 }
 ```
 
@@ -384,50 +289,34 @@ console.log(`Ready printers: ${readyPrinters.map((p) => p.name).join(", ")}`);
 
 // Find network printers
 const networkPrinters = printers.filter((p) => p.isShared);
-console.log(
-  `Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`,
-);
-
-// Comprehensive printer information
-const printer = printers[0];
-console.log(`
-Printer: ${printer.name}
-System Name: ${printer.systemName}
-Driver: ${printer.driverName}
-Port: ${printer.portName}
-Processor: ${printer.processor}
-Data Type: ${printer.dataType}
-URI: ${printer.uri}
-Location: ${printer.location}
-Description: ${printer.description}
-State: ${printer.state}
-State Reasons: [${printer.stateReasons.join(", ")}]
-Is Default: ${printer.isDefault}
-Is Shared: ${printer.isShared}
-`);
+console.log(`Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`);
 ```
+
+## Platform Support
+
+### FFI Binaries (Deno/Bun)
+
+| Platform | Architecture | Binary                    |
+| -------- | ------------ | ------------------------- |
+| Windows  | AMD64        | `printers_js.dll`         |
+| Windows  | ARM64        | `printers_js-arm64.dll`   |
+| Linux    | AMD64        | `libprinters_js.so`       |
+| Linux    | ARM64        | `libprinters_js-arm64.so` |
+| macOS    | ARM64        | `libprinters_js.dylib`    |
+
+### N-API Binaries (Node.js)
+
+Node.js uses platform-specific `.node` binaries automatically downloaded during installation:
+
+- Windows (x86, x64, ARM64)
+- macOS (x64, ARM64)
+- Linux (x64, ARM64, ARMv7)
+- FreeBSD (x64)
 
 ## Development & Contributing
 
-This library uses a sophisticated cross-runtime architecture with shared Rust
-backend and runtime-specific entry points. For detailed technical information
-about:
-
-- **Architecture & Design Patterns** - Dual-binary system (FFI + N-API)
-- **Memory Management** - Automatic cleanup with FinalizationRegistry
-- **Thread Safety** - Background thread management and shutdown procedures
-- **Build Systems** - FFI compilation and N-API module generation
-- **Development Workflow** - Testing, linting, and contribution guidelines
-
-Please see **[CONTRIBUTING.md](./CONTRIBUTING.md)**
+For technical information about architecture, build systems, development workflow, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-MIT License - see
-[LICENSE](https://github.com/printers/printers-js/blob/main/LICENSE) file for
-details.
-
-## Repository
-
-Source code:
-[github.com/printers/printers-js](https://github.com/printers/printers-js)
+MIT License - see [LICENSE](./LICENSE) file for details.
