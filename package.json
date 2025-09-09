@@ -34,9 +34,6 @@
     "url": "https://github.com/printers/printers-js.git"
   },
   "license": "MIT",
-  "imports": {
-    "#cross/test": "jsr:@cross/test@0.0.10"
-  },
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
     "@napi-rs/cli": "^3.1.5",
