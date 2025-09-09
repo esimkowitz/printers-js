@@ -43,6 +43,11 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
+      # Cache Rust dependencies for faster builds
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ runner.os }}-rust
+
       # Install cargo-llvm-cov for code coverage
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
@@ -50,11 +55,6 @@ jobs:
       # Install cargo2junit for JUnit XML output from Cargo tests
       - name: Install cargo2junit
         run: cargo install cargo2junit
-
-      # Cache Rust dependencies for faster builds
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-rust
 
       # Setup Deno
       - uses: denoland/setup-deno@v2
