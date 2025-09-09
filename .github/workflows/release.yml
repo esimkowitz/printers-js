@@ -20,19 +20,24 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+          cache: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+          no-cache: true
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
 
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -95,6 +100,8 @@ jobs:
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
 
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -187,13 +194,16 @@ jobs:
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
 
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -252,6 +262,7 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+          cache: false
 
       - name: Download all artifacts
         uses: actions/download-artifact@v5
@@ -301,11 +312,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
 
       - name: Install dependencies
         run: npm ci

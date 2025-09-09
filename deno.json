@@ -1,24 +1,20 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "license": "MIT",
   "exports": {
     ".": "./index.ts"
   },
   "publish": {
     "include": [
-      "index.ts",
-      "node.ts",
-      "bun.ts",
-      "deno.ts",
+      "*.ts",
       "README.md",
       "LICENSE",
-      "napi/*.node",
-      "napi/*.js",
-      "napi/*.d.ts",
-      "target/release/*.dll",
-      "target/release/*.dylib",
-      "target/release/*.so"
+      "napi/**/*.{node,js,d.ts}",
+      "target/release/*.{dll,dylib,so}"
+    ],
+    "exclude": [
+      "!napi/**"
     ]
   },
   "tasks": {
@@ -56,48 +52,49 @@
   },
   "fmt": {
     "exclude": [
-      "reports/",
-      "coverage/",
       "target/",
+      "napi/",
+      "coverage/",
+      "reports/",
+      "test-results/",
       ".claude/",
       "LICENSE",
       "*.rs",
-      "Cargo.toml",
-      "Cargo.lock",
+      "Cargo.{toml,lock}",
+      "package.json",
       "node.ts",
       "bun.ts",
-      "index.ts",
-      "package.json",
-      "napi/"
+      "index.ts"
     ]
   },
   "lint": {
     "exclude": [
-      "reports/",
-      "coverage/",
       "target/",
+      "napi/",
+      "coverage/",
+      "reports/",
+      "test-results/",
       ".claude/",
+      "examples/",
       "*.rs",
-      "Cargo.toml",
-      "Cargo.lock",
+      "Cargo.{toml,lock}",
+      "package.json",
       "node.ts",
       "bun.ts",
-      "index.js",
       "index.ts",
-      "package.json",
-      "napi/",
       "tests/node-test-runner.ts",
-      "examples/",
       "scripts/move-napi-artifacts.ts"
     ]
   },
   "exclude": [
-    "package.json",
     ".devcontainer/",
     ".vscode/",
     ".zed/",
-    "test-results/",
+    "target/",
+    "napi/",
     "coverage/",
+    "test-results/",
+    "package.json",
     "tests/node-test-runner.ts",
     "scripts/move-napi-artifacts.js"
   ],
