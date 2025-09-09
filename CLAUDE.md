@@ -190,3 +190,32 @@ changes, always ensure all three runtimes continue to work consistently.
 - Disagree when technical facts contradict statements
 - Focus on objective problem-solving rather than agreement
 - never commit changes on behalf of the user, always let the user submit changes
+- **No unnecessary friendly phrases** - avoid "Perfect!", "Much better!", "Great!", etc. in responses
+- **Professional communication** - be direct and informative without excessive enthusiasm
+
+## Documentation Style Preferences
+
+### Writing Style
+
+- **Concise and direct** - avoid verbose explanations and marketing language
+- **Technical accuracy** - state facts without embellishment
+- **Professional tone** - straightforward and informative
+
+### Documentation Structure
+
+- **Brief introductions** - get to the point quickly
+- **Clear API documentation** - comprehensive but concise function/class descriptions
+- **Practical examples** - show real usage patterns, not contrived demos
+- **Logical organization** - installation → usage → API → examples → technical details
+
+### Language Guidelines
+
+- Remove marketing phrases like "comprehensive", "powerful", "seamless", "cutting-edge"
+- Use emojis sparingly - acceptable in feature summaries for visual appeal
+- Avoid superlatives and sales language
+- Focus on what the code does, not how amazing it is
+
+### README vs CONTRIBUTING
+
+- **README.md**: User-focused with API docs, examples, installation
+- **CONTRIBUTING.md**: Developer-focused with architecture, build processes, workflows
