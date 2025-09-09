@@ -201,7 +201,7 @@ jobs:
           if-no-files-found: ignore
 
   report:
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') }}
+    if: ${{ always() && github.event_name == 'pull_request_target'}}
     runs-on: ubuntu-latest
     needs: build
     permissions:
@@ -211,20 +211,11 @@ jobs:
       checks: write
       statuses: write
     steps:
-      - name: Checkout merge commit
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
-
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x # Run with latest stable Deno.
 
       - uses: actions/download-artifact@v5
         if: ${{ always() }}
@@ -232,29 +223,6 @@ jobs:
         with:
           pattern: "*-reports"
           merge-multiple: true
-
-      # - name: Convert JUnit XML to CTRF
-      #   run: |
-      #     mkdir -p test-results/ctrf
-      #     deno run -A npm:junit-to-ctrf "test-reports/*.xml" -o test-results/ctrf/junit.json
-
-      # - name: Publish Cross-Runtime Test Report
-      #   uses: ctrf-io/github-test-reporter@v1
-      #   with:
-      #     title: Cross-Runtime Printer Library Test Report
-      #     report-path: "./test-results/ctrf/*.json"
-      #     pull-request-report: true
-      #     flaky-rate-report: true
-      #     pull-request: true
-      #     overwrite-comment: true
-      #     status-check: true
-      #     status-check-name: "Cross-Runtime Tests (Deno/Bun/Node.js)"
-      #     annotate: true
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Setup LCOV
-      #   uses: hrishikesh-kadam/setup-lcov@v1
 
       # Create combined coverage report from all runtimes
       - name: Combine coverage reports
@@ -294,37 +262,6 @@ jobs:
             mv combined_clean.lcov combined.lcov
             cd ..
           fi
-
-      # Report coverage for each runtime separately
-      # - name: Report Rust code coverage
-      #   if: ${{ hashFiles('coverage-reports/rust.lcov') != '' }}
-      #   uses: zgosalvez/github-actions-report-lcov@v4
-      #   with:
-      #     title-prefix: "🦀 [Rust Core]"
-      #     coverage-files: coverage-reports/rust.lcov
-      #     artifact-name: rust-coverage-report
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     update-comment: true
-
-      # - name: Report Deno code coverage
-      #   if: ${{ hashFiles('coverage-reports/deno-lcov.info') != '' }}
-      #   uses: zgosalvez/github-actions-report-lcov@v4
-      #   with:
-      #     title-prefix: "🦕 [Deno FFI]"
-      #     coverage-files: coverage-reports/deno-lcov.info
-      #     artifact-name: deno-coverage-report
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     update-comment: true
-
-      # - name: Report Combined coverage
-      #   if: ${{ hashFiles('coverage-reports/combined.lcov') != '' }}
-      #   uses: zgosalvez/github-actions-report-lcov@v4
-      #   with:
-      #     title-prefix: "📊 [Combined Coverage]"
-      #     coverage-files: coverage-reports/combined.lcov
-      #     artifact-name: combined-coverage-report
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     update-comment: true
 
       # Add/update dynamic test summary comment based on actual results
       - name: Update Test Summary Comment
