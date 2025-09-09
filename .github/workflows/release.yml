@@ -36,6 +36,10 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ runner.os }}-cross-runtime
+
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         run: |
@@ -46,10 +50,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-cross-runtime
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -103,6 +103,10 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ runner.os }}-native-${{ matrix.target }}
+
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
         if: runner.os == 'Linux'
@@ -120,10 +124,6 @@ jobs:
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
           cargo install cross
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-native-${{ matrix.target }}
 
       - name: Build native library
         shell: bash
@@ -208,15 +208,15 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ runner.os }}-napi-${{ matrix.settings.target }}
+
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-napi-${{ matrix.settings.target }}
 
       - name: Install dependencies
         run: npm ci
