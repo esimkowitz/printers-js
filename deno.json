@@ -11,10 +11,11 @@
       "README.md",
       "LICENSE",
       "napi/**",
-      "target/release/*.{dll,dylib,so}"
+      "target/release/**"
     ],
     "exclude": [
-      "!napi"
+      "!napi",
+      "!target/release"
     ]
   },
   "tasks": {
