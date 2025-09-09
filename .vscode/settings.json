@@ -1,7 +1,6 @@
 {
   "deno.enable": true,
   "deno.lint": true,
-  "deno.unstable": true,
   "deno.config": "./deno.json",
   "deno.codeLens.test": true,
   "deno.codeLens.testArgs": [
@@ -93,17 +92,6 @@
   "markdownlint.config": {
     "default": false
   },
-  // Exclude non-Deno files from Deno linter
-  "deno.disablePaths": [
-    "./index.ts",
-    "./node.ts",
-    "./bun.ts",
-    "./tests/node-test-runner.ts",
-    "./examples/",
-    "./napi/",
-    "./node_modules/",
-    "./package.json"
-  ],
 
   // ESLint configuration for non-Deno files
   "eslint.enable": true,
