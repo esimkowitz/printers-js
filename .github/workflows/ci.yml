@@ -52,16 +52,9 @@ jobs:
         run: cargo install cargo2junit
 
       # Cache Rust dependencies for faster builds
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          prefix-key: ${{ runner.os }}-rust
 
       # Setup Deno
       - uses: denoland/setup-deno@v2
