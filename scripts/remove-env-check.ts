@@ -7,8 +7,8 @@
  * This eliminates the "unanalyzable dynamic import" warning when publishing to JSR.
  */
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join, dirname } from "path";
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,17 +28,17 @@ try {
   // Using \\s+ to avoid the no-regex-spaces lint warning
   const modifiedContent = content.replace(
     /if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s+\}\s+else\s+if/,
-    "if"
+    "if",
   );
 
   if (content !== modifiedContent) {
     writeFileSync(napiIndexPath, modifiedContent);
     console.log(
-      "✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from napi/index.js"
+      "✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from napi/index.js",
     );
   } else {
     console.log(
-      "ℹ️ NAPI_RS_NATIVE_LIBRARY_PATH check not found or already removed"
+      "ℹ️ NAPI_RS_NATIVE_LIBRARY_PATH check not found or already removed",
     );
   }
 } catch (error) {

@@ -111,7 +111,8 @@ Remove old completed/failed jobs and return the count removed.
 
 #### `shutdown(): void`
 
-Shutdown the library and cleanup all background threads. Called automatically on process exit.
+Shutdown the library and cleanup all background threads. Called automatically on
+process exit.
 
 ### Classes
 
@@ -137,12 +138,15 @@ Represents a system printer with metadata and printing capabilities.
 
 **Methods:**
 
-- `static fromName(name: string): Printer | null` - Create printer instance from name
+- `static fromName(name: string): Printer | null` - Create printer instance from
+  name
 - `exists(): boolean` - Check if printer is available
 - `toString(): string` - Get string representation with all fields
 - `equals(other: Printer): boolean` - Compare with another printer by name
-- `dispose(): void` - Manually release printer resources (automatic cleanup available)
-- `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` - Print a file
+- `dispose(): void` - Manually release printer resources (automatic cleanup
+  available)
+- `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` -
+  Print a file
 
 ### Interfaces
 
@@ -165,7 +169,8 @@ interface JobStatus {
 type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 ```
 
-Note: The actual printer state comes from the native printer system and may include values like "READY", "OFFLINE", "PAUSED", etc.
+Note: The actual printer state comes from the native printer system and may
+include values like "READY", "OFFLINE", "PAUSED", etc.
 
 ## Permissions
 
@@ -176,7 +181,8 @@ deno run --allow-ffi --allow-env your-script.ts
 ```
 
 - `--allow-ffi` - Required for loading the native library
-- `--allow-env` - Optional, for reading `PRINTERS_JS_SIMULATE` environment variable
+- `--allow-env` - Optional, for reading `PRINTERS_JS_SIMULATE` environment
+  variable
 
 ### Node.js / Bun
 
@@ -186,20 +192,24 @@ No special permissions required - uses native N-API bindings.
 
 ### Simulation Mode
 
-Set `PRINTERS_JS_SIMULATE=true` to enable simulation mode, which prevents actual printing while testing all functionality:
+Set `PRINTERS_JS_SIMULATE=true` to enable simulation mode, which prevents actual
+printing while testing all functionality:
 
 **Unix/Linux/macOS:**
+
 ```bash
 PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env your-script.ts
 ```
 
 **Windows Command Prompt:**
+
 ```cmd
 set PRINTERS_JS_SIMULATE=true
 deno run --allow-ffi --allow-env your-script.ts
 ```
 
 **Windows PowerShell:**
+
 ```powershell
 $env:PRINTERS_JS_SIMULATE="true"
 deno run --allow-ffi --allow-env your-script.ts
@@ -289,7 +299,9 @@ console.log(`Ready printers: ${readyPrinters.map((p) => p.name).join(", ")}`);
 
 // Find network printers
 const networkPrinters = printers.filter((p) => p.isShared);
-console.log(`Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`);
+console.log(
+  `Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`,
+);
 ```
 
 ## Platform Support
@@ -306,7 +318,8 @@ console.log(`Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`
 
 ### N-API Binaries (Node.js)
 
-Node.js uses platform-specific `.node` binaries automatically downloaded during installation:
+Node.js uses platform-specific `.node` binaries automatically downloaded during
+installation:
 
 - Windows (x86, x64, ARM64)
 - macOS (x64, ARM64)
@@ -315,7 +328,8 @@ Node.js uses platform-specific `.node` binaries automatically downloaded during 
 
 ## Development & Contributing
 
-For technical information about architecture, build systems, development workflow, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+For technical information about architecture, build systems, development
+workflow, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 

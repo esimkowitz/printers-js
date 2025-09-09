@@ -43,8 +43,9 @@ npm run build
 ```
 
 The N-API build does post-processing:
+
 1. Builds platform-specific binaries with napi-rs
-2. Moves artifacts to `napi/` directory  
+2. Moves artifacts to `napi/` directory
 3. Removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
 
 ### Test
@@ -59,11 +60,13 @@ npm test
 bun test tests/
 ```
 
-All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `test:real` tasks to actually print.
+All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `test:real` tasks to
+actually print.
 
 ### Code Quality
 
 Run after changes:
+
 ```bash
 deno fmt && deno lint
 cargo fmt && cargo clippy
@@ -86,7 +89,13 @@ The GitHub Actions workflow handles building and publishing to JSR/npm.
 ```json
 {
   "publish": {
-    "include": ["*.ts", "README.md", "LICENSE", "napi/**", "target/release/*.{dll,dylib,so}"],
+    "include": [
+      "*.ts",
+      "README.md",
+      "LICENSE",
+      "napi/**",
+      "target/release/*.{dll,dylib,so}"
+    ],
     "exclude": ["!napi"]
   }
 }
@@ -94,9 +103,12 @@ The GitHub Actions workflow handles building and publishing to JSR/npm.
 
 ### NAPI Environment Variable Removal
 
-napi-rs generates code that checks `NAPI_RS_NATIVE_LIBRARY_PATH`, causing JSR warnings. The `scripts/remove-env-check.ts` script removes this check during build.
+napi-rs generates code that checks `NAPI_RS_NATIVE_LIBRARY_PATH`, causing JSR
+warnings. The `scripts/remove-env-check.ts` script removes this check during
+build.
 
 This is safe because:
+
 - The variable is only for development/testing
 - Production uses standard platform-specific loading
 - All functionality remains intact
@@ -110,24 +122,32 @@ deno publish --dry-run --no-check --allow-dirty
 
 ## Memory Management
 
-The Rust backend spawns background threads for job monitoring. These are cleaned up automatically on process exit, but you can call `shutdown()` manually if needed.
+The Rust backend spawns background threads for job monitoring. These are cleaned
+up automatically on process exit, but you can call `shutdown()` manually if
+needed.
 
 ## Dependencies
 
 **Rust** (`Cargo.toml`):
-- `printers = "2.2.0"` - Core printer functionality  
+
+- `printers = "2.2.0"` - Core printer functionality
 - `napi = "3"` - N-API bindings (optional)
 
 **Deno** (`deno.json`):
+
 - `@std/assert`, `@std/path`, `@std/semver`
 
 **Node.js** (`package.json`):
+
 - `@napi-rs/cli` - N-API build toolchain
 
 ## CI/CD
 
-GitHub Actions runs cross-runtime tests and generates coverage reports. Use `deno run --allow-run --allow-env --allow-read scripts/run-ci-local.ts` to test locally.
+GitHub Actions runs cross-runtime tests and generates coverage reports. Use
+`deno run --allow-run --allow-env --allow-read scripts/run-ci-local.ts` to test
+locally.
 
 ## Known Issues
 
-Node.js N-API module has runtime initialization issues. Deno and Bun work correctly.
+Node.js N-API module has runtime initialization issues. Deno and Bun work
+correctly.
