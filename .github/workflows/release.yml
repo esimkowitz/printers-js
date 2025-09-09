@@ -28,7 +28,7 @@ jobs:
           bun-version: latest
           no-cache: true
 
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 20
@@ -194,7 +194,7 @@ jobs:
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
 
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 20
@@ -312,7 +312,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup node
+      - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 20
