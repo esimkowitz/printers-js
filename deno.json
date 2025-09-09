@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "license": "MIT",
   "exports": {
     ".": "./index.ts"
@@ -13,7 +13,7 @@
       "deno.ts",
       "README.md",
       "LICENSE",
-      "napi/",
+      "napi/*.node",
       "target/release/*.dll",
       "target/release/*.dylib",
       "target/release/*.so"
