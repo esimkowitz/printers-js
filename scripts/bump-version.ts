@@ -116,6 +116,8 @@ async function main(): Promise<void> {
       console.log("  - deno.json");
       console.log("  - package.json");
       console.log("  - Cargo.toml");
+      console.log("  - package-lock.json (via npm install)");
+      console.log("  - Cargo.lock (via cargo check)");
       console.log(
         `\n✅ Would bump ${bumpType} version from ${currentVersionString} to ${newVersionString}`,
       );
@@ -129,6 +131,30 @@ async function main(): Promise<void> {
 
       console.log("Updating Cargo.toml...");
       await updateCargoToml(newVersionString);
+
+      console.log("Updating package-lock.json...");
+      const npmInstall = new Deno.Command("npm", {
+        args: ["install"],
+        stdout: "piped",
+        stderr: "piped",
+      });
+      const npmResult = await npmInstall.output();
+      if (!npmResult.success) {
+        console.warn(
+          "⚠️ npm install failed, package-lock.json may be out of sync",
+        );
+      }
+
+      console.log("Updating Cargo.lock...");
+      const cargoCheck = new Deno.Command("cargo", {
+        args: ["check"],
+        stdout: "piped",
+        stderr: "piped",
+      });
+      const cargoResult = await cargoCheck.output();
+      if (!cargoResult.success) {
+        console.warn("⚠️ cargo check failed, Cargo.lock may be out of sync");
+      }
 
       console.log(
         `✅ Successfully bumped ${bumpType} version to ${newVersionString}`,
