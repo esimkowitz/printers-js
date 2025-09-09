@@ -89,13 +89,9 @@ if (isDeno) {
   // Deno runtime
   printerModule = await import("./deno.ts");
 } else if (isBun) {
-  // Bun runtime - use dynamic string to prevent type checking
-  const bunPath = "./bun" + ".ts";
-  printerModule = await import(bunPath);
+  printerModule = await import("./bun.ts");
 } else if (isNode) {
-  // Node.js runtime - use dynamic string to prevent type checking
-  const nodePath = "./node" + ".ts";
-  const nodeModule = await import(nodePath);
+  const nodeModule = await import("./node.ts");
   printerModule = nodeModule;
 } else {
   throw new Error(

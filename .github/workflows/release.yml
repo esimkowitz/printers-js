@@ -12,6 +12,8 @@ jobs:
     env:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
 
@@ -45,17 +47,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
 
-      # Cache Rust dependencies for faster builds
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          prefix-key: ${{ runner.os }}-cross-runtime
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -77,6 +71,8 @@ jobs:
     name: Build native libraries
     runs-on: ${{ matrix.os }}
     needs: test-cross-runtime
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -125,16 +121,9 @@ jobs:
         run: |
           cargo install cross
 
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
+          prefix-key: ${{ runner.os }}-native-${{ matrix.target }}
 
       - name: Build native library
         shell: bash
@@ -171,6 +160,8 @@ jobs:
     name: Build N-API modules
     runs-on: ${{ matrix.settings.host }}
     needs: test-cross-runtime
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -223,16 +214,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            .cargo-cache
-            target/
-          key: ${{ matrix.settings.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          prefix-key: ${{ runner.os }}-napi-${{ matrix.settings.target }}
 
       - name: Install dependencies
         run: npm ci
@@ -313,6 +297,8 @@ jobs:
     needs: [build-native, build-napi]
     env:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for tests
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
 
