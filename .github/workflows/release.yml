@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Trigger on version tags like v1.2.3
+      - "v*.*.*" # Trigger on version tags like v1.2.3
 
 jobs:
   test-cross-runtime:
