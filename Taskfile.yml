@@ -86,7 +86,7 @@ tasks:
 
   prepublish:
     desc: Prepare package for publishing (dry run)
-    cmd: napi prepublish -t npm --gh-release false --dry-run
+    cmd: npx napi prepublish -t npm --gh-release false --dry-run
 
   fmt:
     desc: Format all code

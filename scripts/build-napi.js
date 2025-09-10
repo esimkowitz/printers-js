@@ -52,7 +52,7 @@ function main() {
 
   // Build with modern NAPI-RS using proper flags
   const outputDir = `npm/${platformTarget}`;
-  
+
   // Try using direct napi command instead of npx
   const napiArgs = ["build", "--platform", "--features", "napi", "--esm"];
   if (isRelease) napiArgs.push("--release");
@@ -61,9 +61,9 @@ function main() {
   console.log(`Running: napi ${napiArgs.join(" ")}`);
 
   try {
-    execSync(`napi ${napiArgs.join(" ")}`, { 
+    execSync(`npx napi ${napiArgs.join(" ")}`, {
       stdio: "inherit",
-      env: process.env 
+      env: process.env,
     });
   } catch (error) {
     console.error("Build failed:", error);
@@ -74,7 +74,7 @@ function main() {
   try {
     execSync(`node scripts/remove-env-check.js --dir ${outputDir}`, {
       stdio: "inherit",
-      env: process.env
+      env: process.env,
     });
   } catch (error) {
     console.error("Failed to remove env check:", error);
