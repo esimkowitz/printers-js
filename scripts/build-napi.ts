@@ -61,7 +61,7 @@ function main() {
   const outputDir = `npm/${platformTarget}`;
   const releaseFlag = isRelease ? "--release" : "";
   const buildCommand =
-    `napi build --platform --features napi ${releaseFlag} --output-dir ${outputDir}`
+    `napi build --platform --features napi --esm ${releaseFlag} --output-dir ${outputDir}`
       .trim();
 
   console.log(`Running: ${buildCommand}`);
