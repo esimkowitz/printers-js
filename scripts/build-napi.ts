@@ -49,13 +49,8 @@ function main() {
 
   console.log(`Building for platform: ${platformTarget}`);
 
-  // Create npm directories if they don't exist
-  try {
-    execSync("npx napi create-npm-dirs", { stdio: "inherit" });
-  } catch (error) {
-    console.error("Failed to create npm directories:", error);
-    process.exit(1);
-  }
+  // Create npm directories if they don't exist (let napi build handle this)
+  // Note: napi build with --output-dir should create the directory structure
 
   // Build with direct output to npm directory
   const outputDir = `npm/${platformTarget}`;
