@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
   "main": "index.ts",
@@ -43,12 +43,6 @@
     "c8": "^10.1.2",
     "eslint": "^9.35.0",
     "tsx": "^4.20.5"
-  },
-  "scripts": {
-    "test": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "prepublishOnly": "napi prepublish -t npm --gh-release false --dry-run"
   },
   "packageManager": "npm@10.0.0"
 }
