@@ -31,9 +31,79 @@ if (isSimulationMode) {
     PrintErrorCode: {}
   };
 } else {
-  // Try to load the real N-API module
+  // Use top-level await to load the real N-API module
   try {
-    nativeModule = require("./napi/index.js");
+    // Platform detection logic matching build-napi.ts
+    let platformName: string;
+    let archName: string;
+
+    // Map platform
+    switch (process.platform) {
+      case "darwin":
+        platformName = "darwin";
+        break;
+      case "win32":
+        platformName = "win32";
+        break;
+      case "linux":
+        platformName = "linux";
+        break;
+      default:
+        throw new Error(`Unsupported platform: ${process.platform}`);
+    }
+
+    // Map architecture
+    switch (process.arch) {
+      case "x64":
+        archName = platformName === "win32" ? "x64-msvc" : (platformName === "linux" ? "x64-gnu" : "x64");
+        break;
+      case "arm64":
+        archName = platformName === "win32" ? "arm64-msvc" : (platformName === "linux" ? "arm64-gnu" : "arm64");
+        break;
+      default:
+        throw new Error(`Unsupported architecture: ${process.arch}`);
+    }
+
+    const platformTarget = `${platformName}-${archName}`;
+    
+    // Try local npm/ directory first (for JSR or local development)
+    // Use static imports with explicit platform mappings to avoid dynamic import warnings
+    let localError: Error | null = null;
+    try {
+      switch (platformTarget) {
+        case "darwin-x64":
+          nativeModule = await import("./npm/darwin-x64/index.js");
+          break;
+        case "darwin-arm64":
+          nativeModule = await import("./npm/darwin-arm64/index.js");
+          break;
+        case "win32-x64-msvc":
+          nativeModule = await import("./npm/win32-x64-msvc/index.js");
+          break;
+        case "win32-arm64-msvc":
+          nativeModule = await import("./npm/win32-arm64-msvc/index.js");
+          break;
+        case "linux-x64-gnu":
+          nativeModule = await import("./npm/linux-x64-gnu/index.js");
+          break;
+        case "linux-arm64-gnu":
+          nativeModule = await import("./npm/linux-arm64-gnu/index.js");
+          break;
+        default:
+          throw new Error(`Unsupported platform: ${platformTarget}`);
+      }
+    } catch (error) {
+      localError = error as Error;
+    }
+
+    // Fall back to npm optionalDependency package if local path failed
+    if (!nativeModule) {
+      try {
+        nativeModule = await import("@printers/printers");
+      } catch (npmError) {
+        throw new Error(`Failed to load N-API module from both local (${localError?.message}) and npm (${(npmError as Error).message}) paths. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`);
+      }
+    }
   } catch (error) {
     throw new Error(`Failed to load N-API module: ${error.message}. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`);
   }

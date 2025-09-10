@@ -19,7 +19,7 @@ const dirArg = process.argv.find((arg) => arg.startsWith("--dir="));
 const customDir = dirArg ? dirArg.split("=")[1] : null;
 const napiIndexPath = customDir
   ? join(__dirname, "..", customDir, "index.js")
-  : join(__dirname, "..", "napi", "index.js");
+  : join(__dirname, "..", "npm", "darwin-arm64", "index.js");
 
 try {
   if (!existsSync(napiIndexPath)) {
@@ -31,10 +31,10 @@ try {
 
   // Remove the entire NAPI_RS_NATIVE_LIBRARY_PATH check block
   // This regex matches the if block and its else-if continuation
-  // Using \\s+ to avoid the no-regex-spaces lint warning
+  // Updated to handle the function-wrapped structure
   const modifiedContent = content.replace(
-    /if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s+\}\s+else\s+if/,
-    "if",
+    /\s+if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s*\}\s*else\s+if/,
+    "\n  if",
   );
 
   if (content !== modifiedContent) {

@@ -9,8 +9,6 @@
     "node.ts",
     "deno.ts",
     "bun.ts",
-    "napi/index.js",
-    "napi/*.node",
     "target/release/*.dll",
     "target/release/*.dylib",
     "target/release/*.so"

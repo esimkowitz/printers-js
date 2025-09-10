@@ -26,8 +26,7 @@ node.ts            # Node.js entry point
 index.ts           # Universal entry point (auto-detects runtime)
 
 # Generated artifacts
-napi/              # N-API modules for development (gitignored)
-npm/               # N-API platform packages for publishing (gitignored)
+npm/               # N-API platform packages for all publishing and local development (gitignored)
 target/release/    # FFI binaries (gitignored)
 ```
 
@@ -51,8 +50,8 @@ The N-API build process:
 3. Builds platform-specific binaries with napi-rs directly to `npm/platform/`
 4. Removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
 
-This replaces the old workflow that built to the current directory and moved
-files afterward.
+This approach uses the official NAPI-RS `npm/` directory structure for all N-API
+operations.
 
 ### Test
 
@@ -99,7 +98,7 @@ The GitHub Actions workflow handles building and publishing to JSR/npm.
       "*.ts",
       "README.md",
       "LICENSE",
-      "napi/**",
+      "npm/**",
       "target/release/*.{dll,dylib,so}"
     ],
     "exclude": ["!napi"]
@@ -115,8 +114,7 @@ The N-API build process has been redesigned for better CI/CD integration:
 
 - `scripts/build-napi.ts` auto-detects platform and builds directly to
   `npm/platform/`
-- Creates both `napi/` (for local development) and `npm/platform/` (for
-  publishing)
+- Builds directly to `npm/platform/` directories using NAPI-RS --output-dir
 - `scripts/remove-env-check.ts` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for
   JSR compatibility
 
@@ -125,7 +123,7 @@ The N-API build process has been redesigned for better CI/CD integration:
 - Each platform builds its specific `.node` file to its `npm/platform/`
   directory
 - Artifacts are uploaded by platform and later organized for publishing
-- JSR uses `napi/` directory, NPM uses platform-specific packages
+- Both JSR and NPM use the same `npm/platform/` directories with all binaries
 
 ### Manual Testing
 
@@ -163,5 +161,5 @@ locally.
 
 ## Known Issues
 
-Node.js N-API module has runtime initialization issues. Deno and Bun work
-correctly.
+All runtimes (Deno, Bun, and Node.js) work correctly with proper cross-runtime
+compatibility.

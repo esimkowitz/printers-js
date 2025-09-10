@@ -274,7 +274,6 @@ jobs:
       - name: Organize binaries
         run: |
           mkdir -p target/release
-          mkdir -p napi
 
           # Copy FFI binaries for Deno/Bun
           cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
@@ -283,23 +282,46 @@ jobs:
           cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
           cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
-          # Copy N-API JavaScript files (index.js and index.d.ts)
-          if [ -d "artifacts/napi-js-files" ]; then
-            cp artifacts/napi-js-files/* napi/
-          fi
+          # Create npm directory structure and copy N-API binaries directly to platform dirs
+          npx napi create-npm-dirs
 
-          # Copy N-API platform-specific binaries from npm structure
+          # Copy N-API binaries to correct platform directories
           for dir in artifacts/bindings-*; do
             if [ -d "$dir" ]; then
-              # Find .node files in the npm platform directories and copy them
-              find "$dir" -name "*.node" -exec cp {} napi/ \; 2>/dev/null || true
+              platform=$(basename "$dir" | sed 's/bindings-//')
+              # Map NAPI-RS platform names to npm directory names
+              case "$platform" in
+                "x86_64-apple-darwin") npm_platform="darwin-x64" ;;
+                "aarch64-apple-darwin") npm_platform="darwin-arm64" ;;
+                "x86_64-pc-windows-msvc") npm_platform="win32-x64-msvc" ;;
+                "aarch64-pc-windows-msvc") npm_platform="win32-arm64-msvc" ;;
+                "x86_64-unknown-linux-gnu") npm_platform="linux-x64-gnu" ;;
+                "aarch64-unknown-linux-gnu") npm_platform="linux-arm64-gnu" ;;
+                *) echo "Unknown platform: $platform"; continue ;;
+              esac
+
+              if [ -d "npm/$npm_platform" ]; then
+                find "$dir" -name "*.node" -exec cp {} "npm/$npm_platform/" \; 2>/dev/null || true
+                echo "Copied .node files to npm/$npm_platform/"
+              fi
             fi
           done
 
+          # Copy N-API JavaScript files to each platform directory
+          if [ -d "artifacts/napi-js-files" ]; then
+            for platform_dir in npm/*/; do
+              if [ -d "$platform_dir" ]; then
+                cp artifacts/napi-js-files/*.js "$platform_dir/" 2>/dev/null || true
+                cp artifacts/napi-js-files/*.d.ts "$platform_dir/" 2>/dev/null || true
+                echo "Copied JS/TS files to $platform_dir"
+              fi
+            done
+          fi
+
           echo "FFI binaries:"
           ls -la target/release/
-          echo "N-API binaries and files:"
-          ls -la napi/
+          echo "N-API platform directories:"
+          ls -la npm/*/
 
       - name: Publish to JSR
         run: deno publish --allow-dirty --no-check
@@ -334,7 +356,6 @@ jobs:
       - name: Organize all binaries
         run: |
           mkdir -p target/release
-          mkdir -p napi
 
           # Copy FFI binaries for Deno/Bun
           cp artifacts/x86_64-unknown-linux-gnu/libprinters_js-linux-amd64.so target/release/libprinters_js.so
@@ -343,26 +364,51 @@ jobs:
           cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
           cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
-          # Copy N-API JavaScript files (index.js and index.d.ts)
-          if [ -d "artifacts/napi-js-files" ]; then
-            cp artifacts/napi-js-files/* napi/
-          fi
+          # Create npm directory structure and copy N-API binaries directly to platform dirs
+          npx napi create-npm-dirs
 
-          # Copy N-API platform-specific binaries from npm structure
+          # Copy N-API binaries to correct platform directories
           for dir in artifacts/bindings-*; do
             if [ -d "$dir" ]; then
-              # Find .node files in the npm platform directories and copy them
-              find "$dir" -name "*.node" -exec cp {} napi/ \; 2>/dev/null || true
+              platform=$(basename "$dir" | sed 's/bindings-//')
+              # Map NAPI-RS platform names to npm directory names
+              case "$platform" in
+                "x86_64-apple-darwin") npm_platform="darwin-x64" ;;
+                "aarch64-apple-darwin") npm_platform="darwin-arm64" ;;
+                "x86_64-pc-windows-msvc") npm_platform="win32-x64-msvc" ;;
+                "aarch64-pc-windows-msvc") npm_platform="win32-arm64-msvc" ;;
+                "x86_64-unknown-linux-gnu") npm_platform="linux-x64-gnu" ;;
+                "aarch64-unknown-linux-gnu") npm_platform="linux-arm64-gnu" ;;
+                *) echo "Unknown platform: $platform"; continue ;;
+              esac
+
+              if [ -d "npm/$npm_platform" ]; then
+                find "$dir" -name "*.node" -exec cp {} "npm/$npm_platform/" \; 2>/dev/null || true
+                echo "Copied .node files to npm/$npm_platform/"
+              fi
             fi
           done
 
+          # Copy N-API JavaScript files to each platform directory
+          if [ -d "artifacts/napi-js-files" ]; then
+            for platform_dir in npm/*/; do
+              if [ -d "$platform_dir" ]; then
+                cp artifacts/napi-js-files/*.js "$platform_dir/" 2>/dev/null || true
+                cp artifacts/napi-js-files/*.d.ts "$platform_dir/" 2>/dev/null || true
+                echo "Copied JS/TS files to $platform_dir"
+              fi
+            done
+          fi
+
           echo "FFI binaries:"
           ls -la target/release/
-          echo "N-API binaries and files:"
-          ls -la napi/
+          echo "N-API platform directories:"
+          ls -la npm/*/
 
       - name: Test Node.js package before publishing
         run: PRINTERS_JS_SIMULATE=true npm test
 
       - name: Publish to NPM
         run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

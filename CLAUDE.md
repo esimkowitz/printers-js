@@ -149,14 +149,15 @@ ALWAYS run these after changes:
 - **`scripts/`**: Cross-platform Deno TypeScript build and test automation
   scripts
 - **`.devcontainer/`**: Development container setup for all runtimes
-- **`npm/`**: Platform-specific N-API packages for publishing (gitignored)
+- **`npm/`**: Platform-specific N-API packages for all N-API operations
+  (gitignored)
 - **`target/`**: Rust build artifacts (gitignored)
 - **`test-results/`**: Generated test reports and coverage (gitignored)
 
 ## Key Gotchas
 
-1. **N-API build architecture**: `npm run build` creates both `napi/` (for local
-   dev) and `npm/platform/` (for publishing) directories - don't commit either
+1. **N-API build architecture**: `npm run build` creates `npm/platform/`
+   directories for all N-API operations - don't commit these
 2. **Different binary formats**: FFI uses `.dylib/.so/.dll`, N-API uses `.node`
 3. **Test files**: Use `tests/shared.test.ts` for all cross-runtime testing
 4. **Simulation mode**: Always test with `PRINTERS_JS_SIMULATE=true` first

@@ -10,13 +10,13 @@
       "*.ts",
       "README.md",
       "LICENSE",
-      "napi/**",
+      "npm/**",
       "target/release/*.dll",
       "target/release/*.dylib",
       "target/release/*.so"
     ],
     "exclude": [
-      "!napi",
+      "!npm",
       "!target/release"
     ]
   },
@@ -56,7 +56,7 @@
   "fmt": {
     "exclude": [
       "target/",
-      "napi/",
+      "npm/",
       "coverage/",
       "reports/",
       "test-results/",
@@ -73,7 +73,7 @@
   "lint": {
     "exclude": [
       "target/",
-      "napi/",
+      "npm/",
       "coverage/",
       "reports/",
       "test-results/",
@@ -95,7 +95,7 @@
     ".vscode/",
     ".zed/",
     "target/",
-    "napi/",
+    "npm/",
     "coverage/",
     "test-results/",
     "package.json",

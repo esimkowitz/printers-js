@@ -32,6 +32,7 @@ deno add @printers/printers
 # Not recommended - use JSR for better tree-shaking
 deno add npm:@printers/printers
 ```
+
 </details>
 
 ### Node.js
@@ -50,6 +51,7 @@ pnpm add @printers/printers
 ```bash
 npx jsr add @printers/printers
 ```
+
 </details>
 
 ### Bun
@@ -65,6 +67,7 @@ bun add @printers/printers
 # Requires JSR CLI
 bunx jsr add @printers/printers
 ```
+
 </details>
 
 ## Quick Start
