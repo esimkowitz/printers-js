@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
   "main": "index.ts",
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/printers/printers-js.git"
+    "url": "https://github.com/esimkowitz/printers-js.git"
   },
   "license": "MIT",
   "devDependencies": {
