@@ -271,7 +271,7 @@ jobs:
         with:
           path: artifacts
 
-      - name: Organize binaries
+      - name: Setup binaries for JSR
         run: |
           mkdir -p target/release
 
