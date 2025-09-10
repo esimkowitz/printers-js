@@ -50,7 +50,7 @@
     "test": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepublishOnly": "napi create-npm-dirs && napi prepublish -t npm --gh-release=false",
+    "prepublishOnly": "napi create-npm-dirs && napi prepublish -t npm --gh-release false",
     "artifacts": "napi artifacts",
     "universal": "napi universal",
     "version": "napi version"

@@ -365,7 +365,7 @@ jobs:
           cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
           # Create npm directory structure and copy N-API binaries directly to platform dirs
-          npx napi create-npm-dirs
+          deno run -A npm:napi create-npm-dirs
 
           # Copy N-API binaries to correct platform directories
           for dir in artifacts/bindings-*; do
