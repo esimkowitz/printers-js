@@ -160,7 +160,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        settings:
+        include:
           # macOS builds
           - host: macos-13 # Intel Mac
             target: x86_64-apple-darwin
@@ -309,6 +309,7 @@ jobs:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for tests
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -361,5 +362,3 @@ jobs:
 
       - name: Publish to NPM
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
