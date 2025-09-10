@@ -280,6 +280,12 @@ jobs:
           deno-version: v2.x
           cache: false
 
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          package-manager-cache: false
+
       - name: Download all artifacts
         uses: actions/download-artifact@v5
         with:
