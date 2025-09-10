@@ -1,12 +1,13 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 
 import { execSync } from "child_process";
 import { arch, platform } from "process";
+import { existsSync, writeFileSync, readFileSync } from "fs";
 
 // Platform mapping from Node.js to NAPI-RS naming
-function getPlatformTarget(): string {
-  let platformName: string;
-  let archName: string;
+function getPlatformTarget() {
+  let platformName;
+  let archName;
 
   // Map platform
   switch (platform) {
@@ -49,20 +50,21 @@ function main() {
 
   console.log(`Building for platform: ${platformTarget}`);
 
-  // Create npm directories if they don't exist (let napi build handle this)
-  // Note: napi build with --output-dir should create the directory structure
-
-  // Build with direct output to npm directory
+  // Build with modern NAPI-RS using proper flags
   const outputDir = `npm/${platformTarget}`;
-  const releaseFlag = isRelease ? "--release" : "";
-  const buildCommand =
-    `napi build --platform --features napi --esm ${releaseFlag} --output-dir ${outputDir}`
-      .trim();
+  
+  // Try using direct napi command instead of npx
+  const napiArgs = ["build", "--platform", "--features", "napi", "--esm"];
+  if (isRelease) napiArgs.push("--release");
+  napiArgs.push("--output-dir", outputDir);
 
-  console.log(`Running: ${buildCommand}`);
+  console.log(`Running: napi ${napiArgs.join(" ")}`);
 
   try {
-    execSync(buildCommand, { stdio: "inherit" });
+    execSync(`napi ${napiArgs.join(" ")}`, { 
+      stdio: "inherit",
+      env: process.env 
+    });
   } catch (error) {
     console.error("Build failed:", error);
     process.exit(1);
@@ -70,8 +72,9 @@ function main() {
 
   // Remove NAPI_RS_NATIVE_LIBRARY_PATH check
   try {
-    execSync(`npx tsx scripts/remove-env-check.ts --dir ${outputDir}`, {
+    execSync(`node scripts/remove-env-check.js --dir ${outputDir}`, {
       stdio: "inherit",
+      env: process.env
     });
   } catch (error) {
     console.error("Failed to remove env check:", error);

@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 
 /**
  * Post-build script to remove the NAPI_RS_NATIVE_LIBRARY_PATH environment

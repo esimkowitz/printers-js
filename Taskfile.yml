@@ -1,0 +1,145 @@
+version: "3"
+
+vars:
+  SIMULATE: PRINTERS_JS_SIMULATE=true
+
+tasks:
+  dev:
+    desc: Run Deno development server with file watching
+    cmd: deno run --allow-ffi --watch deno.ts
+
+  build:
+    desc: Build FFI library for Deno/Bun
+    cmd: cargo build --release
+
+  build:napi:
+    desc: Build N-API module for Node.js
+    cmd: node scripts/build-napi.js --release
+
+  build:all:
+    desc: Build all runtimes (FFI + N-API)
+    cmd: deno run -A scripts/build-all.ts
+
+  test:
+    desc: Run Deno tests in simulation mode
+    cmd: "{{.SIMULATE}} deno test --allow-ffi --allow-env --no-check tests/shared.test.ts"
+
+  test:real:
+    desc: Run Deno tests with real printing
+    cmd: deno test --allow-ffi --allow-env tests/shared.test.ts
+
+  test:doc:
+    desc: Run documentation tests
+    cmd: deno test --doc --allow-ffi --allow-env deno.ts
+
+  test:shared:
+    desc: Run shared test suite in simulation mode
+    cmd: "{{.SIMULATE}} deno run --allow-ffi --allow-env tests/shared.test.ts"
+
+  test:node:
+    desc: Run Node.js tests in simulation mode
+    cmd: "{{.SIMULATE}} npx tsx tests/node-test-runner.ts"
+
+  test:bun:
+    desc: Run Bun tests in simulation mode
+    cmd: "{{.SIMULATE}} bun test tests/shared.test.ts"
+
+  test:all:
+    desc: Run comprehensive test suite across all runtimes
+    cmd: "{{.SIMULATE}} deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts"
+
+  test:junit:
+    desc: Run Deno tests with JUnit output
+    cmd: "{{.SIMULATE}} deno test --allow-ffi --allow-env tests/shared.test.ts --junit-path=test-results/deno-junit.xml"
+
+  test:all:real:
+    desc: Run comprehensive test suite with real printing
+    cmd: PRINTERS_JS_SIMULATE=false deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+
+  lint:
+    desc: Lint all code
+    deps: [lint:deno, lint:node, lint:rust]
+
+  lint:deno:
+    desc: Lint Deno-managed files
+    cmd: deno lint
+
+  lint:node:
+    desc: Lint Node.js-managed files
+    cmd: npm run lint
+
+  lint:rust:
+    desc: Lint Rust code with Clippy
+    cmd: cargo clippy -- -D warnings
+
+  lint:fix:
+    desc: Fix linting issues in all code
+    deps: [lint:fix:node]
+
+  lint:fix:node:
+    desc: Fix linting issues in Node.js-managed files
+    cmd: npm run lint:fix
+
+  remove-env-check:
+    desc: Remove NAPI_RS_NATIVE_LIBRARY_PATH check from generated N-API files
+    cmd: node scripts/remove-env-check.js
+
+  prepublish:
+    desc: Prepare package for publishing (dry run)
+    cmd: napi prepublish -t npm --gh-release false --dry-run
+
+  fmt:
+    desc: Format all code
+    deps: [fmt:deno, fmt:rust]
+
+  fmt:check:
+    desc: Check formatting for all code
+    deps: [fmt:deno:check, fmt:rust:check]
+
+  fmt:deno:
+    desc: Format TypeScript/JavaScript with Deno
+    cmd: deno fmt
+
+  fmt:deno:check:
+    desc: Check TypeScript/JavaScript formatting with Deno
+    cmd: deno fmt --check
+
+  fmt:rust:
+    desc: Format Rust code
+    cmd: cargo fmt
+
+  fmt:rust:check:
+    desc: Check Rust code formatting
+    cmd: cargo fmt --check
+
+  check:
+    desc: Type check Deno entry point
+    cmd: deno check deno.ts
+
+  check:all:
+    desc: Type check all runtimes
+    cmd: deno check deno.ts && task build:napi && echo 'All runtimes checked successfully'
+
+  bump:patch:
+    desc: Bump patch version
+    cmd: deno run -A scripts/bump-version.ts patch
+
+  bump:minor:
+    desc: Bump minor version
+    cmd: deno run -A scripts/bump-version.ts minor
+
+  bump:major:
+    desc: Bump major version
+    cmd: deno run -A --allow-write scripts/bump-version.ts major
+
+  docs:
+    desc: Generate documentation
+    cmd: deno doc --html --name="@printers/printers" deno.ts index.ts
+
+  docs:serve:
+    desc: Serve documentation locally
+    cmd: deno doc --serve --name="@printers/printers" deno.ts index.ts
+
+  ci:local:
+    desc: Run CI locally with nektos/act
+    cmd: deno run --allow-run --allow-env --allow-read scripts/run-ci-local.ts

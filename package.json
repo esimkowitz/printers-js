@@ -36,24 +36,19 @@
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
     "@napi-rs/cli": "^3.1.5",
     "@std/assert": "npm:@jsr/std__assert@^1.0.14",
+    "@types/bun": "^1.2.21",
+    "@types/node": "^24.3.1",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
     "c8": "^10.1.2",
     "eslint": "^9.35.0",
-    "tsx": "^4.20.5",
-    "@types/bun": "^1.2.21",
-    "@types/node": "^24.3.1"
+    "tsx": "^4.20.5"
   },
   "scripts": {
-    "build": "npx tsx scripts/build-napi.ts --release",
-    "build:debug": "npx tsx scripts/build-napi.ts",
     "test": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepublishOnly": "napi create-npm-dirs && napi prepublish -t npm --gh-release false",
-    "artifacts": "napi artifacts",
-    "universal": "napi universal",
-    "version": "napi version"
+    "prepublishOnly": "napi prepublish -t npm --gh-release false --dry-run"
   },
   "packageManager": "npm@10.0.0"
 }

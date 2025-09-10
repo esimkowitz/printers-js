@@ -36,11 +36,10 @@ target/release/    # FFI binaries (gitignored)
 
 ```bash
 # FFI library (for Deno/Bun)
-deno task build
+task build
 
 # N-API module (for Node.js) 
-npm run build
-npm run build:debug  # Debug build
+task build:napi
 ```
 
 The N-API build process:
@@ -53,16 +52,43 @@ The N-API build process:
 This approach uses the official NAPI-RS `npm/` directory structure for all N-API
 operations.
 
+### Scripts and Runtimes
+
+The project uses different runtime environments for different script types:
+
+**Deno Scripts** (TypeScript with Deno runtime):
+
+- `scripts/build-all.ts` - Cross-runtime build orchestration
+- `scripts/test-all.ts` - Comprehensive test runner with coverage
+- `scripts/run-ci-local.ts` - Local CI simulation
+- `scripts/bump-version.ts` - Version management
+
+**Node.js Scripts** (ESM JavaScript with Node runtime):
+
+- `scripts/build-napi.js` - N-API module building (requires Node.js subprocess
+  environment)
+- `scripts/remove-env-check.js` - Post-build N-API processing
+- `scripts/build-all-node.js` - Alternative Node.js-based build script
+
+**Why different runtimes?**
+
+- Deno scripts handle complex automation and cross-runtime orchestration
+- Node.js scripts handle N-API builds which require specific subprocess
+  environments that work better with native Node.js execution
+- Node.js scripts must run on Windows ARM CI runners where Deno is not available
+- This separation ensures optimal compatibility for each build target and CI
+  environment
+
 ### Test
 
 ```bash
 # All runtimes (recommended)
-deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+task test:all
 
 # Individual runtimes
-deno task test
-npm test
-bun test tests/
+task test
+task test:node
+task test:bun
 ```
 
 All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `test:real` tasks to
@@ -73,13 +99,13 @@ actually print.
 Run after changes:
 
 ```bash
-deno fmt && deno lint
+task fmt && task lint
 cargo fmt && cargo clippy
 ```
 
 ## Release Process
 
-1. **Bump version**: `deno task bump:patch` (or `minor`/`major`)
+1. **Bump version**: `task bump:patch` (or `minor`/`major`)
 2. **Commit and push**: `git add . && git commit -m "v0.3.8" && git push`
 3. **Create GitHub release**: `gh release create v0.3.8` (triggers automation)
 
@@ -112,11 +138,11 @@ The N-API build process has been redesigned for better CI/CD integration:
 
 **Local Development:**
 
-- `scripts/build-napi.ts` auto-detects platform and builds directly to
-  `npm/platform/`
+- `scripts/build-napi.js` (Node.js ESM) - auto-detects platform and builds
+  directly to `npm/platform/`
 - Builds directly to `npm/platform/` directories using NAPI-RS --output-dir
-- `scripts/remove-env-check.ts` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for
-  JSR compatibility
+- `scripts/remove-env-check.js` (Node.js ESM) - removes
+  `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
 
 **CI/CD Pipeline:**
 

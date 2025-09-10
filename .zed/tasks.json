@@ -9,7 +9,7 @@
   },
   {
     "label": "🔧 Build - N-API Module",
-    "command": "npm run build",
+    "command": "task build:napi",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
