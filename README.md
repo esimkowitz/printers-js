@@ -19,32 +19,23 @@ Cross-runtime printer library for Deno, Bun, and Node.js.
 
 ## Installation
 
-### JSR (Recommended)
-
-JSR provides smaller bundle sizes through tree-shaking and is recommended for
-new projects.
-
-**Deno:**
+### Deno
 
 ```bash
 deno add @printers/printers
 ```
 
-**Node.js:**
+<details>
+<summary>Alternative: NPM</summary>
 
 ```bash
-npx jsr add @printers/printers
+# Not recommended - use JSR for better tree-shaking
+deno add npm:@printers/printers
 ```
 
-**Bun:**
+</details>
 
-```bash
-bunx jsr add @printers/printers
-```
-
-### NPM
-
-**Node.js:**
+### Node.js
 
 ```bash
 npm install @printers/printers
@@ -54,15 +45,32 @@ yarn add @printers/printers
 pnpm add @printers/printers
 ```
 
-**Bun:**
+<details>
+<summary>Alternative: JSR</summary>
+
+```bash
+npx jsr add @printers/printers
+```
+
+</details>
+
+### Bun
 
 ```bash
 bun add @printers/printers
 ```
 
-## Quick Start
+<details>
+<summary>Alternative: JSR</summary>
 
-### Deno
+```bash
+# Requires JSR CLI
+bunx jsr add @printers/printers
+```
+
+</details>
+
+## Quick Start
 
 ```typescript
 import { getAllPrinters, Printer } from "@printers/printers";
@@ -82,26 +90,6 @@ try {
 } catch (error) {
   console.error("Print failed:", error.message);
 }
-```
-
-### Bun
-
-```javascript
-import { getAllPrinters } from "@printers/printers";
-
-const printers = getAllPrinters();
-const printer = printers[0];
-await printer.printFile("document.pdf");
-```
-
-### Node.js
-
-```javascript
-const { getAllPrinters } = require("@printers/printers");
-
-const printers = getAllPrinters();
-const printer = printers[0];
-await printer.printFile("document.pdf");
 ```
 
 ## API Reference

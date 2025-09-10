@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "license": "MIT",
   "exports": {
     ".": "./index.ts"
@@ -10,13 +10,13 @@
       "*.ts",
       "README.md",
       "LICENSE",
-      "napi/**",
+      "npm/**",
       "target/release/*.dll",
       "target/release/*.dylib",
       "target/release/*.so"
     ],
     "exclude": [
-      "!napi",
+      "!npm",
       "!target/release"
     ]
   },
@@ -56,7 +56,7 @@
   "fmt": {
     "exclude": [
       "target/",
-      "napi/",
+      "npm/",
       "coverage/",
       "reports/",
       "test-results/",
@@ -73,7 +73,7 @@
   "lint": {
     "exclude": [
       "target/",
-      "napi/",
+      "npm/",
       "coverage/",
       "reports/",
       "test-results/",
@@ -86,7 +86,7 @@
       "bun.ts",
       "index.ts",
       "tests/node-test-runner.ts",
-      "scripts/move-napi-artifacts.ts",
+      "scripts/build-napi.ts",
       "scripts/remove-env-check.ts"
     ]
   },
@@ -95,12 +95,12 @@
     ".vscode/",
     ".zed/",
     "target/",
-    "napi/",
+    "npm/",
     "coverage/",
     "test-results/",
     "package.json",
     "tests/node-test-runner.ts",
-    "scripts/move-napi-artifacts.js"
+    "scripts/build-napi.ts"
   ],
   "nodeModulesDir": "auto",
   "compilerOptions": {

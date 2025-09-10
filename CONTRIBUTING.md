@@ -26,7 +26,7 @@ node.ts            # Node.js entry point
 index.ts           # Universal entry point (auto-detects runtime)
 
 # Generated artifacts
-napi/              # N-API modules (gitignored)
+npm/               # N-API platform packages for all publishing and local development (gitignored)
 target/release/    # FFI binaries (gitignored)
 ```
 
@@ -40,13 +40,18 @@ deno task build
 
 # N-API module (for Node.js) 
 npm run build
+npm run build:debug  # Debug build
 ```
 
-The N-API build does post-processing:
+The N-API build process:
 
-1. Builds platform-specific binaries with napi-rs
-2. Moves artifacts to `napi/` directory
-3. Removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
+1. Auto-detects current platform (darwin-arm64, linux-x64-gnu, etc.)
+2. Creates npm platform directories using `napi create-npm-dirs`
+3. Builds platform-specific binaries with napi-rs directly to `npm/platform/`
+4. Removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
+
+This approach uses the official NAPI-RS `npm/` directory structure for all N-API
+operations.
 
 ### Test
 
@@ -93,7 +98,7 @@ The GitHub Actions workflow handles building and publishing to JSR/npm.
       "*.ts",
       "README.md",
       "LICENSE",
-      "napi/**",
+      "npm/**",
       "target/release/*.{dll,dylib,so}"
     ],
     "exclude": ["!napi"]
@@ -101,17 +106,24 @@ The GitHub Actions workflow handles building and publishing to JSR/npm.
 }
 ```
 
-### NAPI Environment Variable Removal
+### NAPI Build Architecture
 
-napi-rs generates code that checks `NAPI_RS_NATIVE_LIBRARY_PATH`, causing JSR
-warnings. The `scripts/remove-env-check.ts` script removes this check during
-build.
+The N-API build process has been redesigned for better CI/CD integration:
 
-This is safe because:
+**Local Development:**
 
-- The variable is only for development/testing
-- Production uses standard platform-specific loading
-- All functionality remains intact
+- `scripts/build-napi.ts` auto-detects platform and builds directly to
+  `npm/platform/`
+- Builds directly to `npm/platform/` directories using NAPI-RS --output-dir
+- `scripts/remove-env-check.ts` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for
+  JSR compatibility
+
+**CI/CD Pipeline:**
+
+- Each platform builds its specific `.node` file to its `npm/platform/`
+  directory
+- Artifacts are uploaded by platform and later organized for publishing
+- Both JSR and NPM use the same `npm/platform/` directories with all binaries
 
 ### Manual Testing
 
@@ -149,5 +161,5 @@ locally.
 
 ## Known Issues
 
-Node.js N-API module has runtime initialization issues. Deno and Bun work
-correctly.
+All runtimes (Deno, Bun, and Node.js) work correctly with proper cross-runtime
+compatibility.

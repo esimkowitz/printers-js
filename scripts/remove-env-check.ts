@@ -2,7 +2,7 @@
 
 /**
  * Post-build script to remove the NAPI_RS_NATIVE_LIBRARY_PATH environment
- * variable check from the generated napi/index.js file.
+ * variable check from the generated index.js file.
  *
  * This eliminates the "unanalyzable dynamic import" warning when publishing to JSR.
  */
@@ -13,11 +13,17 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const napiIndexPath = join(__dirname, "..", "napi", "index.js");
+
+// Support --dir parameter for custom directory
+const dirArg = process.argv.find((arg) => arg.startsWith("--dir="));
+const customDir = dirArg ? dirArg.split("=")[1] : null;
+const napiIndexPath = customDir
+  ? join(__dirname, "..", customDir, "index.js")
+  : join(__dirname, "..", "npm", "darwin-arm64", "index.js");
 
 try {
   if (!existsSync(napiIndexPath)) {
-    console.log("⚠️ napi/index.js not found - skipping env check removal");
+    console.log(`⚠️ ${napiIndexPath} not found - skipping env check removal`);
     process.exit(0);
   }
 
@@ -25,16 +31,16 @@ try {
 
   // Remove the entire NAPI_RS_NATIVE_LIBRARY_PATH check block
   // This regex matches the if block and its else-if continuation
-  // Using \\s+ to avoid the no-regex-spaces lint warning
+  // Updated to handle the function-wrapped structure
   const modifiedContent = content.replace(
-    /if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s+\}\s+else\s+if/,
-    "if",
+    /\s+if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s*\}\s*else\s+if/,
+    "\n  if",
   );
 
   if (content !== modifiedContent) {
     writeFileSync(napiIndexPath, modifiedContent);
     console.log(
-      "✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from napi/index.js",
+      `✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from ${napiIndexPath}`,
     );
   } else {
     console.log(
