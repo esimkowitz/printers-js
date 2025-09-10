@@ -6,9 +6,13 @@ vars:
 tasks:
   dev:
     desc: Run Deno development server with file watching
-    cmd: deno run --allow-ffi --watch deno.ts
+    cmd: deno run --allow-ffi --allow-env --watch deno.ts
 
   build:
+    desc: Build all runtimes (FFI + N-API)
+    cmd: deno run -A scripts/build-all.ts
+
+  build:ffi:
     desc: Build FFI library for Deno/Bun
     cmd: cargo build --release
 
@@ -16,15 +20,19 @@ tasks:
     desc: Build N-API module for Node.js
     cmd: node scripts/build-napi.js --release
 
-  build:all:
-    desc: Build all runtimes (FFI + N-API)
-    cmd: deno run -A scripts/build-all.ts
-
   test:
+    desc: Run comprehensive test suite across all runtimes
+    cmd: "{{.SIMULATE}} deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts"
+
+  test:real:
+    desc: Run comprehensive test suite with real printing
+    cmd: deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+
+  test:deno:
     desc: Run Deno tests in simulation mode
     cmd: "{{.SIMULATE}} deno test --allow-ffi --allow-env --no-check tests/shared.test.ts"
 
-  test:real:
+  test:deno:real:
     desc: Run Deno tests with real printing
     cmd: deno test --allow-ffi --allow-env tests/shared.test.ts
 
@@ -32,29 +40,21 @@ tasks:
     desc: Run documentation tests
     cmd: deno test --doc --allow-ffi --allow-env deno.ts
 
-  test:shared:
-    desc: Run shared test suite in simulation mode
-    cmd: "{{.SIMULATE}} deno run --allow-ffi --allow-env tests/shared.test.ts"
-
   test:node:
     desc: Run Node.js tests in simulation mode
     cmd: "{{.SIMULATE}} npx tsx tests/node-test-runner.ts"
+
+  test:node:real:
+    desc: Run Node.js tests with real printing
+    cmd: npx tsx tests/node-test-runner.ts
 
   test:bun:
     desc: Run Bun tests in simulation mode
     cmd: "{{.SIMULATE}} bun test tests/shared.test.ts"
 
-  test:all:
-    desc: Run comprehensive test suite across all runtimes
-    cmd: "{{.SIMULATE}} deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts"
-
-  test:junit:
-    desc: Run Deno tests with JUnit output
-    cmd: "{{.SIMULATE}} deno test --allow-ffi --allow-env tests/shared.test.ts --junit-path=test-results/deno-junit.xml"
-
-  test:all:real:
-    desc: Run comprehensive test suite with real printing
-    cmd: PRINTERS_JS_SIMULATE=false deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+  test:bun:real:
+    desc: Run Bun tests with real printing
+    cmd: bun test tests/shared.test.ts
 
   lint:
     desc: Lint all code
@@ -66,7 +66,7 @@ tasks:
 
   lint:node:
     desc: Lint Node.js-managed files
-    cmd: npm run lint
+    cmd: eslint .
 
   lint:rust:
     desc: Lint Rust code with Clippy
@@ -78,7 +78,7 @@ tasks:
 
   lint:fix:node:
     desc: Fix linting issues in Node.js-managed files
-    cmd: npm run lint:fix
+    cmd: eslint . --fix
 
   remove-env-check:
     desc: Remove NAPI_RS_NATIVE_LIBRARY_PATH check from generated N-API files
@@ -113,12 +113,20 @@ tasks:
     cmd: cargo fmt --check
 
   check:
-    desc: Type check Deno entry point
-    cmd: deno check deno.ts
+    desc: Type check all code
+    deps: [check:deno, check:node, check:rust]
 
-  check:all:
-    desc: Type check all runtimes
-    cmd: deno check deno.ts && task build:napi && echo 'All runtimes checked successfully'
+  check:deno:
+    desc: Type check Deno code
+    cmd: deno check deno.ts index.ts
+
+  check:node:
+    desc: Type check Node.js code (via build)
+    cmd: task build:napi
+
+  check:rust:
+    desc: Type check Rust code (via build)
+    cmd: cargo check --all-features --workspace
 
   bump:patch:
     desc: Bump patch version

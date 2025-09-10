@@ -37,17 +37,17 @@ The CI system provides comprehensive testing with:
 
 ```bash
 # Build all runtimes (recommended)
-task build:all
+task build
 
 # Build individual runtimes
-task build               # Build FFI library (Deno/Bun)
+task build:ffi           # Build FFI library (Deno/Bun)
 task build:napi          # Build N-API module (Node.js)
 
 # Test all runtimes with comprehensive reporting
-task test:all
+task test
 
 # Test individual runtimes
-task test                         # Deno tests with shared.test.ts
+task test:deno           # Deno tests with shared.test.ts
 task test:node                    # Node.js tests with c8 coverage
 task test:bun                     # Bun tests
 

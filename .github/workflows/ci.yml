@@ -116,7 +116,7 @@ jobs:
 
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
-        run: task build:all
+        run: task build
 
       # Run Cargo tests with coverage (Rust-level tests)
       - name: Run Cargo tests with coverage
@@ -185,7 +185,7 @@ jobs:
 
       # Run comprehensive cross-runtime tests using our TypeScript script
       - name: Run cross-runtime tests
-        run: task test:all
+        run: task test
         continue-on-error: true
 
       - name: Upload Test Reports

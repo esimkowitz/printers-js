@@ -1,7 +1,7 @@
 [
   {
-    "label": "🔧 Build - Rust Library",
-    "command": "cargo build --release",
+    "label": "🔧 Build - FFI Library",
+    "command": "task build:ffi",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
@@ -17,23 +17,23 @@
   },
   {
     "label": "🔧 Build - All",
-    "command": "deno task build:all",
+    "command": "task build",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
     "hide": "on_success"
   },
   {
-    "label": "🦕 Test - Deno (Safe)",
-    "command": "PRINTERS_JS_SIMULATE=true deno test --allow-ffi --allow-env tests/universal.test.ts",
+    "label": "🦕 Test - Deno",
+    "command": "task test:deno",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
     "hide": "never"
   },
   {
-    "label": "🦕 Test - Deno Universal",
-    "command": "PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env tests/universal.test.ts",
+    "label": "🦕 Test - Deno (REAL PRINTERS)",
+    "command": "task test:deno:real",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
@@ -41,7 +41,15 @@
   },
   {
     "label": "🟢 Test - Node.js",
-    "command": "PRINTERS_JS_SIMULATE=true node tests/node.test.js",
+    "command": "task test:node",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🟢 Test - Node.js (REAL PRINTERS)",
+    "command": "task test:node:real",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
@@ -49,7 +57,15 @@
   },
   {
     "label": "🚀 Test - Bun",
-    "command": "PRINTERS_JS_SIMULATE=true bun tests/bun.test.ts",
+    "command": "task test:bun",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🚀 Test - Bun (REAL PRINTERS)",
+    "command": "task test:bun:real",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
@@ -57,7 +73,7 @@
   },
   {
     "label": "🧪 Test - All Runtimes",
-    "command": "deno task test:all",
+    "command": "task test",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
@@ -65,7 +81,7 @@
   },
   {
     "label": "⚠️ Test - All Runtimes (REAL PRINTERS)",
-    "command": "deno task test:all:real",
+    "command": "task test:real",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
@@ -104,24 +120,48 @@
     "hide": "never"
   },
   {
-    "label": "🧹 Lint",
-    "command": "deno lint",
+    "label": "🧪 Dev - Deno",
+    "command": "task dev",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never"
+  },
+  {
+    "label": "🧹 Lint - All",
+    "command": "task lint",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
     "hide": "on_success"
   },
   {
-    "label": "📝 Format",
-    "command": "deno fmt",
+    "label": "🧹 Lint - Fix All",
+    "command": "task lint:fix",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",
     "hide": "on_success"
   },
   {
-    "label": "🔍 Check - TypeScript",
-    "command": "deno check mod.ts index.ts",
+    "label": "📝 Format - All",
+    "command": "task fmt",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
+  },
+  {
+    "label": "📝 Check Format - All",
+    "command": "task fmt:check",
+    "shell": "system",
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "on_success"
+  },
+  {
+    "label": "🔍 Check - All",
+    "command": "task check",
     "shell": "system",
     "reveal": "always",
     "reveal_target": "dock",

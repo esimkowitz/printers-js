@@ -83,10 +83,10 @@ The project uses different runtime environments for different script types:
 
 ```bash
 # All runtimes (recommended)
-task test:all
+task test
 
 # Individual runtimes
-task test
+task test:deno
 task test:node
 task test:bun
 ```
