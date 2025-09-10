@@ -216,17 +216,19 @@ jobs:
 
       - name: Build
         run: |
-          # For cross-compilation, we need to ensure the correct target is used
+          # Our build script auto-detects the platform and builds for the current target
           echo "Building for target: ${{ matrix.settings.target }}"
-          npm run build -- --target ${{ matrix.settings.target }}
+          npm run build
 
       - name: Debug build output
         shell: bash
         run: |
           echo "Contents of current directory:"
           ls -la
-          echo "Contents of napi/ directory (if it exists):"
-          ls -la napi/ || echo "napi/ directory does not exist"
+          echo "Contents of npm/ directory (if it exists):"
+          ls -la npm/ || echo "npm/ directory does not exist"
+          echo "Platform-specific directories:"
+          ls -la npm/*/ 2>/dev/null || echo "No platform directories found"
           echo "Looking for .node files:"
           find . -name "*.node" -type f || echo "No .node files found"
 
@@ -234,7 +236,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: napi/*.node
+          path: npm/**/*.node
           if-no-files-found: error
 
       # Upload index.js and index.d.ts only once (from the first job that completes)
@@ -244,8 +246,8 @@ jobs:
         with:
           name: napi-js-files
           path: |
-            napi/index.js
-            napi/index.d.ts
+            npm/*/index.js
+            npm/*/index.d.ts
           if-no-files-found: error
 
   publish-jsr:
@@ -286,10 +288,11 @@ jobs:
             cp artifacts/napi-js-files/* napi/
           fi
 
-          # Copy N-API platform-specific binaries
+          # Copy N-API platform-specific binaries from npm structure
           for dir in artifacts/bindings-*; do
             if [ -d "$dir" ]; then
-              cp "$dir"/*.node napi/ 2>/dev/null || true
+              # Find .node files in the npm platform directories and copy them
+              find "$dir" -name "*.node" -exec cp {} napi/ \; 2>/dev/null || true
             fi
           done
 
@@ -345,10 +348,11 @@ jobs:
             cp artifacts/napi-js-files/* napi/
           fi
 
-          # Copy N-API platform-specific binaries
+          # Copy N-API platform-specific binaries from npm structure
           for dir in artifacts/bindings-*; do
             if [ -d "$dir" ]; then
-              cp "$dir"/*.node napi/ 2>/dev/null || true
+              # Find .node files in the npm platform directories and copy them
+              find "$dir" -name "*.node" -exec cp {} napi/ \; 2>/dev/null || true
             fi
           done
 

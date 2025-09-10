@@ -47,15 +47,23 @@
     "@types/node": "^24.3.1"
   },
   "scripts": {
-    "build": "napi build --platform --release --features napi && npx tsx scripts/move-napi-artifacts.ts && npx tsx scripts/remove-env-check.ts",
-    "build:debug": "napi build --platform --features napi && npx tsx scripts/move-napi-artifacts.ts && npx tsx scripts/remove-env-check.ts",
+    "build": "npx tsx scripts/build-napi.ts --release",
+    "build:debug": "npx tsx scripts/build-napi.ts",
     "test": "PRINTERS_JS_SIMULATE=true npx tsx tests/node-test-runner.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepublishOnly": "napi prepublish -t npm",
+    "prepublishOnly": "napi create-npm-dirs && napi prepublish -t npm",
     "artifacts": "napi artifacts",
     "universal": "napi universal",
     "version": "napi version"
   },
-  "packageManager": "npm@10.0.0"
+  "packageManager": "npm@10.0.0",
+  "optionalDependencies": {
+    "@printers/printers-darwin-x64": "0.3.13",
+    "@printers/printers-darwin-arm64": "0.3.13",
+    "@printers/printers-win32-x64-msvc": "0.3.13",
+    "@printers/printers-win32-arm64-msvc": "0.3.13",
+    "@printers/printers-linux-x64-gnu": "0.3.13",
+    "@printers/printers-linux-arm64-gnu": "0.3.13"
+  }
 }

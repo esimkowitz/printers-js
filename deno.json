@@ -86,7 +86,7 @@
       "bun.ts",
       "index.ts",
       "tests/node-test-runner.ts",
-      "scripts/move-napi-artifacts.ts",
+      "scripts/build-napi.ts",
       "scripts/remove-env-check.ts"
     ]
   },
@@ -100,7 +100,7 @@
     "test-results/",
     "package.json",
     "tests/node-test-runner.ts",
-    "scripts/move-napi-artifacts.js"
+    "scripts/build-napi.ts"
   ],
   "nodeModulesDir": "auto",
   "compilerOptions": {

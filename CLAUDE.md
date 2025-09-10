@@ -41,7 +41,8 @@ deno run --allow-run --allow-read --allow-env scripts/build-all.ts
 
 # Build individual runtimes
 deno task build          # Build FFI library (Deno/Bun)
-npm run build            # Build N-API module (Node.js)
+npm run build            # Build N-API module (Node.js) - release
+npm run build:debug      # Build N-API module (Node.js) - debug
 
 # Test all runtimes with comprehensive reporting
 deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
@@ -114,6 +115,8 @@ deno task bump:major    # 0.1.4 -> 1.0.0
 ### Automation
 
 - **`scripts/`**: Cross-platform Deno TypeScript automation scripts
+- **`scripts/build-napi.ts`**: Platform-aware N-API build script (replaces move-napi-artifacts.ts)
+- **`scripts/remove-env-check.ts`**: Post-build processor for JSR compatibility
 
 ## Safety Reminders
 
@@ -145,14 +148,14 @@ ALWAYS run these after changes:
 - **`scripts/`**: Cross-platform Deno TypeScript build and test automation
   scripts
 - **`.devcontainer/`**: Development container setup for all runtimes
-- **`napi/`**: Auto-generated N-API modules (gitignored)
+- **`npm/`**: Platform-specific N-API packages for publishing (gitignored)
 - **`target/`**: Rust build artifacts (gitignored)
 - **`test-results/`**: Generated test reports and coverage (gitignored)
 
 ## Key Gotchas
 
-1. **N-API modules auto-generate into `napi/` subdirectory** - don't commit
-   these
+1. **N-API build architecture**: `npm run build` creates both `napi/` (for local dev)
+   and `npm/platform/` (for publishing) directories - don't commit either
 2. **Different binary formats**: FFI uses `.dylib/.so/.dll`, N-API uses `.node`
 3. **Test files**: Use `tests/shared.test.ts` for all cross-runtime testing
 4. **Simulation mode**: Always test with `PRINTERS_JS_SIMULATE=true` first

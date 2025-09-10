@@ -19,7 +19,7 @@ index.d.ts
 *.node
 
 # N-API output directory (contains all generated N-API files)
-/napi/
+/npm
 
 # Node modules (if any dev dependencies are added)
 node_modules/
