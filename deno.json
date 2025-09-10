@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "license": "MIT",
   "exports": {
     ".": "./index.ts"
@@ -62,7 +62,9 @@
       "scripts/*.js"
     ],
     "rules": {
-      "exclude": ["ban-unused-ignore"]
+      "exclude": [
+        "ban-unused-ignore"
+      ]
     }
   },
   "exclude": [
