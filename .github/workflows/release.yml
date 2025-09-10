@@ -160,7 +160,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
+        settings:
           # macOS builds
           - host: macos-13 # Intel Mac
             target: x86_64-apple-darwin
