@@ -72,6 +72,7 @@ export default [
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-non-null-assertion": "warn",
+      "@typescript-eslint/ban-ts-comment": "off", // Allow @ts-expect-error directives
 
       // General rules
       "no-console": "off",

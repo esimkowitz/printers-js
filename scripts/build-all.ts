@@ -113,8 +113,12 @@ async function main(): Promise<void> {
     }
 
     if (buildSuccess || nodeModulesExists) {
-      // Build with napi-rs CLI
-      const napiResult = await runCommand(["npm", "run", "build"]);
+      // Build with napi-rs CLI directly
+      const napiResult = await runCommand([
+        "node",
+        "scripts/build-napi.js",
+        "--release",
+      ]);
 
       if (napiResult.success) {
         console.log(colorize("green", "✓ N-API library built successfully"));
@@ -156,7 +160,7 @@ async function main(): Promise<void> {
   const libName = `${libPrefix}printers_js${libExtension}`;
 
   console.log(`  - target/release/${libName} (${os.toUpperCase()} FFI)`);
-  console.log("  - napi/*.node (Node.js N-API, if built)");
+  console.log("  - npm/**/*.node (Node.js N-API, if built)");
 
   if (!buildSuccess) {
     Deno.exit(1);

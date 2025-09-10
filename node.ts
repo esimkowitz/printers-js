@@ -55,38 +55,54 @@ if (isSimulationMode) {
     // Map architecture
     switch (process.arch) {
       case "x64":
-        archName = platformName === "win32" ? "x64-msvc" : (platformName === "linux" ? "x64-gnu" : "x64");
+        archName =
+          platformName === "win32"
+            ? "x64-msvc"
+            : platformName === "linux"
+            ? "x64-gnu"
+            : "x64";
         break;
       case "arm64":
-        archName = platformName === "win32" ? "arm64-msvc" : (platformName === "linux" ? "arm64-gnu" : "arm64");
+        archName =
+          platformName === "win32"
+            ? "arm64-msvc"
+            : platformName === "linux"
+            ? "arm64-gnu"
+            : "arm64";
         break;
       default:
         throw new Error(`Unsupported architecture: ${process.arch}`);
     }
 
     const platformTarget = `${platformName}-${archName}`;
-    
+
     // Try local npm/ directory first (for JSR or local development)
     // Use static imports with explicit platform mappings to avoid dynamic import warnings
     let localError: Error | null = null;
     try {
       switch (platformTarget) {
         case "darwin-x64":
+          // @ts-expect-error: This import is only valid on macOS x64, ignore error on other platforms
           nativeModule = await import("./npm/darwin-x64/index.js");
           break;
         case "darwin-arm64":
+          // @ts-expect-error: This import is only valid on macOS arm64, ignore error on other platforms
           nativeModule = await import("./npm/darwin-arm64/index.js");
           break;
         case "win32-x64-msvc":
+          // @ts-expect-error: This import is only valid on Windows x64, ignore error on other platforms
           nativeModule = await import("./npm/win32-x64-msvc/index.js");
           break;
         case "win32-arm64-msvc":
+          // @ts-expect-error: This import is only valid on Windows arm64, ignore error on other platforms
           nativeModule = await import("./npm/win32-arm64-msvc/index.js");
           break;
         case "linux-x64-gnu":
+          // @ts-expect-error: This import is only valid on Linux x64, ignore error on other platforms
           nativeModule = await import("./npm/linux-x64-gnu/index.js");
           break;
         case "linux-arm64-gnu":
+          // @ts-expect-error: This import is only valid on Linux arm64, ignore error on other platforms
           nativeModule = await import("./npm/linux-arm64-gnu/index.js");
           break;
         default:
@@ -99,9 +115,16 @@ if (isSimulationMode) {
     // Fall back to npm optionalDependency package if local path failed
     if (!nativeModule) {
       try {
+        // @ts-expect-error: This will fail for local development without npm package, ignore error
         nativeModule = await import("@printers/printers");
       } catch (npmError) {
-        throw new Error(`Failed to load N-API module from both local (${localError?.message}) and npm (${(npmError as Error).message}) paths. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`);
+        throw new Error(
+          `Failed to load N-API module from both local (${
+            localError?.message
+          }) and npm (${
+            (npmError as Error).message
+          }) paths. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`
+        );
       }
     }
   } catch (error) {

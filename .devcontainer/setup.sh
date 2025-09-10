@@ -19,6 +19,10 @@ fi
 echo "🔧 Installing Rust development tools..."
 cargo install cargo-llvm-cov cargo2junit
 
+# Install Task runner
+echo "📋 Installing Task runner..."
+sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+
 # Install npm dependencies
 echo "📦 Installing npm dependencies..."
 npm install
@@ -50,21 +54,23 @@ chmod +x scripts/*.ts scripts/*.sh || echo "⚠️  Some scripts may not need ex
 echo "✅ Development environment setup complete!"
 echo ""
 echo "🧪 Available commands:"
-echo "  deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts    - Run all tests across runtimes"
-echo "  deno run --allow-run --allow-read --allow-env scripts/build-all.ts                - Build all runtime libraries"
-echo "  deno run --allow-run --allow-env --allow-read scripts/run-ci-local.ts --build     - Run CI workflows locally with act"
-echo "  deno task test                    - Run Deno tests (shared.test.ts)"
-echo "  npx tsx tests/node-test-runner.ts - Run Node.js tests with coverage"
-echo "  bun test tests/                   - Run Bun tests"
+echo "  task test                         - Run all tests across runtimes"
+echo "  task build                        - Build all runtime libraries"
+echo "  task ci:local                     - Run CI workflows locally with act"
+echo "  task test:deno                    - Run Deno tests (shared.test.ts)"
+echo "  task test:node                    - Run Node.js tests with coverage"
+echo "  task test:bun                     - Run Bun tests"
 echo ""
 echo "🔧 Linting commands:"
+echo "  task lint                         - Lint all code"
+echo "  task lint:fix                     - Fix linting issues in all code"
 echo "  deno lint                         - Lint Deno-managed files (deno.ts, scripts/, tests/shared.test.ts)"
-echo "  npm run lint                      - Lint non-Deno files (index.ts, node.ts, bun.ts, tests/node-test-runner.ts)"
+echo "  task lint:node                    - Lint non-Deno files (index.ts, node.ts, bun.ts, tests/node-test-runner.ts)"
 echo "  cargo clippy                      - Lint Rust code"
 echo ""
 echo "🔧 Development workflow:"
 echo "  1. Make your changes"
-echo "  2. Run linters: deno lint && npm run lint && cargo clippy"
+echo "  2. Run linters: task lint && cargo clippy"
 echo "  3. Run cross-platform test script to test all runtimes"
 echo "  4. Run local CI script to test CI workflows locally"
 echo "  5. Commit and push"

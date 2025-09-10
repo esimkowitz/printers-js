@@ -37,20 +37,19 @@ The CI system provides comprehensive testing with:
 
 ```bash
 # Build all runtimes (recommended)
-deno run --allow-run --allow-read --allow-env scripts/build-all.ts
+task build
 
 # Build individual runtimes
-deno task build          # Build FFI library (Deno/Bun)
-npm run build            # Build N-API module (Node.js) - release
-npm run build:debug      # Build N-API module (Node.js) - debug
+task build:ffi           # Build FFI library (Deno/Bun)
+task build:napi          # Build N-API module (Node.js)
 
 # Test all runtimes with comprehensive reporting
-deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+task test
 
 # Test individual runtimes
-deno task test                    # Deno tests with shared.test.ts
-npx tsx tests/node-test-runner.ts # Node.js tests with c8 coverage
-bun test tests/                   # Bun tests
+task test:deno           # Deno tests with shared.test.ts
+task test:node                    # Node.js tests with c8 coverage
+task test:bun                     # Bun tests
 
 # Runtime-specific entrypoints (use only for debugging)
 deno run --allow-ffi --allow-env deno.ts   # Deno-specific
@@ -62,29 +61,27 @@ node node.js                                # Node.js-specific
 
 ```bash
 # Run comprehensive tests (generates JUnit XML + LCOV coverage)
-deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+task test:all
 
 # Run CI locally with nektos/act
-deno run --allow-run --allow-env --allow-read scripts/run-ci-local.ts --build
+task ci:local
 
 # Format code
-deno fmt
-cargo fmt
+task fmt
 
 # Lint code
-deno lint
-cargo clippy
+task lint
 
 # Type check all entry points
-deno task check:all
+task check:all
 ```
 
 ### Version Management
 
 ```bash
-deno task bump:patch    # 0.1.4 -> 0.1.5
-deno task bump:minor    # 0.1.4 -> 0.2.0
-deno task bump:major    # 0.1.4 -> 1.0.0
+task bump:patch    # 0.1.4 -> 0.1.5
+task bump:minor    # 0.1.4 -> 0.2.0
+task bump:major    # 0.1.4 -> 1.0.0
 ```
 
 ## Architecture Summary
@@ -114,10 +111,24 @@ deno task bump:major    # 0.1.4 -> 1.0.0
 
 ### Automation
 
-- **`scripts/`**: Cross-platform Deno TypeScript automation scripts
-- **`scripts/build-napi.ts`**: Platform-aware N-API build script (replaces
-  move-napi-artifacts.ts)
-- **`scripts/remove-env-check.ts`**: Post-build processor for JSR compatibility
+**Deno Scripts** (TypeScript):
+
+- **`scripts/build-all.ts`**: Cross-runtime build orchestration
+- **`scripts/test-all.ts`**: Comprehensive test runner with coverage reports
+- **`scripts/run-ci-local.ts`**: Local CI simulation
+- **`scripts/bump-version.ts`**: Version management
+
+**Node.js Scripts** (ESM JavaScript):
+
+- **`scripts/build-napi.js`**: N-API module building (requires Node.js
+  subprocess environment)
+- **`scripts/remove-env-check.js`**: Post-build N-API processing for JSR
+  compatibility
+- **`scripts/build-all-node.js`**: Alternative Node.js-based build script
+
+**Script Runtime Selection**: Deno handles automation/orchestration; Node.js
+handles N-API builds that require specific subprocess environments and must run
+on Windows ARM CI runners where Deno is not available.
 
 ## Safety Reminders
 
@@ -136,9 +147,8 @@ ALWAYS run these after changes:
 - `deno fmt` - Format TypeScript/JavaScript
 - `cargo fmt` - Format Rust code
 - `deno lint` - Lint Deno-managed files (deno.ts, tests/shared.test.ts,
-  scripts/)
-- `npm run lint` - Lint non-Deno files (index.ts, node.ts, bun.ts,
-  tests/node-test-runner.ts)
+  scripts/*.ts)
+- `task lint` - Lint all files (runs both Deno and Node.js linters)
 - `cargo clippy` - Lint Rust code
 
 ## File Organization
@@ -146,8 +156,8 @@ ALWAYS run these after changes:
 - **Root**: Runtime entry points (`deno.ts`, `bun.js`, `node.js`, `index.ts`)
 - **`src/`**: Rust source code with modular architecture
 - **`tests/`**: Test files organized by runtime and purpose
-- **`scripts/`**: Cross-platform Deno TypeScript build and test automation
-  scripts
+- **`scripts/`**: Mixed runtime automation - Deno TypeScript for orchestration,
+  Node.js JavaScript for N-API builds
 - **`.devcontainer/`**: Development container setup for all runtimes
 - **`npm/`**: Platform-specific N-API packages for all N-API operations
   (gitignored)
@@ -163,8 +173,7 @@ ALWAYS run these after changes:
 4. **Simulation mode**: Always test with `PRINTERS_JS_SIMULATE=true` first
 5. **Thread cleanup**: The library automatically handles background thread
    cleanup
-6. **CI testing**: Use `deno run scripts/run-ci-local.ts` to test workflows
-   locally
+6. **CI testing**: Use `task ci:local` to test workflows locally
 7. **Coverage reporting**: Tests generate comprehensive JUnit XML and LCOV
    coverage reports with actual percentage calculations (deno-lcov.info,
    node-lcov.info, bun-lcov.info, rust.lcov)

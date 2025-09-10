@@ -50,14 +50,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
 
+      # Install Task runner
+      - name: Setup Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Node.js dependencies
         run: npm ci
 
       - name: Build all runtimes
-        run: deno task build:all
+        run: task build
 
       - name: Run comprehensive tests
-        run: deno task test:all
+        run: task test
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -214,11 +221,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Install Task runner for building
+      - name: Setup Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build
         run: |
           # Our build script auto-detects the platform and builds for the current target
           echo "Building for target: ${{ matrix.settings.target }}"
-          npm run build
+          task build:napi
 
       - name: Debug build output
         shell: bash
@@ -282,7 +296,7 @@ jobs:
           cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
           cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
-          # Create npm directory structure and copy N-API binaries directly to platform dirs
+          # Create npm directory structure
           npx napi create-npm-dirs
 
           # Copy N-API binaries to correct platform directories
@@ -364,7 +378,7 @@ jobs:
           cp artifacts/aarch64-pc-windows-msvc/printers_js-windows-arm64.dll target/release/printers_js-arm64.dll
           cp artifacts/aarch64-apple-darwin/libprinters_js-macos-arm64.dylib target/release/libprinters_js.dylib
 
-          # Create npm directory structure and copy N-API binaries directly to platform dirs
+          # Create npm directory structure
           npx napi create-npm-dirs
 
           # Copy N-API binaries to correct platform directories
@@ -405,8 +419,15 @@ jobs:
           echo "N-API platform directories:"
           ls -la npm/*/
 
+      # Install Task runner for testing
+      - name: Setup Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Test Node.js package before publishing
-        run: PRINTERS_JS_SIMULATE=true npm test
+        run: task test:node
 
       - name: Publish to NPM
         run: npm publish --access public

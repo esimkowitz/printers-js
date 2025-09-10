@@ -68,31 +68,41 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Install NAPI-RS CLI
+        run: npm install -g @napi-rs/cli
+
       # Setup Bun for cross-runtime testing
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
+      # Install Task runner
+      - name: Setup Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       # Code quality checks (continue on error to gather all results)
       - name: Check Rust formatting
         id: rust-fmt
-        run: cargo fmt --check
+        run: task fmt:rust:check
         continue-on-error: true
 
       - name: Run Rust linter (Clippy)
         id: rust-lint
-        run: cargo clippy -- -D warnings
+        run: task lint:rust
         continue-on-error: true
 
       - name: Check Deno formatting
         id: deno-fmt
-        run: deno task fmt
+        run: task fmt:deno:check
         continue-on-error: true
 
       - name: Run Deno linter
         id: deno-lint
-        run: deno task lint
+        run: task lint:deno
         continue-on-error: true
 
       # Install Node.js dependencies
@@ -101,12 +111,12 @@ jobs:
 
       - name: Run ESLint for non-Deno files
         id: eslint
-        run: npm run lint
+        run: task lint:node
         continue-on-error: true
 
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
-        run: deno task build:all
+        run: task build
 
       # Run Cargo tests with coverage (Rust-level tests)
       - name: Run Cargo tests with coverage
@@ -175,7 +185,7 @@ jobs:
 
       # Run comprehensive cross-runtime tests using our TypeScript script
       - name: Run cross-runtime tests
-        run: deno task test:all
+        run: task test
         continue-on-error: true
 
       - name: Upload Test Reports
