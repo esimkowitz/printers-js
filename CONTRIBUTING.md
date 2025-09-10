@@ -51,7 +51,8 @@ The N-API build process:
 3. Builds platform-specific binaries with napi-rs directly to `npm/platform/`
 4. Removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
 
-This replaces the old workflow that built to the current directory and moved files afterward.
+This replaces the old workflow that built to the current directory and moved
+files afterward.
 
 ### Test
 
@@ -111,12 +112,18 @@ The GitHub Actions workflow handles building and publishing to JSR/npm.
 The N-API build process has been redesigned for better CI/CD integration:
 
 **Local Development:**
-- `scripts/build-napi.ts` auto-detects platform and builds directly to `npm/platform/`
-- Creates both `napi/` (for local development) and `npm/platform/` (for publishing)
-- `scripts/remove-env-check.ts` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
+
+- `scripts/build-napi.ts` auto-detects platform and builds directly to
+  `npm/platform/`
+- Creates both `napi/` (for local development) and `npm/platform/` (for
+  publishing)
+- `scripts/remove-env-check.ts` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for
+  JSR compatibility
 
 **CI/CD Pipeline:**
-- Each platform builds its specific `.node` file to its `npm/platform/` directory
+
+- Each platform builds its specific `.node` file to its `npm/platform/`
+  directory
 - Artifacts are uploaded by platform and later organized for publishing
 - JSR uses `napi/` directory, NPM uses platform-specific packages
 
