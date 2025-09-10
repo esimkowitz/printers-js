@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
   "main": "index.ts",
@@ -55,13 +55,5 @@
     "universal": "napi universal",
     "version": "napi version"
   },
-  "packageManager": "npm@10.0.0",
-  "optionalDependencies": {
-    "@printers/printers-darwin-x64": "0.3.13",
-    "@printers/printers-darwin-arm64": "0.3.13",
-    "@printers/printers-win32-x64-msvc": "0.3.13",
-    "@printers/printers-win32-arm64-msvc": "0.3.13",
-    "@printers/printers-linux-x64-gnu": "0.3.13",
-    "@printers/printers-linux-arm64-gnu": "0.3.13"
-  }
+  "packageManager": "npm@10.0.0"
 }
