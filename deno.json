@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "license": "MIT",
   "exports": {
     ".": "./index.ts"
@@ -41,9 +41,9 @@
     "fmt": "deno fmt",
     "check": "deno check deno.ts",
     "check:all": "deno check deno.ts && npm run build && echo 'All runtimes checked successfully'",
-    "bump:patch": "deno run --allow-read --allow-write scripts/bump-version.ts patch",
-    "bump:minor": "deno run --allow-read --allow-write scripts/bump-version.ts minor",
-    "bump:major": "deno run --allow-read --allow-write scripts/bump-version.ts major",
+    "bump:patch": "deno run -A scripts/bump-version.ts patch",
+    "bump:minor": "deno run -A scripts/bump-version.ts minor",
+    "bump:major": "deno run -A --allow-write scripts/bump-version.ts major",
     "docs": "deno doc --html --name=\"@printers/printers\" deno.ts index.ts",
     "docs:serve": "deno doc --serve --name=\"@printers/printers\" deno.ts index.ts"
   },
