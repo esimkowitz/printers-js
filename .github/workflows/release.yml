@@ -278,6 +278,9 @@ jobs:
           pattern: target-release-*
           path: target/release
           merge-multiple: true
+      - name: Install Node.js dependencies
+        if: matrix.registry == 'npm'
+        run: npm ci
       - name: Download all N-API binary artifacts
         uses: actions/download-artifact@v5
         with:
