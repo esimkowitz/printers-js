@@ -233,7 +233,7 @@ try {
     // Check if target/release directory exists
     try {
       const targetDir = `${baseDir}/target/release`;
-      const dirStats = Deno.statSync(targetDir);
+      Deno.statSync(targetDir);
       console.error(`Target directory exists: true`);
 
       // List files in target/release directory
