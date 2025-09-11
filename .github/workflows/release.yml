@@ -206,11 +206,13 @@ jobs:
             target: aarch64-unknown-linux-gnu
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
-      - name: Disable man-db auto-update
+      - name: Disable man-db auto-update and install deps
         if: runner.os == 'Linux'
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev pkg-config clang
       - uses: actions/checkout@v5
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -231,10 +233,6 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache: false
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcups2-dev pkg-config clang
       # Install Task runner
       - name: Setup Task
         uses: arduino/setup-task@v2
