@@ -217,10 +217,17 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download all artifacts
+      - name: Download all native binary artifacts
         uses: actions/download-artifact@v5
         with:
-          path: .
+          pattern: target-release-*
+          path: target/release
+          merge-multiple: true
+      - name: Download all N-API binary artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: npm-binaries-*
+          path: npm
           merge-multiple: true
       - name: Install Node.js dependencies
         run: npm ci
@@ -262,10 +269,17 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org/
           package-manager-cache: false
-      - name: Download all artifacts
+      - name: Download all native binary artifacts
         uses: actions/download-artifact@v5
         with:
-          path: .
+          pattern: target-release-*
+          path: target/release
+          merge-multiple: true
+      - name: Download all N-API binary artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: npm-binaries-*
+          path: npm
           merge-multiple: true
       - name: Publish to ${{ matrix.registry }}
         run: ${{ matrix.publish_command }}
