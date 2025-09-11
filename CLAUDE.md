@@ -183,6 +183,41 @@ ALWAYS run these after changes:
    runtime detection and behavior
 10. **Android support**: Intentionally excluded from N-API builds
 
+## NAPI-RS Publishing and Release Workflow
+
+### Publishing Strategy
+
+This project uses **NAPI-RS optionalDependencies strategy** for npm distribution:
+
+- **Main package** (`@printers/printers`) contains JavaScript code and optionalDependencies
+- **Platform packages** (e.g., `@printers/printers-darwin-arm64`) contain native binaries
+- **Automatic installation** - npm selects correct platform package based on OS/CPU
+
+### Release Workflow Architecture
+
+**GitHub Actions release.yml** handles cross-platform builds and publishing:
+
+1. **Separate platform builds**: Each runner builds only its platform's binaries
+2. **Artifact separation**: Upload individual platform directories, not entire `npm/`
+3. **Artifact reconstruction**: Download and combine all platforms before publishing
+4. **Dual publishing**: JSR (direct) and npm (via NAPI-RS prepublish)
+
+### Critical Release Workflow Details
+
+- **Permissions**: Release jobs need `contents: write` for GitHub releases
+- **Artifact structure**: Upload only `npm/platform/` per runner, not full `npm/`
+- **Cross-platform scripts**: Use `shell: bash` for Windows compatibility
+- **NAPI-RS commands**: `napi create-npm-dirs` + `napi prepublish` workflow
+- **Platform matrix**: Must match between FFI and N-API build jobs
+
+### Debugging Release Issues
+
+1. Check GitHub Actions logs with `gh run view <run-id> --log-failed`
+2. Download artifacts locally with `gh run download <run-id>`
+3. Verify platform binaries exist in each artifact
+4. Check permissions for GitHub release creation
+5. Ensure artifact reconstruction step combines all platforms correctly
+
 ## Detailed Documentation
 
 For comprehensive technical details, architecture documentation, and
@@ -205,9 +240,12 @@ changes, always ensure all three runtimes continue to work consistently.
 - Focus on objective problem-solving rather than agreement
 - never commit changes on behalf of the user, always let the user submit changes
 - **No unnecessary friendly phrases** - avoid "Perfect!", "Much better!",
-  "Great!", etc. in responses
+  "Great!", "You're absolutely right!", "Good idea!", "Excellent question!",
+  "That's a fantastic approach!", etc. in responses
 - **Professional communication** - be direct and informative without excessive
-  enthusiasm
+  enthusiasm or validation language
+- **Avoid agreement phrases** - don't use "Exactly!", "Absolutely!", "I totally
+  agree!" or similar expressions that prioritize validation over accuracy
 
 ## Documentation Style Preferences
 
