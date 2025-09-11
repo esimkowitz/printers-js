@@ -7,8 +7,8 @@ export default [
   {
     ignores: [
       // Deno-managed files (use deno lint instead)
-      "src/deno.ts",
-      "tests/shared.test.ts",
+      "**/src/deno.ts",
+      "**/tests/shared.test.ts",
 
       // Scripts directory (use deno lint instead)
       "scripts/**/*",

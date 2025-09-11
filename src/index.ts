@@ -25,7 +25,8 @@ interface GlobalWithBun {
 }
 
 // Runtime detection
-const isNode: boolean = typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
+const isNode: boolean =
+  typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
   (globalThis as GlobalWithProcess).process?.versions?.node;
 const isBun: boolean = typeof (globalThis as GlobalWithBun).Bun !== "undefined";
 // @ts-expect-error: Deno namespace exists
@@ -161,5 +162,8 @@ export const isSimulationMode: boolean =
   // @ts-expect-error: Deno namespace exists
   (isDeno && Deno?.env?.get?.("PRINTERS_JS_SIMULATE") === "true") ||
   (isNode &&
-    (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE === "true") ||
-  (isBun && (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE === "true");
+    (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE ===
+      "true") ||
+  (isBun &&
+    (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE ===
+      "true");
