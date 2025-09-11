@@ -9,10 +9,10 @@ on:
       - main
 
 jobs:
-  build:
+  code-quality:
+    name: Code Quality Checks
     runs-on: ubuntu-latest
     env:
-      PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
     permissions: {}
     outputs:
@@ -21,9 +21,6 @@ jobs:
       deno-fmt-result: ${{ steps.deno-fmt.outcome }}
       deno-lint-result: ${{ steps.deno-lint.outcome }}
       eslint-result: ${{ steps.eslint.outcome }}
-      cargo-tests-result: ${{ steps.cargo-tests.outcome }}
-      cargo-junit-result: ${{ steps.cargo-junit.outcome }}
-      cross-runtime-tests-result: ${{ steps.cross-runtime-tests.outcome }}
     steps:
       - name: Checkout base branch
         if: ${{ github.event_name == 'push' }}
@@ -123,25 +120,108 @@ jobs:
         run: task lint:node
         continue-on-error: true
 
+  build-and-test:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: macos-latest  
+            name: macOS
+          - os: windows-latest
+            name: Windows
+    env:
+      PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
+      CARGO_TERM_COLOR: always
+    permissions: {}
+    steps:
+      - name: Checkout base branch
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/checkout@v5
+
+      - name: Checkout merge commit
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      # Linux-specific setup
+      - name: Disable man-db auto-update and install CUPS libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev pkg-config clang
+
+      # Setup Rust toolchain for building native library
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      # Cache Rust dependencies for faster builds
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ matrix.os }}-rust
+
+      # Install cargo-llvm-cov for code coverage (Linux only)
+      - name: Install cargo-llvm-cov (Linux only)
+        if: runner.os == 'Linux'
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      # Setup Deno
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Setup Bun
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Setup Task runner
+      - uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Setup Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      # Install Node.js dependencies  
+      - name: Install Node.js dependencies
+        run: npm install
+
       # Build all runtime libraries using our cross-platform TypeScript script
       - name: Build all runtime libraries
         run: task build
 
-      # Run Cargo tests with coverage (Rust-level tests)
-      - name: Run Cargo tests with coverage
-        id: cargo-tests
+      # Run Cargo tests with coverage (Linux only)
+      - name: Run Cargo tests with coverage (Linux only)
+        if: runner.os == 'Linux'
+        id: cargo-tests-coverage
         run: |
           mkdir -p test-results/coverage
           cargo llvm-cov --all-features --workspace --lcov --output-path test-results/coverage/rust.lcov test
         continue-on-error: true
 
-      # Run Cargo tests and generate JUnit report
-      - name: Generate Cargo test JUnit report
-        id: cargo-junit
+      # Run Cargo tests (all platforms)
+      - name: Run Cargo tests
+        id: cargo-tests
         run: |
           mkdir -p test-results
           # Run cargo tests and capture output
           cargo test --all-features --workspace > cargo_test_output.txt 2>&1 || true
+
+      # Generate JUnit report from Cargo test output
+      - name: Generate Cargo test JUnit report
+        id: cargo-junit
+        run: |
 
           # Parse the test results from cargo output
           # Look for lines like "test result: ok. 16 passed; 0 failed; 0 ignored"
@@ -204,12 +284,12 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: test-reports-${{ matrix.name }}
           path: test-results/*.xml
           if-no-files-found: ignore
 
-      - name: Upload Coverage Reports
-        if: ${{ always() }}
+      - name: Upload Coverage Reports (Linux only)
+        if: ${{ always() && runner.os == 'Linux' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
@@ -219,7 +299,7 @@ jobs:
   report:
     if: ${{ always() && github.event_name == 'pull_request_target'}}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [code-quality, build-and-test]
     permissions:
       contents: read
       pull-requests: write
@@ -392,57 +472,76 @@ jobs:
             summary += `| Runtime | Status | Tests | Coverage |\n`;
             summary += `|---------|--------|-------|----------|\n`;
 
-            // Read Deno test results
-            let denoResult = { status: '❓', text: 'Not found' };
-            try {
-              if (fs.existsSync('deno-test-results.xml')) {
-                const denoXml = fs.readFileSync('deno-test-results.xml', 'utf8');
-                console.log('Deno XML preview:', denoXml.substring(0, 500));
-                const parsed = parseJUnit(denoXml);
-                console.log('Deno parsed result:', parsed);
-                denoResult = formatTestResult(parsed);
-              } else {
-                console.log('Deno test results file not found');
-              }
-            } catch (e) {
-              console.log('Error reading Deno results:', e.message);
+            // Aggregate test results from matrix job platforms
+            const platformResults = {};
+            const results = {};
+
+            // Debug: List all available files
+            console.log('Available files in current directory:');
+            const allFiles = fs.readdirSync('.');
+            console.log('All files:', allFiles);
+            console.log('XML files:', allFiles.filter(f => f.endsWith('.xml')));
+
+            // Get outcomes from build-and-test matrix jobs
+            const matrixResults = ${{ toJSON(needs.build-and-test.result) }};
+            const matrixOutputs = ${{ toJSON(needs.build-and-test.outputs) }};
+            console.log('Matrix job result:', matrixResults);
+            console.log('Matrix job outputs:', matrixOutputs);
+
+            // Initialize runtime results aggregation
+            const runtimes = ['deno', 'bun', 'node', 'rust'];
+            for (const runtime of runtimes) {
+              results[runtime] = {
+                aggregated: { success: false, total: 0, errors: 0, failures: 0, passed: 0 }
+              };
             }
 
-            // Read Rust/Cargo test results
-            let rustResult = { status: '❓', text: 'Not found' };
-            try {
-              if (fs.existsSync('cargo.xml')) {
-                const cargoXml = fs.readFileSync('cargo.xml', 'utf8');
-                const parsed = parseJUnit(cargoXml);
-                rustResult = formatTestResult(parsed);
+            // Look for test result files from all platforms
+            const testFiles = allFiles.filter(f => f.endsWith('.xml'));
+            console.log('Processing test files:', testFiles);
+
+            // Process each test file
+            for (const fileName of testFiles) {
+              try {
+                const xml = fs.readFileSync(fileName, 'utf8');
+                const parsed = parseJUnit(xml);
+                
+                // Determine which runtime this file belongs to
+                let runtime = null;
+                if (fileName.includes('deno')) runtime = 'deno';
+                else if (fileName.includes('bun')) runtime = 'bun';
+                else if (fileName.includes('node')) runtime = 'node';
+                else if (fileName.includes('cargo')) runtime = 'rust';
+                
+                if (runtime) {
+                  // Aggregate results across all platforms for this runtime
+                  const currentResults = results[runtime].aggregated;
+                  currentResults.total += parsed.total;
+                  currentResults.errors += parsed.errors;
+                  currentResults.failures += parsed.failures;
+                  currentResults.passed += parsed.passed;
+                  currentResults.success = currentResults.failures === 0 && currentResults.errors === 0;
+                  
+                  console.log(`Processed ${fileName} for ${runtime}: ${parsed.passed}/${parsed.total} passed`);
+                }
+              } catch (error) {
+                console.log(`Error processing ${fileName}:`, error.message);
               }
-            } catch (e) {
-              console.log('Error reading Rust results:', e.message);
             }
 
-            // Read Bun test results
-            let bunResult = { status: '❓', text: 'Not found' };
-            try {
-              if (fs.existsSync('bun-test-results.xml')) {
-                const bunXml = fs.readFileSync('bun-test-results.xml', 'utf8');
-                const parsed = parseJUnit(bunXml);
-                bunResult = formatTestResult(parsed);
+            // Fallback: if no results found, mark as failed
+            for (const runtime of runtimes) {
+              if (results[runtime].aggregated.total === 0) {
+                results[runtime].aggregated.success = false;
+                results[runtime].aggregated.failures = 1;
               }
-            } catch (e) {
-              console.log('Error reading Bun results:', e.message);
             }
 
-            // Read Node.js test results
-            let nodeResult = { status: '❓', text: 'Not found' };
-            try {
-              if (fs.existsSync('node-test-results.xml')) {
-                const nodeXml = fs.readFileSync('node-test-results.xml', 'utf8');
-                const parsed = parseJUnit(nodeXml);
-                nodeResult = formatTestResult(parsed);
-              }
-            } catch (e) {
-              console.log('Error reading Node.js results:', e.message);
-            }
+            // Format results for comment display
+            const denoResult = formatTestResult(results.deno.aggregated);
+            const bunResult = formatTestResult(results.bun.aggregated);
+            const nodeResult = formatTestResult(results.node.aggregated);
+            const rustResult = formatTestResult(results.rust.aggregated);
 
             // Debug: List available files
             console.log('Available files in current directory:');
@@ -478,10 +577,22 @@ jobs:
               summary += `**Coverage Reports**: ${coverageFiles.join(', ')}\n\n`;
             }
 
-            // Overall status
-            const overallSuccess = denoResult.status === '✅' && rustResult.status === '✅' && bunResult.status === '✅' && nodeResult.status === '✅';
+            // Overall status based on matrix results and test parsing
+            const matrixSuccess = matrixResults === 'success';
+            const testResultsSuccess = results.deno.aggregated.success && 
+                                    results.bun.aggregated.success && 
+                                    results.node.aggregated.success && 
+                                    results.rust.aggregated.success;
+            const overallSuccess = matrixSuccess && testResultsSuccess;
             const overallStatus = overallSuccess ? '✅ All tests passing' : '❌ Some tests failed';
-            summary += `**Overall Status**: ${overallStatus}\n\n`;
+            
+            // Add platform information if matrix failed
+            let platformInfo = '';
+            if (!matrixSuccess) {
+              platformInfo = ' (Matrix job failed on one or more platforms: Linux, macOS, Windows)';
+            }
+            
+            summary += `**Overall Status**: ${overallStatus}${platformInfo}\n\n`;
 
             // Add timestamp and run info
             const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -586,70 +697,112 @@ jobs:
               return { total: 0, errors: 0, failures: 0, passed: 0 };
             }
 
-            // Check test results for each runtime
+            // Aggregate test results from matrix job platforms
+            const platformResults = {};
             const results = {};
 
             // Debug: List all available files
             console.log('Available files in current directory:');
-            console.log(fs.readdirSync('.').filter(f => f.endsWith('.xml')));
+            const allFiles = fs.readdirSync('.');
+            console.log('All files:', allFiles);
+            console.log('XML files:', allFiles.filter(f => f.endsWith('.xml')));
 
-            // Check Deno results (files are flattened after artifact download)
-            if (fs.existsSync('deno-test-results.xml')) {
-              const xml = fs.readFileSync('deno-test-results.xml', 'utf8');
-              const parsed = parseJUnit(xml);
-              results.deno = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
-            } else {
-              results.deno = { success: false, total: 0, errors: 0, failures: 1, passed: 0 };
+            // Get outcomes from build-and-test matrix jobs
+            const matrixResults = ${{ toJSON(needs.build-and-test.result) }};
+            const matrixOutputs = ${{ toJSON(needs.build-and-test.outputs) }};
+            console.log('Matrix job result:', matrixResults);
+            console.log('Matrix job outputs:', matrixOutputs);
+
+            // Initialize platform tracking
+            const platforms = ['Linux', 'macOS', 'Windows'];
+            for (const platform of platforms) {
+              platformResults[platform] = {
+                overall: 'unknown',
+                runtimes: {}
+              };
             }
 
-            // Check Bun results
-            if (fs.existsSync('bun-test-results.xml')) {
-              const xml = fs.readFileSync('bun-test-results.xml', 'utf8');
-              const parsed = parseJUnit(xml);
-              results.bun = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
-            } else {
-              results.bun = { success: false, total: 0, errors: 0, failures: 1, passed: 0 };
+            // Process artifacts from each platform
+            // The matrix job uploads artifacts with names like "test-reports-Linux", "test-reports-macOS", "test-reports-Windows"
+            // After download-artifact with merge-multiple: true, all files are flattened to current directory
+            
+            // Initialize runtime results aggregation
+            const runtimes = ['deno', 'bun', 'node', 'rust'];
+            for (const runtime of runtimes) {
+              results[runtime] = {
+                platforms: {},
+                aggregated: { success: false, total: 0, errors: 0, failures: 0, passed: 0 }
+              };
             }
 
-            // Check Node.js results
-            if (fs.existsSync('node-test-results.xml')) {
-              const xml = fs.readFileSync('node-test-results.xml', 'utf8');
-              const parsed = parseJUnit(xml);
-              results.node = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
-            } else {
-              results.node = { success: false, total: 0, errors: 0, failures: 1, passed: 0 };
+            // Look for test result files from all platforms
+            // Since files are merged, we need to parse all available test files
+            const testFiles = allFiles.filter(f => f.endsWith('.xml'));
+            console.log('Processing test files:', testFiles);
+
+            // Process each test file
+            for (const fileName of testFiles) {
+              try {
+                const xml = fs.readFileSync(fileName, 'utf8');
+                const parsed = parseJUnit(xml);
+                
+                // Determine which runtime and platform this file belongs to
+                let runtime = null;
+                if (fileName.includes('deno')) runtime = 'deno';
+                else if (fileName.includes('bun')) runtime = 'bun';
+                else if (fileName.includes('node')) runtime = 'node';
+                else if (fileName.includes('cargo')) runtime = 'rust';
+                
+                if (runtime) {
+                  // For now, aggregate all results since we can't determine platform from filename
+                  // This is a limitation of the current artifact merging approach
+                  const currentResults = results[runtime].aggregated;
+                  currentResults.total += parsed.total;
+                  currentResults.errors += parsed.errors;
+                  currentResults.failures += parsed.failures;
+                  currentResults.passed += parsed.passed;
+                  currentResults.success = currentResults.failures === 0 && currentResults.errors === 0;
+                  
+                  console.log(`Processed ${fileName} for ${runtime}: ${parsed.passed}/${parsed.total} passed`);
+                }
+              } catch (error) {
+                console.log(`Error processing ${fileName}:`, error.message);
+              }
             }
 
-            // Rust tests are optional since there are no unit tests defined
-            results.rust = { success: true, total: 0, errors: 0, failures: 0, passed: 0 };
-            if (fs.existsSync('cargo.xml')) {
-              const xml = fs.readFileSync('cargo.xml', 'utf8');
-              const parsed = parseJUnit(xml);
-              results.rust = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
+            // Fallback: if no results found, mark as failed
+            for (const runtime of runtimes) {
+              if (results[runtime].aggregated.total === 0) {
+                results[runtime].aggregated.success = false;
+                results[runtime].aggregated.failures = 1;
+              }
             }
 
-            // Check if cross-runtime test step succeeded
-            const crossRuntimeTestsResult = '${{ needs.build.outputs.cross-runtime-tests-result }}';
-            const cargoTestsResult = '${{ needs.build.outputs.cargo-tests-result }}';
+            console.log('Aggregated runtime results:');
+            for (const runtime of runtimes) {
+              const r = results[runtime].aggregated;
+              console.log(`- ${runtime}: ${r.passed}/${r.total} passed (success: ${r.success})`);
+            }
 
-            console.log(`Cross-runtime tests step result: ${crossRuntimeTestsResult}`);
-            console.log(`Cargo tests step result: ${cargoTestsResult}`);
+            // Determine overall success from matrix job results and test parsing
+            const matrixSuccess = matrixResults === 'success';
+            const testResultsSuccess = results.deno.aggregated.success && 
+                                    results.bun.aggregated.success && 
+                                    results.node.aggregated.success && 
+                                    results.rust.aggregated.success;
+            const overallSuccess = matrixSuccess && testResultsSuccess;
 
-            // Determine overall success (both step results and parsed test results)
-            const stepSuccess = crossRuntimeTestsResult === 'success' && cargoTestsResult === 'success';
-            const testResultsSuccess = results.deno.success && results.bun.success && results.node.success && results.rust.success;
-            const overallSuccess = stepSuccess && testResultsSuccess;
+            const totalTests = results.deno.aggregated.total + results.bun.aggregated.total + results.node.aggregated.total + results.rust.aggregated.total;
+            const totalPassed = results.deno.aggregated.passed + results.bun.aggregated.passed + results.node.aggregated.passed + results.rust.aggregated.passed;
+            const totalFailures = results.deno.aggregated.failures + results.bun.aggregated.failures + results.node.aggregated.failures + results.rust.aggregated.failures;
+            const totalErrors = results.deno.aggregated.errors + results.bun.aggregated.errors + results.node.aggregated.errors + results.rust.aggregated.errors;
 
-            const totalTests = results.deno.total + results.bun.total + results.node.total + results.rust.total;
-            const totalPassed = results.deno.passed + results.bun.passed + results.node.passed + results.rust.passed;
-            const totalFailures = results.deno.failures + results.bun.failures + results.node.failures + results.rust.failures;
-            const totalErrors = results.deno.errors + results.bun.errors + results.node.errors + results.rust.errors;
-
-            console.log('Test Results Summary:');
-            console.log(`- Deno: ${results.deno.passed}/${results.deno.total} passed (success: ${results.deno.success})`);
-            console.log(`- Bun: ${results.bun.passed}/${results.bun.total} passed (success: ${results.bun.success})`);
-            console.log(`- Node.js: ${results.node.passed}/${results.node.total} passed (success: ${results.node.success})`);
-            console.log(`- Rust: ${results.rust.passed}/${results.rust.total} passed (success: ${results.rust.success})`);
+            console.log('Final Test Results Summary:');
+            console.log(`- Deno: ${results.deno.aggregated.passed}/${results.deno.aggregated.total} passed (success: ${results.deno.aggregated.success})`);
+            console.log(`- Bun: ${results.bun.aggregated.passed}/${results.bun.aggregated.total} passed (success: ${results.bun.aggregated.success})`);
+            console.log(`- Node.js: ${results.node.aggregated.passed}/${results.node.aggregated.total} passed (success: ${results.node.aggregated.success})`);
+            console.log(`- Rust: ${results.rust.aggregated.passed}/${results.rust.aggregated.total} passed (success: ${results.rust.aggregated.success})`);
+            console.log(`- Matrix job success: ${matrixSuccess}`);
             console.log(`- Overall: ${totalPassed}/${totalTests} passed (success: ${overallSuccess})`);
 
             const state = overallSuccess ? 'success' : 'failure';
@@ -658,11 +811,8 @@ jobs:
               description = `All tests passed (${totalPassed}/${totalTests})`;
             } else {
               const issues = [];
-              if (!stepSuccess) {
-                const failedSteps = [];
-                if (crossRuntimeTestsResult !== 'success') failedSteps.push('cross-runtime');
-                if (cargoTestsResult !== 'success') failedSteps.push('cargo');
-                issues.push(`${failedSteps.join(', ')} test steps failed`);
+              if (!matrixSuccess) {
+                issues.push('matrix build jobs failed');
               }
               if (!testResultsSuccess) {
                 issues.push(`${totalFailures} failures, ${totalErrors} errors`);
@@ -701,11 +851,11 @@ jobs:
         with:
           script: |
             // Get individual step outcomes from build job outputs
-            const rustFmtResult = '${{ needs.build.outputs.rust-fmt-result }}';
-            const rustLintResult = '${{ needs.build.outputs.rust-lint-result }}';
-            const denoFmtResult = '${{ needs.build.outputs.deno-fmt-result }}';
-            const denoLintResult = '${{ needs.build.outputs.deno-lint-result }}';
-            const eslintResult = '${{ needs.build.outputs.eslint-result }}';
+            const rustFmtResult = '${{ needs.code-quality.outputs.rust-fmt-result }}';
+            const rustLintResult = '${{ needs.code-quality.outputs.rust-lint-result }}';
+            const denoFmtResult = '${{ needs.code-quality.outputs.deno-fmt-result }}';
+            const denoLintResult = '${{ needs.code-quality.outputs.deno-lint-result }}';
+            const eslintResult = '${{ needs.code-quality.outputs.eslint-result }}';
 
             console.log('Code quality step results:');
             console.log(`- Rust fmt: ${rustFmtResult}`);
