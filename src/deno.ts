@@ -218,12 +218,40 @@ try {
   });
 } catch (error) {
   console.error(`Failed to load FFI library at ${libPath}:`, error);
+
+  // Enhanced debug information
+  console.error(`Platform: ${Deno.build.os}, Architecture: ${Deno.build.arch}`);
+  console.error(`Base directory: ${baseDir}`);
+  console.error(`Library info:`, JSON.stringify(libraryInfo, null, 2));
+
   try {
     const stats = Deno.statSync(libPath);
     console.error(`Library exists: true (size: ${stats.size} bytes)`);
   } catch {
     console.error(`Library exists: false`);
+
+    // Check if target/release directory exists
+    try {
+      const targetDir = `${baseDir}/target/release`;
+      Deno.statSync(targetDir);
+      console.error(`Target directory exists: true`);
+
+      // List files in target/release directory
+      try {
+        const files = Array.from(Deno.readDirSync(targetDir))
+          .map((entry) => `${entry.name}${entry.isDirectory ? "/" : ""}`)
+          .sort();
+        console.error(`Files in target/release:`, files);
+      } catch (e) {
+        console.error(`Could not list target/release files:`, e.message);
+      }
+    } catch {
+      console.error(
+        `Target directory does not exist: ${baseDir}/target/release`,
+      );
+    }
   }
+
   console.error(`Current working directory: ${Deno.cwd()}`);
   console.error(`Expected library path: ${libPath}`);
   throw new Error(`FFI library loading failed: ${error}`);
