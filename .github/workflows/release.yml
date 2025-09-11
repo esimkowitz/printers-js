@@ -16,7 +16,7 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             source_artifact_name: libprinters_js.so
-            dest_artifact_name: libprinters_js.so
+            dest_artifact_name: libprinters_js-x64.so
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             source_artifact_name: libprinters_js.so
@@ -24,7 +24,7 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             source_artifact_name: printers_js.dll
-            dest_artifact_name: printers_js.dll
+            dest_artifact_name: printers_js-x64.dll
           - target: x86_64-apple-darwin
             os: macos-13
             source_artifact_name: libprinters_js.dylib
@@ -32,7 +32,7 @@ jobs:
           - target: aarch64-apple-darwin
             os: macos-latest
             source_artifact_name: libprinters_js.dylib
-            dest_artifact_name: libprinters_js.dylib
+            dest_artifact_name: libprinters_js-arm64.dylib
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update

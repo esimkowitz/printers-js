@@ -14,15 +14,15 @@ function getLibraryPath() {
   let libName;
   if (platform === "win32") {
     // Windows ARM64 not supported by Bun, only x64
-    libName = "printers_js.dll";
+    libName = "printers_js-x64.dll";
   } else if (platform === "darwin") {
     libName = arch === "x64"
       ? "libprinters_js-x64.dylib"
-      : "libprinters_js.dylib";
+      : "libprinters_js-arm64.dylib";
   } else if (platform === "linux") {
     libName = arch === "arm64"
       ? "libprinters_js-arm64.so"
-      : "libprinters_js.so";
+      : "libprinters_js-x64.so";
   } else {
     throw new Error(`Unsupported platform: ${platform}-${arch}`);
   }

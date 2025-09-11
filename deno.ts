@@ -40,12 +40,16 @@ function getLibraryName(): string {
   // Construct library name based on platform and architecture
   if (os === "windows") {
     // Windows ARM64 not supported by Deno, only x64
-    return `printers_js.${extension}`;
+    return `printers_js-x64.${extension}`;
   } else if (os === "darwin") {
-    return arch === "x86_64" ? `libprinters_js-x64.${extension}` : `libprinters_js.${extension}`;
+    return arch === "x86_64"
+      ? `libprinters_js-x64.${extension}`
+      : `libprinters_js-arm64.${extension}`;
   } else {
     // Linux
-    return arch === "aarch64" ? `libprinters_js-arm64.${extension}` : `libprinters_js.${extension}`;
+    return arch === "aarch64"
+      ? `libprinters_js-arm64.${extension}`
+      : `libprinters_js-x64.${extension}`;
   }
 }
 
