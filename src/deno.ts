@@ -35,13 +35,13 @@ export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 function getBaseDir(): string {
   const url = new URL("../", import.meta.url);
   let path = url.pathname;
-  
+
   // On Windows, fix the path format: remove leading slash and convert forward slashes
   if (Deno.build.os === "windows") {
     // Remove leading slash and convert to Windows format
     path = path.replace(/^\//, "").replace(/\//g, "\\");
   }
-  
+
   return path;
 }
 
@@ -234,7 +234,9 @@ try {
 
   // Enhanced debug information
   console.error(`Platform: ${Deno.build.os}, Architecture: ${Deno.build.arch}`);
-  console.error(`Raw URL pathname: ${new URL("../", import.meta.url).pathname}`);
+  console.error(
+    `Raw URL pathname: ${new URL("../", import.meta.url).pathname}`,
+  );
   console.error(`Processed base directory: ${baseDir}`);
   console.error(`Library info:`, JSON.stringify(libraryInfo, null, 2));
 
