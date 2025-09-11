@@ -7,8 +7,8 @@ export default [
   {
     ignores: [
       // Deno-managed files (use deno lint instead)
-      "deno.ts",
-      "tests/shared.test.ts",
+      "**/src/deno.ts",
+      "**/tests/shared.test.ts",
 
       // Scripts directory (use deno lint instead)
       "scripts/**/*",
@@ -18,7 +18,7 @@ export default [
 
       // Build artifacts and dependencies
       "target/**/*",
-      "napi/**/*",
+      "npm/**/*",
       "node_modules/**/*",
       "test-results/**/*",
       ".claude/**/*",
@@ -53,6 +53,10 @@ export default [
         // Runtime detection globals
         Deno: "readonly",
         Bun: "readonly",
+        // Deno globals
+        URL: "readonly",
+        TextEncoder: "readonly",
+        TextDecoder: "readonly",
       },
     },
     plugins: {

@@ -6,11 +6,29 @@
  */
 
 // Runtime detection helpers
+interface GlobalWithProcess {
+  process?: {
+    versions?: {
+      node?: string;
+    };
+    version?: string;
+    env?: {
+      PRINTERS_JS_SIMULATE?: string;
+    };
+  };
+}
+
+interface GlobalWithBun {
+  Bun?: {
+    version: string;
+  };
+}
 
 // Runtime detection
-const isNode: boolean = typeof (globalThis as any).process !== "undefined" &&
-  (globalThis as any).process?.versions?.node;
-const isBun: boolean = typeof (globalThis as any).Bun !== "undefined";
+const isNode: boolean =
+  typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
+  (globalThis as GlobalWithProcess).process?.versions?.node;
+const isBun: boolean = typeof (globalThis as GlobalWithBun).Bun !== "undefined";
 // @ts-expect-error: Deno namespace exists
 const isDeno: boolean = typeof Deno !== "undefined";
 
@@ -83,7 +101,16 @@ export interface RuntimeInfo {
 }
 
 // Runtime-specific imports and exports
-let printerModule: any;
+let printerModule: {
+  getAllPrinters: () => Printer[];
+  getAllPrinterNames: () => string[];
+  getPrinterByName: (name: string) => Printer | null;
+  printerExists: (name: string) => boolean;
+  getJobStatus: (jobId: number) => JobStatus | null;
+  cleanupOldJobs: (maxAgeMs?: number) => Promise<number>;
+  shutdown: () => Promise<void>;
+  Printer: PrinterClass;
+};
 
 if (isDeno) {
   // Deno runtime
@@ -124,9 +151,9 @@ export const runtimeInfo: RuntimeInfo = {
     // @ts-expect-error: Deno namespace exists
     ? Deno.version.deno
     : isBun
-    ? (globalThis as any).Bun.version
+    ? (globalThis as GlobalWithBun).Bun?.version ?? "unknown"
     : isNode
-    ? (globalThis as any).process.version
+    ? (globalThis as GlobalWithProcess).process?.version ?? "unknown"
     : "unknown",
 };
 
@@ -135,5 +162,8 @@ export const isSimulationMode: boolean =
   // @ts-expect-error: Deno namespace exists
   (isDeno && Deno?.env?.get?.("PRINTERS_JS_SIMULATE") === "true") ||
   (isNode &&
-    (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true") ||
-  (isBun && (globalThis as any).process?.env?.PRINTERS_JS_SIMULATE === "true");
+    (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE ===
+      "true") ||
+  (isBun &&
+    (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE ===
+      "true");

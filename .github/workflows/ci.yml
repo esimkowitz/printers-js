@@ -15,6 +15,15 @@ jobs:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
     permissions: {}
+    outputs:
+      rust-fmt-result: ${{ steps.rust-fmt.outcome }}
+      rust-lint-result: ${{ steps.rust-lint.outcome }}
+      deno-fmt-result: ${{ steps.deno-fmt.outcome }}
+      deno-lint-result: ${{ steps.deno-lint.outcome }}
+      eslint-result: ${{ steps.eslint.outcome }}
+      cargo-tests-result: ${{ steps.cargo-tests.outcome }}
+      cargo-junit-result: ${{ steps.cargo-junit.outcome }}
+      cross-runtime-tests-result: ${{ steps.cross-runtime-tests.outcome }}
     steps:
       - name: Checkout base branch
         if: ${{ github.event_name == 'push' }}
@@ -120,6 +129,7 @@ jobs:
 
       # Run Cargo tests with coverage (Rust-level tests)
       - name: Run Cargo tests with coverage
+        id: cargo-tests
         run: |
           mkdir -p test-results/coverage
           cargo llvm-cov --all-features --workspace --lcov --output-path test-results/coverage/rust.lcov test
@@ -127,6 +137,7 @@ jobs:
 
       # Run Cargo tests and generate JUnit report
       - name: Generate Cargo test JUnit report
+        id: cargo-junit
         run: |
           mkdir -p test-results
           # Run cargo tests and capture output
@@ -185,6 +196,7 @@ jobs:
 
       # Run comprehensive cross-runtime tests using our TypeScript script
       - name: Run cross-runtime tests
+        id: cross-runtime-tests
         run: task test
         continue-on-error: true
 
@@ -616,8 +628,18 @@ jobs:
               results.rust = { success: parsed.failures === 0 && parsed.errors === 0, ...parsed };
             }
 
-            // Determine overall success
-            const overallSuccess = results.deno.success && results.bun.success && results.node.success && results.rust.success;
+            // Check if cross-runtime test step succeeded
+            const crossRuntimeTestsResult = '${{ needs.build.outputs.cross-runtime-tests-result }}';
+            const cargoTestsResult = '${{ needs.build.outputs.cargo-tests-result }}';
+
+            console.log(`Cross-runtime tests step result: ${crossRuntimeTestsResult}`);
+            console.log(`Cargo tests step result: ${cargoTestsResult}`);
+
+            // Determine overall success (both step results and parsed test results)
+            const stepSuccess = crossRuntimeTestsResult === 'success' && cargoTestsResult === 'success';
+            const testResultsSuccess = results.deno.success && results.bun.success && results.node.success && results.rust.success;
+            const overallSuccess = stepSuccess && testResultsSuccess;
+
             const totalTests = results.deno.total + results.bun.total + results.node.total + results.rust.total;
             const totalPassed = results.deno.passed + results.bun.passed + results.node.passed + results.rust.passed;
             const totalFailures = results.deno.failures + results.bun.failures + results.node.failures + results.rust.failures;
@@ -631,9 +653,22 @@ jobs:
             console.log(`- Overall: ${totalPassed}/${totalTests} passed (success: ${overallSuccess})`);
 
             const state = overallSuccess ? 'success' : 'failure';
-            const description = overallSuccess
-              ? `All tests passed (${totalPassed}/${totalTests})`
-              : `Tests failed: ${totalFailures} failures, ${totalErrors} errors (${totalPassed}/${totalTests} passed)`;
+            let description;
+            if (overallSuccess) {
+              description = `All tests passed (${totalPassed}/${totalTests})`;
+            } else {
+              const issues = [];
+              if (!stepSuccess) {
+                const failedSteps = [];
+                if (crossRuntimeTestsResult !== 'success') failedSteps.push('cross-runtime');
+                if (cargoTestsResult !== 'success') failedSteps.push('cargo');
+                issues.push(`${failedSteps.join(', ')} test steps failed`);
+              }
+              if (!testResultsSuccess) {
+                issues.push(`${totalFailures} failures, ${totalErrors} errors`);
+              }
+              description = `Tests failed: ${issues.join('; ')} (${totalPassed}/${totalTests} passed)`;
+            }
 
             try {
               await github.rest.repos.createCommitStatus({
@@ -665,22 +700,42 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            // Check code quality step results
-            const steps = context.payload.workflow_run?.jobs?.[0]?.steps || [];
+            // Get individual step outcomes from build job outputs
+            const rustFmtResult = '${{ needs.build.outputs.rust-fmt-result }}';
+            const rustLintResult = '${{ needs.build.outputs.rust-lint-result }}';
+            const denoFmtResult = '${{ needs.build.outputs.deno-fmt-result }}';
+            const denoLintResult = '${{ needs.build.outputs.deno-lint-result }}';
+            const eslintResult = '${{ needs.build.outputs.eslint-result }}';
 
-            // Get step outcomes from the build job
-            const buildJob = context.payload.workflow_run?.jobs?.find(job => job.name === 'build');
+            console.log('Code quality step results:');
+            console.log(`- Rust fmt: ${rustFmtResult}`);
+            console.log(`- Rust lint: ${rustLintResult}`);
+            console.log(`- Deno fmt: ${denoFmtResult}`);
+            console.log(`- Deno lint: ${denoLintResult}`);
+            console.log(`- ESLint: ${eslintResult}`);
 
-            // Check the overall build job result (individual step outcomes aren't accessible across jobs)
-            const buildResult = '${{ needs.build.result }}';
-            console.log(`Build job result: ${buildResult}`);
+            // Check if any code quality steps failed
+            const codeQualityResults = {
+              'Rust format': rustFmtResult,
+              'Rust lint': rustLintResult,
+              'Deno format': denoFmtResult,
+              'Deno lint': denoLintResult,
+              'ESLint': eslintResult
+            };
 
-            // Since individual step outcomes aren't accessible across jobs, we'll base this on the overall build result
-            // In the future, this could be enhanced by storing step results as artifacts
-            const state = buildResult === 'success' ? 'success' : 'failure';
-            const description = buildResult === 'success'
-              ? 'Build completed successfully'
-              : 'Build failed - check workflow for code quality issues';
+            const failedChecks = Object.entries(codeQualityResults)
+              .filter(([name, result]) => result === 'failure')
+              .map(([name]) => name);
+
+            const allPassed = failedChecks.length === 0;
+            const state = allPassed ? 'success' : 'failure';
+
+            let description;
+            if (allPassed) {
+              description = `All code quality checks passed (${Object.keys(codeQualityResults).length} checks)`;
+            } else {
+              description = `Code quality issues: ${failedChecks.join(', ')} failed`;
+            }
 
             try {
               await github.rest.repos.createCommitStatus({

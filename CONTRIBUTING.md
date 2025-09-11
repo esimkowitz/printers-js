@@ -98,11 +98,12 @@ bun --version     # if installed
 ### Build
 
 ```bash
-# FFI library (for Deno/Bun)
+# Build all runtimes (FFI + N-API)
 task build
 
-# N-API module (for Node.js) 
-task build:napi
+# Build individual runtimes
+task build:ffi           # Build FFI library for Deno/Bun
+task build:napi          # Build N-API module for Node.js
 ```
 
 The N-API build process:
@@ -145,16 +146,27 @@ The project uses different runtime environments for different script types:
 ### Test
 
 ```bash
-# All runtimes (recommended)
+# Run comprehensive test suite across all runtimes (recommended)
 task test
 
-# Individual runtimes
-task test:deno
-task test:node
-task test:bun
+# Run comprehensive test suite with real printing
+task test:real
+
+# Individual runtimes (simulation mode)
+task test:deno          # Run Deno tests in simulation mode
+task test:node          # Run Node.js tests in simulation mode  
+task test:bun           # Run Bun tests in simulation mode
+
+# Individual runtimes (real printing)
+task test:deno:real     # Run Deno tests with real printing
+task test:node:real     # Run Node.js tests with real printing
+task test:bun:real      # Run Bun tests with real printing
+
+# Additional test commands
+task test:doc           # Run documentation tests
 ```
 
-All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `test:real` tasks to
+All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `:real` variants to
 actually print.
 
 ### Code Quality
@@ -162,13 +174,38 @@ actually print.
 Run after changes:
 
 ```bash
-task fmt && task lint
-cargo fmt && cargo clippy
+# Format all code
+task fmt                # Format TypeScript/JavaScript and Rust
+
+# Check formatting without changes  
+task fmt:check          # Check all formatting
+task fmt:deno:check     # Check TypeScript/JavaScript formatting
+task fmt:rust:check     # Check Rust formatting
+
+# Lint all code
+task lint               # Lint Deno, Node.js, and Rust code
+task lint:fix           # Fix linting issues automatically
+
+# Individual linting
+task lint:deno          # Lint Deno-managed files
+task lint:node          # Lint Node.js-managed files  
+task lint:rust          # Lint Rust code with Clippy
+
+# Type checking
+task check              # Type check all code
+task check:deno         # Type check Deno code
+task check:node         # Type check Node.js code (via build)
+task check:rust         # Type check Rust code
 ```
 
 ## Release Process
 
-1. **Bump version**: `task bump:patch` (or `minor`/`major`)
+1. **Bump version**:
+   ```bash
+   task bump:patch    # 0.4.2 -> 0.4.3
+   task bump:minor    # 0.4.2 -> 0.5.0
+   task bump:major    # 0.4.2 -> 1.0.0
+   ```
 2. **Commit and push**: `git add . && git commit -m "v0.4.3" && git push`
 3. **Create tag and push**: `git tag v0.4.3 && git push origin v0.4.3`
 
@@ -329,7 +366,7 @@ task ci:local
 task test
 
 # Individual runtime testing
-task test:deno test:node test:bun
+task test:deno task test:node task test:bun
 ```
 
 ### Coverage Reports

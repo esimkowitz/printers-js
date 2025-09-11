@@ -68,7 +68,7 @@ tasks:
 
   lint:node:
     desc: Lint Node.js-managed files
-    cmd: eslint .
+    cmd: npx eslint .
 
   lint:rust:
     desc: Lint Rust code with Clippy
@@ -80,7 +80,7 @@ tasks:
 
   lint:fix:node:
     desc: Fix linting issues in Node.js-managed files
-    cmd: eslint . --fix
+    cmd: npx eslint . --fix
 
   remove-env-check:
     desc: Remove NAPI_RS_NATIVE_LIBRARY_PATH check from generated N-API files

@@ -22,7 +22,7 @@ function parseNodeTestOutput(output: string): TestResults {
   const tapPassMatch = output.match(/# pass (\d+)/);
   const tapFailMatch = output.match(/# fail (\d+)/);
   
-  let total = tapTestsMatch ? parseInt(tapTestsMatch[1]) : 0;
+  const total = tapTestsMatch ? parseInt(tapTestsMatch[1]) : 0;
   let passed = tapPassMatch ? parseInt(tapPassMatch[1]) : 0;
   let failed = tapFailMatch ? parseInt(tapFailMatch[1]) : 0;
   
