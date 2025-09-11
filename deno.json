@@ -53,7 +53,9 @@
       "Cargo.{toml,lock}",
       "package.json",
       "tests/node-test-runner.ts",
-      "scripts/*.js"
+      "scripts/*.js",
+      "src/node.ts",
+      "src/bun.ts"
     ],
     "rules": {
       "exclude": [
