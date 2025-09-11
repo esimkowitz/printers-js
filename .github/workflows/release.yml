@@ -153,6 +153,9 @@ jobs:
           find npm -name "index.js" -type f -exec cp {} "npm/${{ matrix.settings.npm_platform }}/" \; 2>/dev/null || true
           find npm -name "index.d.ts" -type f -exec cp {} "npm/${{ matrix.settings.npm_platform }}/" \; 2>/dev/null || true
 
+          # Copy package.json to platform directory
+          find npm -name "package.json" -type f -exec cp {} "npm/${{ matrix.settings.npm_platform }}/" \; 2>/dev/null || true
+
           echo "Contents of npm/${{ matrix.settings.npm_platform }}:"
           ls -la "npm/${{ matrix.settings.npm_platform }}/"
       - name: Upload N-API artifact
