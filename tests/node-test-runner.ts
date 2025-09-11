@@ -9,6 +9,37 @@ import { writeFileSync, mkdirSync, existsSync, cpSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
+interface TestResults {
+  total: number;
+  passed: number;
+  failed: number;
+}
+
+// Parse Node.js test output to detect actual failures
+function parseNodeTestOutput(output: string): TestResults {
+  // Parse TAP output for basic counts
+  const tapTestsMatch = output.match(/# tests (\d+)/);
+  const tapPassMatch = output.match(/# pass (\d+)/);
+  const tapFailMatch = output.match(/# fail (\d+)/);
+  
+  let total = tapTestsMatch ? parseInt(tapTestsMatch[1]) : 0;
+  let passed = tapPassMatch ? parseInt(tapPassMatch[1]) : 0;
+  let failed = tapFailMatch ? parseInt(tapFailMatch[1]) : 0;
+  
+  // Check for unhandled rejections that indicate test failures
+  // These show up as errors but @cross/test doesn't count them as failures
+  const unhandledRejections = output.match(/unhandledRejection event/g);
+  const rejectionCount = unhandledRejections ? unhandledRejections.length : 0;
+  
+  // If we have unhandled rejections, adjust the counts
+  if (rejectionCount > 0) {
+    failed += rejectionCount;
+    passed = Math.max(0, passed - rejectionCount);
+  }
+  
+  return { total, passed, failed };
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
@@ -27,26 +58,43 @@ async function runTests() {
     
     // Run tests with c8 coverage using tsx for TypeScript support
     let testsPassed = false;
+    let testResults = { total: 0, passed: 0, failed: 0 };
+    
     try {
       console.log('Running tests with c8 coverage...');
       
-      // Run the shared test suite with c8 coverage
-      execSync(
+      // Run the shared test suite with c8 coverage and capture output
+      const result = execSync(
         'npx c8 --reporter=lcov --reporter=text --temp-directory=test-results/coverage/node-temp --report-dir=test-results/coverage/node npx tsx tests/shared.test.ts',
         { 
-          stdio: 'inherit',
+          stdio: 'pipe',
           env: { 
             ...process.env, 
             PRINTERS_JS_SIMULATE: 'true',
             FORCE_NODE_RUNTIME: 'true'
           },
-          cwd: projectRoot
+          cwd: projectRoot,
+          encoding: 'utf8'
         }
       );
-      testsPassed = true;
-    } catch (_error) {
+      
+      // Parse TAP output and detect unhandled rejections
+      testResults = parseNodeTestOutput(result);
+      testsPassed = testResults.failed === 0;
+      
+      // Show the output to user
+      console.log(result);
+      
+    } catch (error) {
       // Tests may fail but coverage might still be generated
       console.log('Note: Some tests may have failed, but coverage was still generated');
+      
+      // Try to parse output from the error if available
+      if (error.stdout) {
+        testResults = parseNodeTestOutput(error.stdout + (error.stderr || ''));
+        console.log(error.stdout);
+        if (error.stderr) console.error(error.stderr);
+      }
     }
     
     // Always try to copy the lcov.info to node-lcov.info if it exists
@@ -58,46 +106,46 @@ async function runTests() {
       console.log('📊 Generated Node.js LCOV coverage report: test-results/coverage/node-lcov.info');
     }
     
-    if (testsPassed) {
-      
-      // Generate JUnit XML report
-      // Since we're using shared.test.ts which uses @cross/test, we need to parse the output
-      // For now, we'll generate a basic success report
+    // Generate JUnit XML report based on parsed results
+    // Create test cases based on actual results
+    const testCases = [];
+    
+    // Generate individual test case entries based on parsed counts
+    for (let i = 1; i <= testResults.total; i++) {
+      const isPassed = i <= testResults.passed;
+      testCases.push({
+        name: `Node.js: Test ${i}`,
+        duration: 0.001,
+        status: isPassed ? 'passed' : 'failed',
+        error: isPassed ? undefined : 'Test failed (detected via @cross/test output parsing)'
+      });
+    }
+    
+    if (testResults.total > 0) {
       const junitXML = generateJUnitXML({
-        total: 14,
-        passed: 14,
-        failed: 0,
-        testCases: [
-          { name: 'Node.js: should return an array from getAllPrinterNames', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should return an array of Printer objects from getAllPrinters', duration: 0.002, status: 'passed' },
-          { name: 'Node.js: should return typed printer instances from getAllPrinters', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should return false for non-existent printer in printerExists', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should return null for non-existent printer in getPrinterByName', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should have working Printer class methods', duration: 0.002, status: 'passed' },
-          { name: 'Node.js: should handle printFile operations', duration: 0.003, status: 'passed' },
-          { name: 'Node.js: should return null for invalid job ID in getJobStatus', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should return number from cleanupOldJobs', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should have shutdown function available', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should have PrintError enum available', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should reflect environment in isSimulationMode', duration: 0.001, status: 'passed' },
-          { name: 'Node.js: should have consistent API across getAllPrinterNames and getAllPrinters', duration: 0.002, status: 'passed' },
-          { name: 'Node.js: should have runtimeInfo with name and version', duration: 0.001, status: 'passed' }
-        ]
+        total: testResults.total,
+        passed: testResults.passed,
+        failed: testResults.failed,
+        testCases
       });
       
       writeFileSync('test-results/node-test-results.xml', junitXML);
       console.log('📊 Generated Node.js JUnit XML report: test-results/node-test-results.xml');
       
       console.log('\nNode.js Test Results:');
-      console.log('Total: 14');
-      console.log('Passed: 14');
-      console.log('Failed: 0');
+      console.log(`Total: ${testResults.total}`);
+      console.log(`Passed: ${testResults.passed}`);
+      console.log(`Failed: ${testResults.failed}`);
       
-      process.exit(0);
+      if (testsPassed) {
+        process.exit(0);
+      } else {
+        process.exit(1);
+      }
     } else {
-      console.error('Test execution failed: Some tests failed');
+      console.error('Test execution failed: No test results found');
       
-      // Generate failure report
+      // Generate failure report for no results
       const junitXML = generateJUnitXML({
         total: 1,
         passed: 0,
@@ -107,7 +155,7 @@ async function runTests() {
             name: 'Node.js: Test suite execution', 
             duration: 0.001, 
             status: 'failed',
-            error: 'Test execution failed'
+            error: 'Test execution failed - no results found'
           }
         ]
       });

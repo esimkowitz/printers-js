@@ -3,46 +3,33 @@
 
 import { CString, dlopen, FFIType } from "bun:ffi";
 import path from "path";
+import { getLibraryInfo } from "./ffi-loader.ts";
 
 const __dirname = import.meta.dir;
 
-// Determine library path based on platform and architecture
-function getLibraryPath() {
-  const platform = process.platform;
-  const arch = process.arch;
+// Library loading - multi-platform binary selection
+const fs = require('fs');
 
-  let libName;
-  if (platform === "win32") {
-    // Windows ARM64 not supported by Bun, only x64
-    libName = "printers_js-x64.dll";
-  } else if (platform === "darwin") {
-    libName = arch === "x64"
-      ? "libprinters_js-x64.dylib"
-      : "libprinters_js-arm64.dylib";
-  } else if (platform === "linux") {
-    libName = arch === "arm64"
-      ? "libprinters_js-arm64.so"
-      : "libprinters_js-x64.so";
-  } else {
-    throw new Error(`Unsupported platform: ${platform}-${arch}`);
-  }
+// Normalize platform and arch for shared utility
+const platform = process.platform === "win32" ? "windows" : process.platform;
+const arch = process.arch === "x64" ? "x86_64" : process.arch === "arm64" ? "aarch64" : process.arch;
 
-  return path.join(__dirname, "target", "release", libName);
-}
+// Go up one level since we're in src/ directory
+const baseDir = path.join(__dirname, "..");
 
-const libPath = getLibraryPath();
+const libraryInfo = getLibraryInfo(
+  baseDir,
+  platform,
+  arch,
+  (path: string) => fs.existsSync(path)
+);
+
+const libPath = libraryInfo.path;
 
 // Check if library file exists
-try {
-  const fs = require('fs');
-  if (!fs.existsSync(libPath)) {
-    throw new Error(`Library file not found: ${libPath}`);
-  }
-} catch (e) {
-  if (e.message.includes('Library file not found')) {
-    throw e;
-  }
-  // File system error, continue with loading attempt
+if (!libraryInfo.exists) {
+  console.warn(`Warning: Library file not found: ${libPath}`);
+  console.warn("Attempting to load anyway, which may fail...");
 }
 
 // Load the native library using Bun's FFI

@@ -3,11 +3,11 @@
   "version": "0.3.18",
   "license": "MIT",
   "exports": {
-    ".": "./index.ts"
+    ".": "./src/index.ts"
   },
   "publish": {
     "include": [
-      "*.ts",
+      "src/",
       "README.md",
       "LICENSE",
       "npm/**",
@@ -37,10 +37,7 @@
       "LICENSE",
       "*.rs",
       "Cargo.{toml,lock}",
-      "package.json",
-      "node.ts",
-      "bun.ts",
-      "index.ts"
+      "package.json"
     ]
   },
   "lint": {
@@ -55,9 +52,6 @@
       "*.rs",
       "Cargo.{toml,lock}",
       "package.json",
-      "node.ts",
-      "bun.ts",
-      "index.ts",
       "tests/node-test-runner.ts",
       "scripts/*.js"
     ],

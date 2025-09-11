@@ -1,5 +1,5 @@
 // @ts-nocheck: FFI symbols have complex types that are validated at runtime
-import { join } from "@std/path";
+import { getLibraryInfo } from "./ffi-loader.ts";
 
 /**
  * Error codes for printing operations
@@ -30,41 +30,37 @@ export interface JobStatus {
  */
 export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 
-// Library loading - multi-platform binary selection
-const LIB_EXTENSIONS = { windows: "dll", darwin: "dylib" } as const;
-
-function getLibraryName(): string {
-  const { os, arch } = Deno.build;
-  const extension = LIB_EXTENSIONS[os as keyof typeof LIB_EXTENSIONS] ?? "so";
-
-  // Construct library name based on platform and architecture
-  if (os === "windows") {
-    // Windows ARM64 not supported by Deno, only x64
-    return `printers_js-x64.${extension}`;
-  } else if (os === "darwin") {
-    return arch === "x86_64"
-      ? `libprinters_js-x64.${extension}`
-      : `libprinters_js-arm64.${extension}`;
-  } else {
-    // Linux
-    return arch === "aarch64"
-      ? `libprinters_js-arm64.${extension}`
-      : `libprinters_js-x64.${extension}`;
-  }
-}
-
+// Library loading - multi-platform binary selection  
 const currentDir = new URL(".", import.meta.url).pathname;
 const cleanDir = Deno.build.os === "windows" && currentDir.startsWith("/")
   ? currentDir.slice(1)
   : currentDir;
 
-const libPath = join(cleanDir, "target", "release", getLibraryName());
+// Go up one level since we're in src/ directory
+const baseDir = cleanDir.replace(/\/src\/?$/, "");
+
+const libraryInfo = getLibraryInfo(
+  baseDir,
+  Deno.build.os,
+  Deno.build.arch,
+  (path: string) => {
+    try {
+      Deno.statSync(path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+);
+
+const libPath = libraryInfo.path;
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
   console.log(`[DEBUG] Loading FFI library from: ${libPath}`);
   console.log(`[DEBUG] Current working directory: ${Deno.cwd()}`);
-  console.log(`[DEBUG] Expected library name: ${getLibraryName()}`);
+  console.log(`[DEBUG] Expected library name: ${libraryInfo.name}`);
+  console.log(`[DEBUG] Library exists: ${libraryInfo.exists}`);
 }
 
 // FFI Utilities

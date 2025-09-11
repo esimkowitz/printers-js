@@ -30,11 +30,13 @@ tasks:
 
   test:deno:
     desc: Run Deno tests in simulation mode
-    cmd: "{{.SIMULATE}} deno test --allow-ffi --allow-env --no-check tests/shared.test.ts"
+    cmd: "{{.SIMULATE}} deno test --allow-ffi --allow-env --allow-read --no-check shared.test.ts"
+    dir: tests
 
   test:deno:real:
     desc: Run Deno tests with real printing
-    cmd: deno test --allow-ffi --allow-env tests/shared.test.ts
+    cmd: "deno test --allow-ffi --allow-env --allow-read shared.test.ts"
+    dir: tests
 
   test:doc:
     desc: Run documentation tests
