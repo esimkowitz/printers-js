@@ -99,9 +99,9 @@ task bump:major    # 0.1.4 -> 1.0.0
 
 ### Backend
 
-- **`src/core.rs`**: Shared business logic for all runtimes
-- **`src/ffi.rs`**: FFI bindings for Deno/Bun
-- **`src/napi.rs`**: N-API bindings for Node.js
+- **`lib/core.rs`**: Shared business logic for all runtimes
+- **`lib/ffi.rs`**: FFI bindings for Deno/Bun
+- **`lib/napi.rs`**: N-API bindings for Node.js
 
 ### Testing
 
@@ -153,8 +153,8 @@ ALWAYS run these after changes:
 
 ## File Organization
 
-- **Root**: Runtime entry points (`deno.ts`, `bun.js`, `node.js`, `index.ts`)
-- **`src/`**: Rust source code with modular architecture
+- **`src/`**: TypeScript implementation files with modular architecture
+- **`lib/`**: Rust source code with modular architecture
 - **`tests/`**: Test files organized by runtime and purpose
 - **`scripts/`**: Mixed runtime automation - Deno TypeScript for orchestration,
   Node.js JavaScript for N-API builds

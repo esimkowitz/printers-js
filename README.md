@@ -197,7 +197,7 @@ deno run --allow-ffi --allow-env your-script.ts
 
 ### Node.js / Bun
 
-No special permissions required - uses native N-API bindings.
+No special permissions required.
 
 ## Testing & Safety
 
@@ -317,25 +317,14 @@ console.log(
 
 ## Platform Support
 
-### FFI Binaries (Deno/Bun)
-
-| Platform | Architecture | Binary                    |
-| -------- | ------------ | ------------------------- |
-| Windows  | AMD64        | `printers_js.dll`         |
-| Windows  | ARM64        | `printers_js-arm64.dll`   |
-| Linux    | AMD64        | `libprinters_js.so`       |
-| Linux    | ARM64        | `libprinters_js-arm64.so` |
-| macOS    | ARM64        | `libprinters_js.dylib`    |
-
-### N-API Binaries (Node.js)
-
-Node.js uses platform-specific `.node` binaries automatically downloaded during
-installation:
-
-- Windows (x86, x64, ARM64)
-- macOS (x64, ARM64)
-- Linux (x64, ARM64, ARMv7)
-- FreeBSD (x64)
+| OS      | Architecture | Deno (FFI) | Bun (FFI) | Node.js (N-API) |
+| ------- | ------------ | ---------- | --------- | --------------- |
+| Windows | x64          | ✅         | ✅        | ✅              |
+| Windows | ARM64        | ❌         | ❌        | ✅              |
+| macOS   | x64          | ✅         | ✅        | ✅              |
+| macOS   | ARM64        | ✅         | ✅        | ✅              |
+| Linux   | x64          | ✅         | ✅        | ✅              |
+| Linux   | ARM64        | ✅         | ✅        | ✅              |
 
 ## Development & Contributing
 

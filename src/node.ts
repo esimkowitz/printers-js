@@ -7,28 +7,40 @@ const isSimulationMode = process.env.PRINTERS_JS_SIMULATE === "true";
 let nativeModule;
 if (isSimulationMode) {
   // Use simulation mode - provide mock implementations
-  console.log("[SIMULATION] Node.js running in simulation mode - no actual printing will occur");
+  console.log(
+    "[SIMULATION] Node.js running in simulation mode - no actual printing will occur",
+  );
   nativeModule = {
     getAllPrinterNames: () => ["Simulated Printer"],
-    getAllPrinters: () => [{ name: "Simulated Printer", systemName: "SIM001", driverName: "Simulated Driver" }],
-    findPrinterByName: (name) => name === "Simulated Printer" ? { name: "Simulated Printer" } : null,
+    getAllPrinters: () => [{
+      name: "Simulated Printer",
+      systemName: "SIM001",
+      driverName: "Simulated Driver",
+    }],
+    findPrinterByName: (name) =>
+      name === "Simulated Printer" ? { name: "Simulated Printer" } : null,
     printerExists: (name) => name === "Simulated Printer",
-    getJobStatus: (jobId) => jobId === 1 ? { id: jobId, status: "completed" } : null,
+    getJobStatus: (jobId) =>
+      jobId === 1 ? { id: jobId, status: "completed" } : null,
     cleanupOldJobs: () => 0,
     shutdown: () => {},
     printFile: async (printerName, filePath, jobProperties) => {
-      console.log(`[SIMULATION] Would print file: ${filePath} to ${printerName}`);
+      console.log(
+        `[SIMULATION] Would print file: ${filePath} to ${printerName}`,
+      );
       if (jobProperties && Object.keys(jobProperties).length > 0) {
         console.log(`[SIMULATION] Job properties:`, jobProperties);
       }
       if (filePath.includes("fail-test")) {
         throw new Error("Simulated failure for testing");
       }
-      if (filePath.includes("nonexistent") || filePath.includes("does_not_exist")) {
+      if (
+        filePath.includes("nonexistent") || filePath.includes("does_not_exist")
+      ) {
         throw new Error("File not found");
       }
     },
-    PrintErrorCode: {}
+    PrintErrorCode: {},
   };
 } else {
   // Use top-level await to load the real N-API module
@@ -55,20 +67,18 @@ if (isSimulationMode) {
     // Map architecture
     switch (process.arch) {
       case "x64":
-        archName =
-          platformName === "win32"
-            ? "x64-msvc"
-            : platformName === "linux"
-            ? "x64-gnu"
-            : "x64";
+        archName = platformName === "win32"
+          ? "x64-msvc"
+          : platformName === "linux"
+          ? "x64-gnu"
+          : "x64";
         break;
       case "arm64":
-        archName =
-          platformName === "win32"
-            ? "arm64-msvc"
-            : platformName === "linux"
-            ? "arm64-gnu"
-            : "arm64";
+        archName = platformName === "win32"
+          ? "arm64-msvc"
+          : platformName === "linux"
+          ? "arm64-gnu"
+          : "arm64";
         break;
       default:
         throw new Error(`Unsupported architecture: ${process.arch}`);
@@ -119,16 +129,16 @@ if (isSimulationMode) {
         nativeModule = await import("@printers/printers");
       } catch (npmError) {
         throw new Error(
-          `Failed to load N-API module from both local (${
-            localError?.message
-          }) and npm (${
+          `Failed to load N-API module from both local (${localError?.message}) and npm (${
             (npmError as Error).message
-          }) paths. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`
+          }) paths. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`,
         );
       }
     }
   } catch (error) {
-    throw new Error(`Failed to load N-API module: ${error.message}. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`);
+    throw new Error(
+      `Failed to load N-API module: ${error.message}. Try running with PRINTERS_JS_SIMULATE=true for simulation mode.`,
+    );
   }
 }
 
@@ -260,13 +270,13 @@ process.on("SIGTERM", shutdown);
 
 // Export with the same API as Deno version
 export {
-  PrinterWrapper as Printer,
-  getAllPrinters,
+  cleanupOldJobs,
   getAllPrinterNames,
+  getAllPrinters,
+  getJobStatus,
   getPrinterByName,
   printerExists,
-  getJobStatus,
-  cleanupOldJobs,
+  PrinterWrapper as Printer,
   shutdown,
 };
 

@@ -70,7 +70,7 @@ export interface PrinterClass {
    * @returns A Printer instance if found, null if not found or name is invalid
    */
   fromName(name: string): Printer | null;
-  new(): never; // Prevent direct construction
+  new (): never; // Prevent direct construction
 }
 
 // Runtime information interface
@@ -101,11 +101,16 @@ if (isDeno) {
 
 // Re-export all functionality from the runtime-specific module with proper typing
 export const getAllPrinters: () => Printer[] = printerModule.getAllPrinters;
-export const getAllPrinterNames: () => string[] = printerModule.getAllPrinterNames;
-export const getPrinterByName: (name: string) => Printer | null = printerModule.getPrinterByName;
-export const printerExists: (name: string) => boolean = printerModule.printerExists;
-export const getJobStatus: (jobId: number) => JobStatus | null = printerModule.getJobStatus;
-export const cleanupOldJobs: (maxAgeMs?: number) => Promise<number> = printerModule.cleanupOldJobs;
+export const getAllPrinterNames: () => string[] =
+  printerModule.getAllPrinterNames;
+export const getPrinterByName: (name: string) => Printer | null =
+  printerModule.getPrinterByName;
+export const printerExists: (name: string) => boolean =
+  printerModule.printerExists;
+export const getJobStatus: (jobId: number) => JobStatus | null =
+  printerModule.getJobStatus;
+export const cleanupOldJobs: (maxAgeMs?: number) => Promise<number> =
+  printerModule.cleanupOldJobs;
 export const shutdown: () => Promise<void> = printerModule.shutdown;
 export const PrinterConstructor: PrinterClass = printerModule.Printer;
 
@@ -116,8 +121,8 @@ export const runtimeInfo: RuntimeInfo = {
   isNode,
   isBun,
   version: isDeno
-    ? // @ts-expect-error: Deno namespace exists
-      Deno.version.deno
+    // @ts-expect-error: Deno namespace exists
+    ? Deno.version.deno
     : isBun
     ? (globalThis as any).Bun.version
     : isNode

@@ -1,5 +1,5 @@
 // @ts-nocheck: FFI symbols have complex types that are validated at runtime
-import { join } from "@std/path";
+import { getLibraryInfo } from "./ffi-loader.ts";
 
 /**
  * Error codes for printing operations
@@ -31,35 +31,36 @@ export interface JobStatus {
 export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 
 // Library loading - multi-platform binary selection
-const LIB_EXTENSIONS = { windows: "dll", darwin: "dylib" } as const;
-
-function getLibraryName(): string {
-  const { os } = Deno.build;
-  const extension = LIB_EXTENSIONS[os as keyof typeof LIB_EXTENSIONS] ?? "so";
-
-  // For now, we build universal binaries without architecture suffixes
-  // In the future, we could add architecture-specific builds if needed
-
-  // Construct library name based on platform
-  if (os === "windows") {
-    return `printers_js.${extension}`;
-  } else {
-    return `libprinters_js.${extension}`;
-  }
-}
-
 const currentDir = new URL(".", import.meta.url).pathname;
 const cleanDir = Deno.build.os === "windows" && currentDir.startsWith("/")
   ? currentDir.slice(1)
   : currentDir;
 
-const libPath = join(cleanDir, "target", "release", getLibraryName());
+// Go up one level since we're in src/ directory
+const baseDir = cleanDir.replace(/\/src\/?$/, "");
+
+const libraryInfo = getLibraryInfo(
+  baseDir,
+  Deno.build.os,
+  Deno.build.arch,
+  (path: string) => {
+    try {
+      Deno.statSync(path);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+);
+
+const libPath = libraryInfo.path;
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
   console.log(`[DEBUG] Loading FFI library from: ${libPath}`);
   console.log(`[DEBUG] Current working directory: ${Deno.cwd()}`);
-  console.log(`[DEBUG] Expected library name: ${getLibraryName()}`);
+  console.log(`[DEBUG] Expected library name: ${libraryInfo.name}`);
+  console.log(`[DEBUG] Library exists: ${libraryInfo.exists}`);
 }
 
 // FFI Utilities

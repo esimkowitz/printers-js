@@ -25,6 +25,7 @@ default = []
 napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
 
 [lib]
+path = "lib/lib.rs"
 crate-type = ["cdylib"]
 
 [package.metadata.napi]

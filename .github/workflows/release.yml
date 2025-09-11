@@ -15,24 +15,24 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: libprinters_js.so
-            release_name: libprinters_js-linux-amd64.so
+            source_artifact_name: libprinters_js.so
+            dest_artifact_name: libprinters_js-x64.so
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: libprinters_js.so
-            release_name: libprinters_js-linux-arm64.so
+            source_artifact_name: libprinters_js.so
+            dest_artifact_name: libprinters_js-arm64.so
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            artifact_name: printers_js.dll
-            release_name: printers_js-windows-amd64.dll
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            artifact_name: printers_js.dll
-            release_name: printers_js-windows-arm64.dll
+            source_artifact_name: printers_js.dll
+            dest_artifact_name: printers_js-x64.dll
+          - target: x86_64-apple-darwin
+            os: macos-13
+            source_artifact_name: libprinters_js.dylib
+            dest_artifact_name: libprinters_js-x64.dylib
           - target: aarch64-apple-darwin
             os: macos-latest
-            artifact_name: libprinters_js.dylib
-            release_name: libprinters_js-macos-arm64.dylib
+            source_artifact_name: libprinters_js.dylib
+            dest_artifact_name: libprinters_js-arm64.dylib
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -66,24 +66,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p target/release
-          # Map target to expected filename in target/release/
-          case "${{ matrix.target }}" in
-            "x86_64-unknown-linux-gnu")
-              cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/release/libprinters_js.so
-              ;;
-            "aarch64-unknown-linux-gnu")
-              cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/release/libprinters_js-arm64.so
-              ;;
-            "x86_64-pc-windows-msvc")
-              cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/release/printers_js.dll
-              ;;
-            "aarch64-pc-windows-msvc")
-              cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/release/printers_js-arm64.dll
-              ;;
-            "aarch64-apple-darwin")
-              cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/release/libprinters_js.dylib
-              ;;
-          esac
+          cp target/${{ matrix.target }}/release/${{ matrix.source_artifact_name }} target/release/${{ matrix.dest_artifact_name }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -104,16 +87,22 @@ jobs:
         settings:
           - host: macos-13
             target: x86_64-apple-darwin
+            npm_platform: darwin-x64
           - host: macos-14
             target: aarch64-apple-darwin
+            npm_platform: darwin-arm64
           - host: windows-latest
             target: x86_64-pc-windows-msvc
+            npm_platform: win32-x64-msvc
           - host: windows-11-arm
             target: aarch64-pc-windows-msvc
+            npm_platform: win32-arm64-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            npm_platform: linux-x64-gnu
           - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
+            npm_platform: linux-arm64-gnu
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -152,31 +141,20 @@ jobs:
       - name: Prepare N-API artifacts for npm/ structure
         shell: bash
         run: |
-          # Map NAPI-RS platform names to npm directory names
-          case "${{ matrix.settings.target }}" in
-            "x86_64-apple-darwin") npm_platform="darwin-x64" ;;
-            "aarch64-apple-darwin") npm_platform="darwin-arm64" ;;
-            "x86_64-pc-windows-msvc") npm_platform="win32-x64-msvc" ;;
-            "aarch64-pc-windows-msvc") npm_platform="win32-arm64-msvc" ;;
-            "x86_64-unknown-linux-gnu") npm_platform="linux-x64-gnu" ;;
-            "aarch64-unknown-linux-gnu") npm_platform="linux-arm64-gnu" ;;
-            *) echo "Unknown platform: ${{ matrix.settings.target }}"; exit 1 ;;
-          esac
-
-          echo "Mapping ${{ matrix.settings.target }} to npm/$npm_platform"
+          echo "Mapping ${{ matrix.settings.target }} to npm/${{ matrix.settings.npm_platform }}"
 
           # Create npm platform directory structure
-          mkdir -p "npm/$npm_platform"
+          mkdir -p "npm/${{ matrix.settings.npm_platform }}"
 
           # Find and copy .node files to the correct platform directory
-          find . -name "printers.*.node" -type f -exec cp {} "npm/$npm_platform/" \;
+          find . -name "printers.*.node" -type f -exec cp {} "npm/${{ matrix.settings.npm_platform }}/" \;
 
           # Copy JS/TS files to platform directory (if they exist)
-          find npm -name "index.js" -type f -exec cp {} "npm/$npm_platform/" \; 2>/dev/null || true
-          find npm -name "index.d.ts" -type f -exec cp {} "npm/$npm_platform/" \; 2>/dev/null || true
+          find npm -name "index.js" -type f -exec cp {} "npm/${{ matrix.settings.npm_platform }}/" \; 2>/dev/null || true
+          find npm -name "index.d.ts" -type f -exec cp {} "npm/${{ matrix.settings.npm_platform }}/" \; 2>/dev/null || true
 
-          echo "Contents of npm/$npm_platform:"
-          ls -la "npm/$npm_platform/"
+          echo "Contents of npm/${{ matrix.settings.npm_platform }}:"
+          ls -la "npm/${{ matrix.settings.npm_platform }}/"
       - name: Upload N-API artifact
         uses: actions/upload-artifact@v4
         with:

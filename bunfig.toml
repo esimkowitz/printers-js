@@ -1,7 +1,0 @@
-[test]
-# Exclude files that are for other runtimes - use glob patterns
-exclude = [
-  "node_modules/**/*",
-  "tests/universal.test.ts",
-  "tests/node.*.js"
-]

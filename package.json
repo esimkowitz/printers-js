@@ -3,12 +3,9 @@
   "version": "0.3.18",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "files": [
-    "index.ts",
-    "node.ts",
-    "deno.ts",
-    "bun.ts",
+    "src/",
     "target/release/*.dll",
     "target/release/*.dylib",
     "target/release/*.so"
