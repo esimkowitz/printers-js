@@ -10,7 +10,7 @@
     "start:legacy": "node --experimental-modules --experimental-json-modules main.js"
   },
   "dependencies": {
-    "@printers/printers": "npm:@jsr/printers__printers@^0.1.4"
+    "@printers/printers": "npm:@jsr/printers__printers@^0.4"
   },
   "engines": {
     "node": ">= 22"
