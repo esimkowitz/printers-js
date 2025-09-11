@@ -31,13 +31,8 @@ export interface JobStatus {
 export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 
 // Library loading - multi-platform binary selection
-const currentDir = new URL(".", import.meta.url).pathname;
-const cleanDir = Deno.build.os === "windows" && currentDir.startsWith("/")
-  ? currentDir.slice(1)
-  : currentDir;
-
-// Go up one level since we're in src/ directory
-const baseDir = cleanDir.replace(/\/src\/?$/, "");
+// Use import.meta.resolve to get proper path resolution
+const baseDir = new URL("../", import.meta.url).pathname;
 
 const libraryInfo = getLibraryInfo(
   baseDir,

@@ -1,0 +1,20 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@printers/printers@0.4": "0.4.2",
+    "jsr:@printers/printers@~0.4.2": "0.4.2"
+  },
+  "jsr": {
+    "@printers/printers@0.4.2": {
+      "integrity": "2765db6e0786dcd026c113fe12495a2d96cd7a24522e7fe5d11a326aaa65f205",
+      "dependencies": [
+        "jsr:@printers/printers@~0.4.2"
+      ]
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@printers/printers@0.4"
+    ]
+  }
+}
