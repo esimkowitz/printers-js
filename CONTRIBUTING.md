@@ -37,6 +37,7 @@ target/release/    # FFI binaries (gitignored)
 Install the required development tools:
 
 **Required:**
+
 - **Rust** - Core backend development
   ```bash
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -46,14 +47,15 @@ Install the required development tools:
   ```bash
   # macOS (Homebrew)
   brew install go-task
-  
+
   # Linux/Windows (Go)
   go install github.com/go-task/task/v3/cmd/task@latest
-  
+
   # Or download binary from https://github.com/go-task/task/releases
   ```
 
 **Runtime-specific (install as needed):**
+
 - **Deno** - For Deno runtime and automation scripts
   ```bash
   curl -fsSL https://deno.land/install.sh | sh
@@ -69,6 +71,7 @@ Install the required development tools:
   ```
 
 **Verify installation:**
+
 ```bash
 task --version
 rustc --version
