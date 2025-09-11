@@ -187,25 +187,32 @@ ALWAYS run these after changes:
 
 ### Publishing Strategy
 
-This project uses **NAPI-RS optionalDependencies strategy** for npm distribution:
+This project uses **NAPI-RS optionalDependencies strategy** for npm
+distribution:
 
-- **Main package** (`@printers/printers`) contains JavaScript code and optionalDependencies
-- **Platform packages** (e.g., `@printers/printers-darwin-arm64`) contain native binaries
-- **Automatic installation** - npm selects correct platform package based on OS/CPU
+- **Main package** (`@printers/printers`) contains JavaScript code and
+  optionalDependencies
+- **Platform packages** (e.g., `@printers/printers-darwin-arm64`) contain native
+  binaries
+- **Automatic installation** - npm selects correct platform package based on
+  OS/CPU
 
 ### Release Workflow Architecture
 
 **GitHub Actions release.yml** handles cross-platform builds and publishing:
 
 1. **Separate platform builds**: Each runner builds only its platform's binaries
-2. **Artifact separation**: Upload individual platform directories, not entire `npm/`
-3. **Artifact reconstruction**: Download and combine all platforms before publishing
+2. **Artifact separation**: Upload individual platform directories, not entire
+   `npm/`
+3. **Artifact reconstruction**: Download and combine all platforms before
+   publishing
 4. **Dual publishing**: JSR (direct) and npm (via NAPI-RS prepublish)
 
 ### Critical Release Workflow Details
 
 - **Permissions**: Release jobs need `contents: write` for GitHub releases
-- **Artifact structure**: Upload only `npm/platform/` per runner, not full `npm/`
+- **Artifact structure**: Upload only `npm/platform/` per runner, not full
+  `npm/`
 - **Cross-platform scripts**: Use `shell: bash` for Windows compatibility
 - **NAPI-RS commands**: `napi create-npm-dirs` + `napi prepublish` workflow
 - **Platform matrix**: Must match between FFI and N-API build jobs

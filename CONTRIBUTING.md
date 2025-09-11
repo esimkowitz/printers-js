@@ -172,33 +172,41 @@ cargo fmt && cargo clippy
 2. **Commit and push**: `git add . && git commit -m "v0.4.3" && git push`
 3. **Create tag and push**: `git tag v0.4.3 && git push origin v0.4.3`
 
-The release workflow (`.github/workflows/release.yml`) is triggered by version tags and handles:
+The release workflow (`.github/workflows/release.yml`) is triggered by version
+tags and handles:
 
 ### Automated Release Pipeline
 
-1. **Cross-platform builds**: Builds native libraries and N-API modules for all supported platforms
-2. **Cross-runtime testing**: Runs comprehensive tests on Deno, Bun, and Node.js across all platforms  
-3. **Artifact collection**: Downloads and combines all platform-specific binaries
+1. **Cross-platform builds**: Builds native libraries and N-API modules for all
+   supported platforms
+2. **Cross-runtime testing**: Runs comprehensive tests on Deno, Bun, and Node.js
+   across all platforms
+3. **Artifact collection**: Downloads and combines all platform-specific
+   binaries
 4. **Dual publishing**: Publishes to both JSR and npm simultaneously
 
 ### Platform Matrix
 
 **FFI Libraries** (for Deno/Bun):
+
 - `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`
-- `x86_64-pc-windows-msvc`  
+- `x86_64-pc-windows-msvc`
 - `x86_64-apple-darwin`, `aarch64-apple-darwin`
 
 **N-API Modules** (for Node.js):
+
 - `linux-x64-gnu`, `linux-arm64-gnu`
 - `win32-x64-msvc`, `win32-arm64-msvc`
 - `darwin-x64`, `darwin-arm64`
 
 ### Publishing Strategy
 
-**JSR**: Direct publish from universal `src/index.ts` with all platform binaries included
+**JSR**: Direct publish from universal `src/index.ts` with all platform binaries
+included
 
 **npm**: Uses NAPI-RS `prepublish` workflow:
-- Main package (`@printers/printers`) with `optionalDependencies`  
+
+- Main package (`@printers/printers`) with `optionalDependencies`
 - Platform-specific packages (`@printers/printers-darwin-arm64`, etc.)
 - Automatic platform detection during installation
 
@@ -230,18 +238,25 @@ The N-API build process integrates with the NAPI-RS publishing workflow:
 **Local Development:**
 
 - `scripts/build-napi.js` (Node.js ESM) auto-detects current platform
-- Calls `napi create-npm-dirs` to create all platform directories with `package.json` files
-- Builds using `napi build --platform` for current platform only  
-- `scripts/remove-env-check.js` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
+- Calls `napi create-npm-dirs` to create all platform directories with
+  `package.json` files
+- Builds using `napi build --platform` for current platform only
+- `scripts/remove-env-check.js` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for
+  JSR compatibility
 
 **CI/CD Pipeline:**
 
-1. **Cross-platform builds**: Each runner builds only its platform's `.node` binary
-2. **Artifact separation**: Each platform uploads only its own directory (`npm/platform/`)  
-3. **Artifact reconstruction**: Publish job downloads and combines all platform directories
-4. **NAPI-RS publishing**: `napi prepublish` publishes main package + all platform packages
+1. **Cross-platform builds**: Each runner builds only its platform's `.node`
+   binary
+2. **Artifact separation**: Each platform uploads only its own directory
+   (`npm/platform/`)
+3. **Artifact reconstruction**: Publish job downloads and combines all platform
+   directories
+4. **NAPI-RS publishing**: `napi prepublish` publishes main package + all
+   platform packages
 
 **Build Flow:**
+
 ```bash
 # Local: builds current platform only
 task build:napi
@@ -292,13 +307,15 @@ needed.
 ### GitHub Actions Workflows
 
 **.github/workflows/build.yml** - PR and main branch testing:
+
 - Cross-runtime compatibility tests (Deno, Bun, Node.js)
 - Code quality checks (linting, formatting, type checking)
 - Test coverage reporting with JUnit XML and LCOV
 
 **.github/workflows/release.yml** - Release automation:
+
 - Cross-platform native library builds
-- Cross-platform N-API module builds  
+- Cross-platform N-API module builds
 - Cross-runtime integration testing
 - Simultaneous JSR and npm publishing
 
@@ -318,6 +335,7 @@ task test:deno test:node test:bun
 ### Coverage Reports
 
 Tests generate comprehensive coverage reports:
+
 - **JUnit XML**: `test-results/{deno,node,bun}-test.xml`
 - **LCOV**: `test-results/{deno,node,bun}-lcov.info` + `test-results/rust.lcov`
 - **Text summaries**: Console output with actual percentages
