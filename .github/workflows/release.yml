@@ -62,11 +62,29 @@ jobs:
           else
             cargo build --release --target ${{ matrix.target }}
           fi
+
+          # Debug: Check what was actually built
+          echo "Contents of target/${{ matrix.target }}/release:"
+          ls -la target/${{ matrix.target }}/release/ || dir target\\${{ matrix.target }}\\release\\ 2>/dev/null || echo "Release directory not found"
       - name: Prepare artifact for target/release structure
         shell: bash
         run: |
           mkdir -p target/release
-          cp target/${{ matrix.target }}/release/${{ matrix.source_artifact_name }} target/release/${{ matrix.dest_artifact_name }}
+
+          # Debug: Check source file exists before copying
+          SOURCE_FILE="target/${{ matrix.target }}/release/${{ matrix.source_artifact_name }}"
+          echo "Looking for source file: $SOURCE_FILE"
+          if [ -f "$SOURCE_FILE" ]; then
+            echo "Source file exists, copying to target/release/${{ matrix.dest_artifact_name }}"
+            cp "$SOURCE_FILE" target/release/${{ matrix.dest_artifact_name }}
+            echo "Copy successful. Contents of target/release:"
+            ls -la target/release/ || dir target\\release\\ 2>/dev/null
+          else
+            echo "ERROR: Source file $SOURCE_FILE does not exist!"
+            echo "All files in target/${{ matrix.target }}/release/:"
+            ls -la target/${{ matrix.target }}/release/ || dir target\\${{ matrix.target }}\\release\\ 2>/dev/null || echo "Directory not found"
+            exit 1
+          fi
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
