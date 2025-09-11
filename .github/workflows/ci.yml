@@ -129,7 +129,7 @@ jobs:
         include:
           - os: ubuntu-latest
             name: Linux
-          - os: macos-latest  
+          - os: macos-latest
             name: macOS
           - os: windows-latest
             name: Windows
@@ -193,7 +193,7 @@ jobs:
         with:
           node-version: 20
 
-      # Install Node.js dependencies  
+      # Install Node.js dependencies
       - name: Install Node.js dependencies
         run: npm install
 
@@ -505,14 +505,14 @@ jobs:
               try {
                 const xml = fs.readFileSync(fileName, 'utf8');
                 const parsed = parseJUnit(xml);
-                
+
                 // Determine which runtime this file belongs to
                 let runtime = null;
                 if (fileName.includes('deno')) runtime = 'deno';
                 else if (fileName.includes('bun')) runtime = 'bun';
                 else if (fileName.includes('node')) runtime = 'node';
                 else if (fileName.includes('cargo')) runtime = 'rust';
-                
+
                 if (runtime) {
                   // Aggregate results across all platforms for this runtime
                   const currentResults = results[runtime].aggregated;
@@ -521,7 +521,7 @@ jobs:
                   currentResults.failures += parsed.failures;
                   currentResults.passed += parsed.passed;
                   currentResults.success = currentResults.failures === 0 && currentResults.errors === 0;
-                  
+
                   console.log(`Processed ${fileName} for ${runtime}: ${parsed.passed}/${parsed.total} passed`);
                 }
               } catch (error) {
@@ -579,19 +579,19 @@ jobs:
 
             // Overall status based on matrix results and test parsing
             const matrixSuccess = matrixResults === 'success';
-            const testResultsSuccess = results.deno.aggregated.success && 
-                                    results.bun.aggregated.success && 
-                                    results.node.aggregated.success && 
+            const testResultsSuccess = results.deno.aggregated.success &&
+                                    results.bun.aggregated.success &&
+                                    results.node.aggregated.success &&
                                     results.rust.aggregated.success;
             const overallSuccess = matrixSuccess && testResultsSuccess;
             const overallStatus = overallSuccess ? '✅ All tests passing' : '❌ Some tests failed';
-            
+
             // Add platform information if matrix failed
             let platformInfo = '';
             if (!matrixSuccess) {
               platformInfo = ' (Matrix job failed on one or more platforms: Linux, macOS, Windows)';
             }
-            
+
             summary += `**Overall Status**: ${overallStatus}${platformInfo}\n\n`;
 
             // Add timestamp and run info
@@ -725,7 +725,7 @@ jobs:
             // Process artifacts from each platform
             // The matrix job uploads artifacts with names like "test-reports-Linux", "test-reports-macOS", "test-reports-Windows"
             // After download-artifact with merge-multiple: true, all files are flattened to current directory
-            
+
             // Initialize runtime results aggregation
             const runtimes = ['deno', 'bun', 'node', 'rust'];
             for (const runtime of runtimes) {
@@ -745,14 +745,14 @@ jobs:
               try {
                 const xml = fs.readFileSync(fileName, 'utf8');
                 const parsed = parseJUnit(xml);
-                
+
                 // Determine which runtime and platform this file belongs to
                 let runtime = null;
                 if (fileName.includes('deno')) runtime = 'deno';
                 else if (fileName.includes('bun')) runtime = 'bun';
                 else if (fileName.includes('node')) runtime = 'node';
                 else if (fileName.includes('cargo')) runtime = 'rust';
-                
+
                 if (runtime) {
                   // For now, aggregate all results since we can't determine platform from filename
                   // This is a limitation of the current artifact merging approach
@@ -762,7 +762,7 @@ jobs:
                   currentResults.failures += parsed.failures;
                   currentResults.passed += parsed.passed;
                   currentResults.success = currentResults.failures === 0 && currentResults.errors === 0;
-                  
+
                   console.log(`Processed ${fileName} for ${runtime}: ${parsed.passed}/${parsed.total} passed`);
                 }
               } catch (error) {
@@ -786,9 +786,9 @@ jobs:
 
             // Determine overall success from matrix job results and test parsing
             const matrixSuccess = matrixResults === 'success';
-            const testResultsSuccess = results.deno.aggregated.success && 
-                                    results.bun.aggregated.success && 
-                                    results.node.aggregated.success && 
+            const testResultsSuccess = results.deno.aggregated.success &&
+                                    results.bun.aggregated.success &&
+                                    results.node.aggregated.success &&
                                     results.rust.aggregated.success;
             const overallSuccess = matrixSuccess && testResultsSuccess;
 
