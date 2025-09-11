@@ -210,13 +210,14 @@ jobs:
           if-no-files-found: error
 
   test-targets:
-    name: Test on ${{ matrix.settings.target }}
+    name: Cross-runtime test on ${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
     needs: [build-napi, build-native]
     permissions: {}
     strategy:
       fail-fast: false
       matrix:
+        # We can't run the cross-runtime tests on Windows ARM runners because Deno and Bun do not have ARM64 Windows builds
         settings:
           # macOS builds
           - host: macos-13 # Intel Mac
@@ -228,10 +229,6 @@ jobs:
           # Windows builds
           - host: windows-latest
             target: x86_64-pc-windows-msvc
-
-          # Windows ARM64 - use native ARM64 runner
-          - host: windows-11-arm
-            target: aarch64-pc-windows-msvc
 
           # Linux builds
           - host: ubuntu-latest
