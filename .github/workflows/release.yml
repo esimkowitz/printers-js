@@ -212,6 +212,7 @@ jobs:
           pattern: npm-binaries-*
           path: npm-temp
       - name: Reconstruct npm directory structure
+        shell: bash
         run: |
           mkdir -p npm
           # Move each platform's files to the correct npm subdirectory
@@ -221,7 +222,7 @@ jobs:
               cp -r "$artifact_dir"* npm/ 2>/dev/null || true
             fi
           done
-          ls -la npm/
+          ls -la npm/ 2>/dev/null || dir npm
       - name: Install Node.js dependencies
         run: npm ci
       - name: Run comprehensive tests
@@ -277,6 +278,7 @@ jobs:
           pattern: npm-binaries-*
           path: npm-temp
       - name: Reconstruct npm directory structure
+        shell: bash
         run: |
           mkdir -p npm
           # Move each platform's files to the correct npm subdirectory
@@ -286,7 +288,7 @@ jobs:
               cp -r "$artifact_dir"* npm/ 2>/dev/null || true
             fi
           done
-          ls -la npm/
+          ls -la npm/ 2>/dev/null || dir npm
       - name: Prepare package.json for npm publish
         if: matrix.registry == 'npm'
         run: task prepublish
