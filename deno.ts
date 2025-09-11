@@ -34,17 +34,18 @@ export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 const LIB_EXTENSIONS = { windows: "dll", darwin: "dylib" } as const;
 
 function getLibraryName(): string {
-  const { os } = Deno.build;
+  const { os, arch } = Deno.build;
   const extension = LIB_EXTENSIONS[os as keyof typeof LIB_EXTENSIONS] ?? "so";
 
-  // For now, we build universal binaries without architecture suffixes
-  // In the future, we could add architecture-specific builds if needed
-
-  // Construct library name based on platform
+  // Construct library name based on platform and architecture
   if (os === "windows") {
+    // Windows ARM64 not supported by Deno, only x64
     return `printers_js.${extension}`;
+  } else if (os === "darwin") {
+    return arch === "x86_64" ? `libprinters_js-x64.${extension}` : `libprinters_js.${extension}`;
   } else {
-    return `libprinters_js.${extension}`;
+    // Linux
+    return arch === "aarch64" ? `libprinters_js-arm64.${extension}` : `libprinters_js.${extension}`;
   }
 }
 
