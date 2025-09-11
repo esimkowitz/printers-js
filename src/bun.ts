@@ -8,11 +8,15 @@ import { getLibraryInfo } from "./ffi-loader.ts";
 const __dirname = import.meta.dir;
 
 // Library loading - multi-platform binary selection
-const fs = require('fs');
+const fs = require("fs");
 
 // Normalize platform and arch for shared utility
 const platform = process.platform === "win32" ? "windows" : process.platform;
-const arch = process.arch === "x64" ? "x86_64" : process.arch === "arm64" ? "aarch64" : process.arch;
+const arch = process.arch === "x64"
+  ? "x86_64"
+  : process.arch === "arm64"
+  ? "aarch64"
+  : process.arch;
 
 // Go up one level since we're in src/ directory
 const baseDir = path.join(__dirname, "..");
@@ -21,7 +25,7 @@ const libraryInfo = getLibraryInfo(
   baseDir,
   platform,
   arch,
-  (path: string) => fs.existsSync(path)
+  (path: string) => fs.existsSync(path),
 );
 
 const libPath = libraryInfo.path;
@@ -36,105 +40,107 @@ if (!libraryInfo.exists) {
 let lib;
 try {
   lib = dlopen(libPath, {
-  find_printer_by_name: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  get_all_printer_names: {
-    args: [],
-    returns: FFIType.ptr,
-  },
-  printer_exists: {
-    args: [FFIType.ptr],
-    returns: FFIType.i32,
-  },
-  print_file: {
-    args: [FFIType.ptr, FFIType.ptr, FFIType.ptr],
-    returns: FFIType.i32,
-  },
-  get_job_status: {
-    args: [FFIType.u32],
-    returns: FFIType.ptr,
-  },
-  cleanup_old_jobs: {
-    args: [FFIType.u64],
-    returns: FFIType.u32,
-  },
-  shutdown_library: {
-    args: [],
-    returns: FFIType.void,
-  },
-  free_string: {
-    args: [FFIType.ptr],
-    returns: FFIType.void,
-  },
-  printer_create: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_free: {
-    args: [FFIType.ptr],
-    returns: FFIType.void,
-  },
-  printer_get_name: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_system_name: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_driver_name: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_uri: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_port_name: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_processor: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_data_type: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_description: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_location: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_state: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_state_reasons: {
-    args: [FFIType.ptr],
-    returns: FFIType.ptr,
-  },
-  printer_get_is_default: {
-    args: [FFIType.ptr],
-    returns: FFIType.i32,
-  },
-  printer_get_is_shared: {
-    args: [FFIType.ptr],
-    returns: FFIType.i32,
-  },
-  printer_print_file: {
-    args: [FFIType.ptr, FFIType.ptr, FFIType.ptr],
-    returns: FFIType.i32,
-  },
+    find_printer_by_name: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    get_all_printer_names: {
+      args: [],
+      returns: FFIType.ptr,
+    },
+    printer_exists: {
+      args: [FFIType.ptr],
+      returns: FFIType.i32,
+    },
+    print_file: {
+      args: [FFIType.ptr, FFIType.ptr, FFIType.ptr],
+      returns: FFIType.i32,
+    },
+    get_job_status: {
+      args: [FFIType.u32],
+      returns: FFIType.ptr,
+    },
+    cleanup_old_jobs: {
+      args: [FFIType.u64],
+      returns: FFIType.u32,
+    },
+    shutdown_library: {
+      args: [],
+      returns: FFIType.void,
+    },
+    free_string: {
+      args: [FFIType.ptr],
+      returns: FFIType.void,
+    },
+    printer_create: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_free: {
+      args: [FFIType.ptr],
+      returns: FFIType.void,
+    },
+    printer_get_name: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_system_name: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_driver_name: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_uri: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_port_name: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_processor: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_data_type: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_description: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_location: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_state: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_state_reasons: {
+      args: [FFIType.ptr],
+      returns: FFIType.ptr,
+    },
+    printer_get_is_default: {
+      args: [FFIType.ptr],
+      returns: FFIType.i32,
+    },
+    printer_get_is_shared: {
+      args: [FFIType.ptr],
+      returns: FFIType.i32,
+    },
+    printer_print_file: {
+      args: [FFIType.ptr, FFIType.ptr, FFIType.ptr],
+      returns: FFIType.i32,
+    },
   });
 } catch (e) {
-  throw new Error(`Failed to load printer library from ${libPath}: ${e.message}`);
+  throw new Error(
+    `Failed to load printer library from ${libPath}: ${e.message}`,
+  );
 }
 
 // Utility functions for C string conversion
@@ -265,7 +271,7 @@ class Printer {
     this._checkDisposed();
     if (isSimulationMode) return ["none"];
     const reasonsStr = readCString(
-      lib.symbols.printer_get_state_reasons(this._ptr)
+      lib.symbols.printer_get_state_reasons(this._ptr),
     );
     try {
       return JSON.parse(reasonsStr);
@@ -332,7 +338,7 @@ class Printer {
       const jobId = lib.symbols.printer_print_file(
         this._ptr,
         filePathPtr,
-        jobPropsPtr
+        jobPropsPtr,
       );
 
       if (jobId < 0) {

@@ -30,7 +30,7 @@ export interface JobStatus {
  */
 export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 
-// Library loading - multi-platform binary selection  
+// Library loading - multi-platform binary selection
 const currentDir = new URL(".", import.meta.url).pathname;
 const cleanDir = Deno.build.os === "windows" && currentDir.startsWith("/")
   ? currentDir.slice(1)
@@ -50,7 +50,7 @@ const libraryInfo = getLibraryInfo(
     } catch {
       return false;
     }
-  }
+  },
 );
 
 const libPath = libraryInfo.path;

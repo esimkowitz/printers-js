@@ -80,30 +80,30 @@ interface TestResult {
 async function parseTestResults(xmlPath: string): Promise<TestResult> {
   try {
     const content = await Deno.readTextFile(xmlPath);
-    
+
     // Parse basic test counts from XML
     const testsMatch = content.match(/tests="(\d+)"/);
     const failuresMatch = content.match(/failures="(\d+)"/);
     const errorsMatch = content.match(/errors="(\d+)"/);
-    
+
     const total = testsMatch ? parseInt(testsMatch[1]) : 0;
     const failures = failuresMatch ? parseInt(failuresMatch[1]) : 0;
     const errors = errorsMatch ? parseInt(errorsMatch[1]) : 0;
     const failed = failures + errors;
     const passed = total - failed;
-    
+
     return {
       passed,
       total,
       failed,
-      success: failed === 0 && total > 0
+      success: failed === 0 && total > 0,
     };
   } catch {
     return {
       passed: 0,
       total: 0,
       failed: 0,
-      success: false
+      success: false,
     };
   }
 }
@@ -124,13 +124,13 @@ async function main() {
   console.log("🧹 Cleaning up old test results...");
   const oldFiles = [
     "test-results/deno-test-results.xml",
-    "test-results/bun-test-results.xml", 
+    "test-results/bun-test-results.xml",
     "test-results/node-test-results.xml",
     "test-results/coverage/deno-lcov.info",
     "test-results/coverage/bun-lcov.info",
     "test-results/coverage/node-lcov.info",
   ];
-  
+
   for (const file of oldFiles) {
     try {
       await Deno.remove(file);
@@ -286,36 +286,54 @@ async function main() {
   console.log("====================================");
   console.log();
   // Parse actual test results from XML files
-  const denoResults = await parseTestResults("test-results/deno-test-results.xml");
-  const bunResults = await parseTestResults("test-results/bun-test-results.xml");
-  const nodeResults = await parseTestResults("test-results/node-test-results.xml");
+  const denoResults = await parseTestResults(
+    "test-results/deno-test-results.xml",
+  );
+  const bunResults = await parseTestResults(
+    "test-results/bun-test-results.xml",
+  );
+  const nodeResults = await parseTestResults(
+    "test-results/node-test-results.xml",
+  );
 
   console.log("📊 Test Results Summary:");
   console.log("------------------------");
-  
+
   // Deno results
   if (denoResults.success) {
-    console.log(`• Deno tests: ✅ ${denoResults.passed}/${denoResults.total} passed`);
+    console.log(
+      `• Deno tests: ✅ ${denoResults.passed}/${denoResults.total} passed`,
+    );
   } else if (denoResults.total > 0) {
-    console.log(`• Deno tests: ❌ ${denoResults.passed}/${denoResults.total} passed (${denoResults.failed} failed)`);
+    console.log(
+      `• Deno tests: ❌ ${denoResults.passed}/${denoResults.total} passed (${denoResults.failed} failed)`,
+    );
   } else {
     console.log("• Deno tests: ❌ Failed to run or no results");
   }
-  
-  // Bun results  
+
+  // Bun results
   if (bunResults.success) {
-    console.log(`• Bun tests: ✅ ${bunResults.passed}/${bunResults.total} passed`);
+    console.log(
+      `• Bun tests: ✅ ${bunResults.passed}/${bunResults.total} passed`,
+    );
   } else if (bunResults.total > 0) {
-    console.log(`• Bun tests: ❌ ${bunResults.passed}/${bunResults.total} passed (${bunResults.failed} failed)`);
+    console.log(
+      `• Bun tests: ❌ ${bunResults.passed}/${bunResults.total} passed (${bunResults.failed} failed)`,
+    );
   } else {
     console.log("• Bun tests: ❌ Failed to run or no results");
   }
-  
+
   // Node results
   if (nodeResults.success) {
-    console.log(`• Node.js tests: ✅ ${nodeResults.passed}/${nodeResults.total} passed`);
+    console.log(
+      `• Node.js tests: ✅ ${nodeResults.passed}/${nodeResults.total} passed`,
+    );
   } else if (nodeResults.total > 0) {
-    console.log(`• Node.js tests: ❌ ${nodeResults.passed}/${nodeResults.total} passed (${nodeResults.failed} failed)`);
+    console.log(
+      `• Node.js tests: ❌ ${nodeResults.passed}/${nodeResults.total} passed (${nodeResults.failed} failed)`,
+    );
   } else {
     console.log("• Node.js tests: ❌ Failed to run or no results");
   }
