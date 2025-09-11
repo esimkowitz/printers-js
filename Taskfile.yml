@@ -87,8 +87,12 @@ tasks:
     cmd: node scripts/remove-env-check.js
 
   prepublish:
+    desc: Prepare package for publishing
+    cmd: npx napi prepublish -t npm
+
+  prepublish:dry:
     desc: Prepare package for publishing (dry run)
-    cmd: npx napi prepublish -t npm --gh-release false --dry-run
+    cmd: npx napi prepublish -t npm --dry-run
 
   fmt:
     desc: Format all code
