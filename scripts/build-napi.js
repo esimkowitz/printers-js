@@ -50,6 +50,18 @@ function main() {
 
   console.log(`Building for platform: ${platformTarget}`);
 
+  // Create npm directories with package.json files first
+  console.log("Creating npm directory structure...");
+  try {
+    execSync("npx napi create-npm-dirs", {
+      stdio: "inherit",
+      env: process.env,
+    });
+  } catch (error) {
+    console.error("Failed to create npm directories:", error);
+    process.exit(1);
+  }
+
   // Build with modern NAPI-RS using proper flags
   const outputDir = `npm/${platformTarget}`;
 
