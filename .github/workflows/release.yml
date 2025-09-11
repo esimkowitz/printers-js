@@ -96,7 +96,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: target-release-${{ matrix.target }}
-          path: target/release/*
+          path: |
+            target/release/*.so
+            target/release/*.dll
+            target/release/*.dylib
           if-no-files-found: error
 
   build-napi:
