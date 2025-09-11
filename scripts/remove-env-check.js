@@ -7,47 +7,90 @@
  * This eliminates the "unanalyzable dynamic import" warning when publishing to JSR.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Support --dir parameter for custom directory
+// Support --dir parameter for custom directory, or process all platforms
 const dirArg = process.argv.find((arg) => arg.startsWith("--dir="));
 const customDir = dirArg ? dirArg.split("=")[1] : null;
-const napiIndexPath = customDir
-  ? join(__dirname, "..", customDir, "index.js")
-  : join(__dirname, "..", "npm", "darwin-arm64", "index.js");
+
+function getIndexPaths() {
+  if (customDir) {
+    return [join(__dirname, "..", customDir, "index.js")];
+  }
+  
+  // Process all platform directories in npm/
+  const npmDir = join(__dirname, "..", "npm");
+  if (!existsSync(npmDir)) {
+    return [];
+  }
+  
+  const platforms = readdirSync(npmDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
+  
+  return platforms.map(platform => join(npmDir, platform, "index.js"));
+}
+
+const indexPaths = getIndexPaths();
+
+function processIndexFile(indexPath) {
+  if (!existsSync(indexPath)) {
+    console.log(`⚠️ ${indexPath} not found - skipping env check removal`);
+    return false;
+  }
+
+  try {
+    const content = readFileSync(indexPath, "utf-8");
+
+    // Remove the entire NAPI_RS_NATIVE_LIBRARY_PATH check block
+    // This regex matches the if block and its else-if continuation
+    // Updated to handle the current NAPI-RS structure
+    const modifiedContent = content.replace(
+      /\s+if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s*\}\s*else\s+if\s+\(process\.platform\s*===\s*['"]android['"]\)/,
+      "\n  if (process.platform === 'android')",
+    );
+
+    if (content !== modifiedContent) {
+      writeFileSync(indexPath, modifiedContent);
+      console.log(
+        `✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from ${indexPath}`,
+      );
+      return true;
+    } else {
+      console.log(
+        `ℹ️ NAPI_RS_NATIVE_LIBRARY_PATH check not found or already removed in ${indexPath}`,
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ Error processing ${indexPath}:`, error);
+    throw error;
+  }
+}
 
 try {
-  if (!existsSync(napiIndexPath)) {
-    console.log(`⚠️ ${napiIndexPath} not found - skipping env check removal`);
+  if (indexPaths.length === 0) {
+    console.log("⚠️ No npm platform directories found - skipping env check removal");
     process.exit(0);
   }
 
-  const content = readFileSync(napiIndexPath, "utf-8");
+  let processedCount = 0;
+  let modifiedCount = 0;
 
-  // Remove the entire NAPI_RS_NATIVE_LIBRARY_PATH check block
-  // This regex matches the if block and its else-if continuation
-  // Updated to handle the function-wrapped structure
-  const modifiedContent = content.replace(
-    /\s+if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s*\}\s*else\s+if/,
-    "\n  if",
-  );
-
-  if (content !== modifiedContent) {
-    writeFileSync(napiIndexPath, modifiedContent);
-    console.log(
-      `✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from ${napiIndexPath}`,
-    );
-  } else {
-    console.log(
-      "ℹ️ NAPI_RS_NATIVE_LIBRARY_PATH check not found or already removed",
-    );
+  for (const indexPath of indexPaths) {
+    processedCount++;
+    if (processIndexFile(indexPath)) {
+      modifiedCount++;
+    }
   }
+
+  console.log(`📊 Processed ${processedCount} platform(s), modified ${modifiedCount} file(s)`);
 } catch (error) {
-  console.error("❌ Error processing napi/index.js:", error);
+  console.error("❌ Error processing index files:", error);
   process.exit(1);
 }

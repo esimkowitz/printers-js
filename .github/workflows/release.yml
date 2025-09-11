@@ -284,6 +284,9 @@ jobs:
           pattern: npm-binaries-*
           path: npm
           merge-multiple: true
+      - name: Prepare package.json for npm publish
+        if: matrix.registry == 'npm'
+        run: task prepublish
       - name: Publish to ${{ matrix.registry }}
         run: ${{ matrix.publish_command }}
         env:
