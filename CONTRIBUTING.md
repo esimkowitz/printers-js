@@ -166,7 +166,8 @@ task test:bun:real      # Run Bun tests with real printing
 task test:doc           # Run documentation tests
 ```
 
-All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `:real` variants to actually print.
+All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `:real` variants to
+actually print.
 
 ### Code Quality
 
@@ -199,7 +200,7 @@ task check:rust         # Type check Rust code
 
 ## Release Process
 
-1. **Bump version**: 
+1. **Bump version**:
    ```bash
    task bump:patch    # 0.4.2 -> 0.4.3
    task bump:minor    # 0.4.2 -> 0.5.0
