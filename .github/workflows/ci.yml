@@ -433,7 +433,7 @@ jobs:
             function formatTestResult(result) {
               const total = result.passed + result.failures + result.errors;
               const status = result.failures === 0 && result.errors === 0 ? '✅' : '❌';
-              
+
               if (result.failures === 0 && result.errors === 0 && result.passed === result.total) {
                 return { status, text: `${result.total}/${result.total} passed (all platforms)` };
               } else {
@@ -568,16 +568,16 @@ jobs:
                 // Use the test count from the first platform (all should be the same)
                 const firstPlatform = platformKeys[0];
                 const referenceResults = results[runtime].platforms[firstPlatform];
-                
+
                 // Check if ALL platforms passed their tests
-                const allPlatformsPassed = platformKeys.every(platform => 
+                const allPlatformsPassed = platformKeys.every(platform =>
                   results[runtime].platforms[platform].success
                 );
-                
+
                 results[runtime].aggregated = {
                   total: referenceResults.total,
                   errors: allPlatformsPassed ? 0 : 1,
-                  failures: allPlatformsPassed ? 0 : 0, 
+                  failures: allPlatformsPassed ? 0 : 0,
                   passed: allPlatformsPassed ? referenceResults.total : referenceResults.total - 1,
                   success: allPlatformsPassed
                 };
@@ -849,7 +849,7 @@ jobs:
                 // Determine which runtime and platform this file belongs to
                 let runtime = null;
                 let platform = null;
-                
+
                 if (fileName.includes('deno')) runtime = 'deno';
                 else if (fileName.includes('bun')) runtime = 'bun';
                 else if (fileName.includes('node')) runtime = 'node';
@@ -857,7 +857,7 @@ jobs:
 
                 // Extract platform from file path
                 if (fileName.includes('Linux/')) platform = 'Linux';
-                else if (fileName.includes('macOS/')) platform = 'macOS';  
+                else if (fileName.includes('macOS/')) platform = 'macOS';
                 else if (fileName.includes('Windows/')) platform = 'Windows';
 
                 if (runtime && platform) {
@@ -888,16 +888,16 @@ jobs:
                 // Use the test count from the first platform (all should be the same)
                 const firstPlatform = platformKeys[0];
                 const referenceResults = results[runtime].platforms[firstPlatform];
-                
+
                 // Check if ALL platforms passed their tests
-                const allPlatformsPassed = platformKeys.every(platform => 
+                const allPlatformsPassed = platformKeys.every(platform =>
                   results[runtime].platforms[platform].success
                 );
-                
+
                 results[runtime].aggregated = {
                   total: referenceResults.total,
                   errors: allPlatformsPassed ? 0 : 1,
-                  failures: allPlatformsPassed ? 0 : 0, 
+                  failures: allPlatformsPassed ? 0 : 0,
                   passed: allPlatformsPassed ? referenceResults.total : referenceResults.total - 1,
                   success: allPlatformsPassed
                 };
