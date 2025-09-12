@@ -328,9 +328,6 @@ jobs:
             fi
           done
           ls -la npm/ 2>/dev/null || dir npm
-      - name: Prepare package.json for npm publish
-        if: matrix.registry == 'npm'
-        run: task prepublish
       - name: Publish to ${{ matrix.registry }}
         run: ${{ matrix.publish_command }}
         env:
