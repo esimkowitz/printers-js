@@ -30,13 +30,15 @@ export interface JobStatus {
  */
 export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 
+// Remote import detection
+function isRemoteImport(): boolean {
+  return import.meta.url.startsWith("https://");
+}
+
 // Library loading - multi-platform binary selection
 // For remote imports (JSR, npm CDN), use relative paths from current working directory
 function getBaseDir(): string {
-  // Check if this is a remote import by looking at the import.meta.url
-  const isRemoteImport = import.meta.url.startsWith("https://");
-
-  if (isRemoteImport) {
+  if (isRemoteImport()) {
     // For remote imports (JSR, npm CDN, etc.), use relative path from current working directory
     // Users need to build the libraries locally when using remote imports
     return Deno.build.os === "windows" ? "..\\" : "../";
@@ -75,11 +77,7 @@ const libPath = libraryInfo.path;
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
-  const isRemoteImport = import.meta.url.startsWith("https://");
-
-  let importType = "Local";
-  if (import.meta.url.includes("jsr.io")) importType = "JSR";
-  else if (isRemoteImport) importType = "Remote";
+  const importType = isRemoteImport() ? "Remote" : "Local";
 
   console.log(`Platform: ${Deno.build.os}, Architecture: ${Deno.build.arch}`);
   console.log(`Import source: ${importType} (${import.meta.url})`);
@@ -316,12 +314,9 @@ try {
   console.error(`Current working directory: ${Deno.cwd()}`);
   console.error(`Expected library path: ${libPath}`);
 
-  const isRemoteImport = import.meta.url.startsWith("https://");
-
-  if (isRemoteImport) {
-    const importType = import.meta.url.includes("jsr.io") ? "JSR" : "remote CDN";
+  if (isRemoteImport()) {
     throw new Error(
-      `FFI library not found for ${importType} import. When using remote imports, you need to build the native libraries locally first.\n\n` +
+      `FFI library not found for remote import. When using remote imports, you need to build the native libraries locally first.\n\n` +
         `To fix this:\n` +
         `1. Clone the repository: git clone https://github.com/your-org/printers-js\n` +
         `2. Build the FFI library: cd printers-js && task build:ffi\n` +
