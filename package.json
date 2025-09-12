@@ -42,12 +42,7 @@
     "tsx": "^4.20.5"
   },
   "packageManager": "npm@10.0.0",
-  "optionalDependencies": {
-    "@printers/printers-darwin-x64": "0.4.2",
-    "@printers/printers-darwin-arm64": "0.4.2",
-    "@printers/printers-win32-x64-msvc": "0.4.2",
-    "@printers/printers-win32-arm64-msvc": "0.4.2",
-    "@printers/printers-linux-x64-gnu": "0.4.2",
-    "@printers/printers-linux-arm64-gnu": "0.4.2"
+  "scripts": {
+    "prepublishOnly": "task prepublish"
   }
 }
