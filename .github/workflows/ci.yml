@@ -601,6 +601,40 @@ jobs:
             summary += `|-----------|--------|-------|----------|\n`;
             summary += `| 🦀 **Core Library** | ${rustResult.status} | ${rustResult.text} | ${rustCoverage} |\n\n`;
 
+            // Add platform breakdown if we have platform-specific results
+            let hasplatformResults = false;
+            for (const runtime of runtimes) {
+              if (Object.keys(results[runtime].platforms).length > 0) {
+                hasplatformResults = true;
+                break;
+              }
+            }
+
+            if (hasplatformResults) {
+              summary += `### 🖥️ Platform Test Results\n`;
+              summary += `Cross-platform compatibility verified on **3 operating systems**:\n\n`;
+              summary += `| Platform | Status | Deno | Bun | Node.js | Rust |\n`;
+              summary += `|----------|--------|------|-----|---------|------|\n`;
+
+              for (const platform of platforms) {
+                const platformStatus = matrixResults === 'success' ? '✅' : '❌';
+
+                // Get platform-specific results for each runtime
+                const platformDeno = results.deno.platforms[platform];
+                const platformBun = results.bun.platforms[platform];
+                const platformNode = results.node.platforms[platform];
+                const platformRust = results.rust.platforms[platform];
+
+                const denoStatus = platformDeno ? (platformDeno.success ? '✅' : '❌') : '➖';
+                const bunStatus = platformBun ? (platformBun.success ? '✅' : '❌') : '➖';
+                const nodeStatus = platformNode ? (platformNode.success ? '✅' : '❌') : '➖';
+                const rustStatus = platformRust ? (platformRust.success ? '✅' : '❌') : '➖';
+
+                summary += `| ${platform === 'macOS' ? '🍎' : platform === 'Windows' ? '🪟' : '🐧'} **${platform}** | ${platformStatus} | ${denoStatus} | ${bunStatus} | ${nodeStatus} | ${rustStatus} |\n`;
+              }
+              summary += `\n`;
+            }
+
             // List available artifacts
             summary += `### 📊 Test Artifacts Generated\n\n`;
             const testFiles = fs.existsSync('test-reports') ? fs.readdirSync('test-reports') : [];
@@ -770,8 +804,17 @@ jobs:
             }
 
             // Look for test result files from all platforms
-            // Since files are merged, we need to parse all available test files
-            const statusCheckTestFiles = allFiles.filter(f => f.endsWith('.xml'));
+            // Collect all XML files from platform-specific directories
+            const statusCheckTestFiles = [];
+            for (const platform of platforms) {
+              const platformPath = `reports/${platform}`;
+              try {
+                const platformFiles = fs.readdirSync(platformPath).filter(f => f.endsWith('.xml'));
+                platformFiles.forEach(f => statusCheckTestFiles.push(`${platformPath}/${f}`));
+              } catch (error) {
+                console.log(`No test files found for ${platform}:`, error.message);
+              }
+            }
             console.log('Processing test files:', statusCheckTestFiles);
 
             // Process each test file
