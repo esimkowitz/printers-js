@@ -320,21 +320,21 @@ jobs:
         with:
           name: test-reports-Linux
           path: reports/Linux
-      
+
       - uses: actions/download-artifact@v5
         if: ${{ always() }}
         continue-on-error: true
         with:
           name: test-reports-macOS
           path: reports/macOS
-      
+
       - uses: actions/download-artifact@v5
         if: ${{ always() }}
         continue-on-error: true
         with:
           name: test-reports-Windows
           path: reports/Windows
-      
+
       # Download coverage reports (only from Linux)
       - uses: actions/download-artifact@v5
         if: ${{ always() }}
@@ -343,7 +343,7 @@ jobs:
           name: coverage-reports
           path: coverage-reports
 
-      # Create combined coverage report from all runtimes  
+      # Create combined coverage report from all runtimes
       - name: Combine coverage reports
         run: |
           # Coverage files are already organized in coverage-reports directory
@@ -489,7 +489,7 @@ jobs:
             console.log('Checking platform-specific test results:');
             const platforms = ['Linux', 'macOS', 'Windows'];
             const platformFiles = {};
-            
+
             for (const platform of platforms) {
               const platformPath = `reports/${platform}`;
               try {
@@ -517,7 +517,7 @@ jobs:
             // Process test files from each platform
             for (const platform of platforms) {
               console.log(`Processing ${platform} test results:`);
-              
+
               for (const fileName of platformFiles[platform]) {
                 const filePath = `reports/${platform}/${fileName}`;
                 console.log(`  Processing: ${filePath}`);
@@ -537,14 +537,14 @@ jobs:
                     if (!results[runtime].platforms[platform]) {
                       results[runtime].platforms[platform] = { success: false, total: 0, errors: 0, failures: 0, passed: 0 };
                     }
-                    
+
                     const platformResults = results[runtime].platforms[platform];
                     platformResults.total += parsed.total;
                     platformResults.errors += parsed.errors;
                     platformResults.failures += parsed.failures;
                     platformResults.passed += parsed.passed;
                     platformResults.success = platformResults.failures === 0 && platformResults.errors === 0;
-                    
+
                     // Also aggregate across all platforms
                     const currentResults = results[runtime].aggregated;
                     currentResults.total += parsed.total;
@@ -820,8 +820,8 @@ jobs:
             console.log('Status check based on matrix job result:', matrixResults);
 
             const state = overallSuccess ? 'success' : 'failure';
-            const description = overallSuccess ? 
-              'All matrix jobs passed' : 
+            const description = overallSuccess ?
+              'All matrix jobs passed' :
               'Matrix jobs failed';
 
             try {

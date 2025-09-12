@@ -157,7 +157,7 @@ jobs:
           # Our build script auto-detects the platform and builds for the current target
           echo "Building for target: ${{ matrix.settings.target }}"
           task build:napi
-          
+
           # Remove all NPM directory contents except the current platform (cross-platform)
           cd npm/
           for dir in */; do
@@ -167,14 +167,14 @@ jobs:
             fi
           done
           cd ..
-          
+
           echo "Contents of npm/${{ matrix.settings.npm_platform }}:"
           if [ "$RUNNER_OS" = "Windows" ]; then
             dir "npm\\${{ matrix.settings.npm_platform }}\\" 2>/dev/null || echo "Directory listing failed"
           else
             ls -la "npm/${{ matrix.settings.npm_platform }}/" || echo "Directory listing failed"
           fi
-          
+
           # Ensure there's a second file in the NPM directory to avoid upload-artifact stripping the target directory
           touch npm/ignore.txt
       - name: Upload N-API artifact
