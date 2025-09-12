@@ -88,11 +88,11 @@ tasks:
 
   prepublish:
     desc: Prepare package for publishing
-    cmd: npx napi prepublish -t npm --no-check
+    cmd: npx napi prepublish -t npm
 
   prepublish:dry:
     desc: Prepare package for publishing (dry run)
-    cmd: npx napi prepublish -t npm --dry-run --no-check
+    cmd: npx napi prepublish -t npm --dry-run
 
   fmt:
     desc: Format all code
