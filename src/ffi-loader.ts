@@ -19,8 +19,13 @@ export function getLibraryInfo(
 ): LibraryInfo {
   const { suffixedName, standardName } = getLibraryNames(platform, arch);
 
-  const suffixedPath = `${baseDir}/target/release/${suffixedName}`;
-  const standardPath = `${baseDir}/target/release/${standardName}`;
+  // Ensure baseDir doesn't end with a slash to avoid double slashes
+  const cleanBaseDir = baseDir.endsWith("/") || baseDir.endsWith("\\")
+    ? baseDir.slice(0, -1)
+    : baseDir;
+
+  const suffixedPath = `${cleanBaseDir}/target/release/${suffixedName}`;
+  const standardPath = `${cleanBaseDir}/target/release/${standardName}`;
 
   // Try suffixed name first (for published releases), fall back to standard (for local dev)
   if (fileExists(suffixedPath)) {
