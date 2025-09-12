@@ -152,14 +152,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build
+        shell: bash
         run: |
           # Our build script auto-detects the platform and builds for the current target
           echo "Building for target: ${{ matrix.settings.target }}"
           task build:napi
-          # Remove all NPM directory contents except the current platform
-          find npm/ -mindepth 1 -maxdepth 1 ! -name "${{ matrix.settings.npm_platform }}" -exec rm -rf {} +
+          
+          # Remove all NPM directory contents except the current platform (cross-platform)
+          cd npm/
+          for dir in */; do
+            if [ -d "$dir" ] && [ "$dir" != "${{ matrix.settings.npm_platform }}/" ]; then
+              echo "Removing directory: $dir"
+              rm -rf "$dir"
+            fi
+          done
+          cd ..
+          
           echo "Contents of npm/${{ matrix.settings.npm_platform }}:"
-          ls -la npm/${{ matrix.settings.npm_platform }}/ || dir npm\\${{ matrix.settings.npm_platform }}\\ 2>/dev/null
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            dir "npm\\${{ matrix.settings.npm_platform }}\\" 2>/dev/null || echo "Directory listing failed"
+          else
+            ls -la "npm/${{ matrix.settings.npm_platform }}/" || echo "Directory listing failed"
+          fi
+          
           # Ensure there's a second file in the NPM directory to avoid upload-artifact stripping the target directory
           touch npm/ignore.txt
       - name: Upload N-API artifact
