@@ -213,6 +213,7 @@ jobs:
       # Run Cargo tests (all platforms)
       - name: Run Cargo tests
         id: cargo-tests
+        shell: bash
         run: |
           mkdir -p test-results
           # Run cargo tests and capture output
