@@ -604,14 +604,14 @@ jobs:
             // List available artifacts
             summary += `### 📊 Test Artifacts Generated\n\n`;
             const testFiles = fs.existsSync('test-reports') ? fs.readdirSync('test-reports') : [];
-            const coverageFiles = fs.existsSync('coverage-reports') ? fs.readdirSync('coverage-reports') : [];
+            const allCoverageFiles = fs.existsSync('coverage-reports') ? fs.readdirSync('coverage-reports') : [];
 
             if (testFiles.length > 0) {
               summary += `**JUnit Reports**: ${testFiles.filter(f => f.endsWith('.xml')).join(', ')}\n\n`;
             }
 
-            if (coverageFiles.length > 0) {
-              summary += `**Coverage Reports**: ${coverageFiles.join(', ')}\n\n`;
+            if (allCoverageFiles.length > 0) {
+              summary += `**Coverage Reports**: ${allCoverageFiles.join(', ')}\n\n`;
             }
 
             // Overall status based on matrix results and test parsing
