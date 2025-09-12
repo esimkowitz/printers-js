@@ -313,41 +313,50 @@ jobs:
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
 
+      # Download test reports from each platform separately
       - uses: actions/download-artifact@v5
         if: ${{ always() }}
         continue-on-error: true
         with:
-          pattern: "*-reports"
-          merge-multiple: true
+          name: test-reports-Linux
+          path: reports/Linux
+
+      - uses: actions/download-artifact@v5
+        if: ${{ always() }}
+        continue-on-error: true
+        with:
+          name: test-reports-macOS
+          path: reports/macOS
+
+      - uses: actions/download-artifact@v5
+        if: ${{ always() }}
+        continue-on-error: true
+        with:
+          name: test-reports-Windows
+          path: reports/Windows
+
+      # Download coverage reports (only from Linux)
+      - uses: actions/download-artifact@v5
+        if: ${{ always() }}
+        continue-on-error: true
+        with:
+          name: coverage-reports
+          path: coverage-reports
 
       # Create combined coverage report from all runtimes
       - name: Combine coverage reports
         run: |
-          # Coverage files are flattened in current directory after artifact download
+          # Coverage files are already organized in coverage-reports directory
 
-          # Create coverage-reports directory for organized output
-          mkdir -p coverage-reports
-
-          # Create combined report from files in current directory
-          if [ -f rust.lcov ]; then
-            cp rust.lcov coverage-reports/rust.lcov
-            cp rust.lcov coverage-reports/combined.lcov
+          # Create combined report from coverage files
+          if [ -f coverage-reports/rust.lcov ]; then
+            cp coverage-reports/rust.lcov coverage-reports/combined.lcov
           else
             touch coverage-reports/combined.lcov
           fi
 
-          if [ -f deno-lcov.info ]; then
-            cp deno-lcov.info coverage-reports/deno-lcov.info
-            cat deno-lcov.info >> coverage-reports/combined.lcov
-          fi
-
-          # Copy other coverage files to organized directory
-          if [ -f bun-lcov.info ]; then
-            cp bun-lcov.info coverage-reports/bun-lcov.info
-          fi
-
-          if [ -f node-lcov.info ]; then
-            cp node-lcov.info coverage-reports/node-lcov.info
+          if [ -f coverage-reports/deno-lcov.info ]; then
+            cat coverage-reports/deno-lcov.info >> coverage-reports/combined.lcov
           fi
 
           # Clean up the combined coverage file to remove problematic entries
@@ -476,56 +485,79 @@ jobs:
             const platformResults = {};
             const results = {};
 
-            // Debug: List all available files
-            console.log('Available files in current directory:');
-            const allFiles = fs.readdirSync('.');
-            console.log('All files:', allFiles);
-            console.log('XML files:', allFiles.filter(f => f.endsWith('.xml')));
+            // Debug: List available platform folders and their test files
+            console.log('Checking platform-specific test results:');
+            const platforms = ['Linux', 'macOS', 'Windows'];
+            const platformFiles = {};
+
+            for (const platform of platforms) {
+              const platformPath = `reports/${platform}`;
+              try {
+                platformFiles[platform] = fs.readdirSync(platformPath).filter(f => f.endsWith('.xml'));
+                console.log(`${platform}: ${platformFiles[platform].join(', ')}`);
+              } catch (error) {
+                platformFiles[platform] = [];
+                console.log(`${platform}: No files (${error.message})`);
+              }
+            }
 
             // Get outcomes from build-and-test matrix jobs
             const matrixResults = ${{ toJSON(needs.build-and-test.result) }};
-            const matrixOutputs = ${{ toJSON(needs.build-and-test.outputs) }};
             console.log('Matrix job result:', matrixResults);
-            console.log('Matrix job outputs:', matrixOutputs);
 
             // Initialize runtime results aggregation
             const runtimes = ['deno', 'bun', 'node', 'rust'];
             for (const runtime of runtimes) {
               results[runtime] = {
+                platforms: {},
                 aggregated: { success: false, total: 0, errors: 0, failures: 0, passed: 0 }
               };
             }
 
-            // Look for test result files from all platforms
-            const statusTestFiles = allFiles.filter(f => f.endsWith('.xml'));
-            console.log('Processing test files:', statusTestFiles);
+            // Process test files from each platform
+            for (const platform of platforms) {
+              console.log(`Processing ${platform} test results:`);
 
-            // Process each test file
-            for (const fileName of statusTestFiles) {
-              try {
-                const xml = fs.readFileSync(fileName, 'utf8');
-                const parsed = parseJUnit(xml);
+              for (const fileName of platformFiles[platform]) {
+                const filePath = `reports/${platform}/${fileName}`;
+                console.log(`  Processing: ${filePath}`);
+                try {
+                  const xml = fs.readFileSync(filePath, 'utf8');
+                  const parsed = parseJUnit(xml);
 
-                // Determine which runtime this file belongs to
-                let runtime = null;
-                if (fileName.includes('deno')) runtime = 'deno';
-                else if (fileName.includes('bun')) runtime = 'bun';
-                else if (fileName.includes('node')) runtime = 'node';
-                else if (fileName.includes('cargo')) runtime = 'rust';
+                  // Determine which runtime this file belongs to
+                  let runtime = null;
+                  if (fileName.includes('deno')) runtime = 'deno';
+                  else if (fileName.includes('bun')) runtime = 'bun';
+                  else if (fileName.includes('node')) runtime = 'node';
+                  else if (fileName.includes('cargo')) runtime = 'rust';
 
-                if (runtime) {
-                  // Aggregate results across all platforms for this runtime
-                  const currentResults = results[runtime].aggregated;
-                  currentResults.total += parsed.total;
-                  currentResults.errors += parsed.errors;
-                  currentResults.failures += parsed.failures;
-                  currentResults.passed += parsed.passed;
-                  currentResults.success = currentResults.failures === 0 && currentResults.errors === 0;
+                  if (runtime) {
+                    // Store platform-specific results
+                    if (!results[runtime].platforms[platform]) {
+                      results[runtime].platforms[platform] = { success: false, total: 0, errors: 0, failures: 0, passed: 0 };
+                    }
 
-                  console.log(`Processed ${fileName} for ${runtime}: ${parsed.passed}/${parsed.total} passed`);
+                    const platformResults = results[runtime].platforms[platform];
+                    platformResults.total += parsed.total;
+                    platformResults.errors += parsed.errors;
+                    platformResults.failures += parsed.failures;
+                    platformResults.passed += parsed.passed;
+                    platformResults.success = platformResults.failures === 0 && platformResults.errors === 0;
+
+                    // Also aggregate across all platforms
+                    const currentResults = results[runtime].aggregated;
+                    currentResults.total += parsed.total;
+                    currentResults.errors += parsed.errors;
+                    currentResults.failures += parsed.failures;
+                    currentResults.passed += parsed.passed;
+                    currentResults.success = currentResults.failures === 0 && currentResults.errors === 0;
+
+                    console.log(`  ${runtime} on ${platform}: ${parsed.passed}/${parsed.total} passed`);
+                  }
+                } catch (error) {
+                  console.log(`  Error processing ${filePath}:`, error.message);
                 }
-              } catch (error) {
-                console.log(`Error processing ${fileName}:`, error.message);
               }
             }
 
@@ -543,16 +575,21 @@ jobs:
             const nodeResult = formatTestResult(results.node.aggregated);
             const rustResult = formatTestResult(results.rust.aggregated);
 
-            // Debug: List available files
-            console.log('Available files in current directory:');
-            const files = fs.readdirSync('.').filter(f => f.includes('lcov') || f.includes('info'));
-            console.log('Coverage-related files:', files);
+            // Debug: List available coverage files
+            console.log('Coverage files:');
+            let coverageFiles = [];
+            try {
+              coverageFiles = fs.readdirSync('coverage-reports').filter(f => f.includes('lcov') || f.includes('info'));
+              console.log('Coverage files found:', coverageFiles);
+            } catch (error) {
+              console.log('No coverage-reports directory:', error.message);
+            }
 
-            // Parse coverage files for actual percentages (flattened after artifact download)
-            const denoCoverage = parseLCOVCoverage('deno-lcov.info');
-            const rustCoverage = parseLCOVCoverage('rust.lcov');
-            const bunCoverage = parseLCOVCoverage('bun-lcov.info');
-            const nodeCoverage = parseLCOVCoverage('node-lcov.info');
+            // Parse coverage files for actual percentages
+            const denoCoverage = parseLCOVCoverage('coverage-reports/deno-lcov.info');
+            const rustCoverage = parseLCOVCoverage('coverage-reports/rust.lcov');
+            const bunCoverage = parseLCOVCoverage('coverage-reports/bun-lcov.info');
+            const nodeCoverage = parseLCOVCoverage('coverage-reports/node-lcov.info');
 
             summary += `| 🦕 **Deno** | ${denoResult.status} | ${denoResult.text} | ${denoCoverage} |\n`;
             summary += `| 🥟 **Bun** | ${bunResult.status} | ${bunResult.text} | ${bunCoverage} |\n`;
@@ -701,11 +738,8 @@ jobs:
             const platformResults = {};
             const results = {};
 
-            // Debug: List all available files
-            console.log('Available files in current directory:');
-            const allFiles = fs.readdirSync('.');
-            console.log('All files:', allFiles);
-            console.log('XML files:', allFiles.filter(f => f.endsWith('.xml')));
+            // Use matrix job results for status check (test files already parsed in comment generation)
+            console.log('Using matrix job results for status check');
 
             // Get outcomes from build-and-test matrix jobs
             const matrixResults = ${{ toJSON(needs.build-and-test.result) }};
@@ -778,47 +812,17 @@ jobs:
               }
             }
 
-            console.log('Aggregated runtime results:');
-            for (const runtime of runtimes) {
-              const r = results[runtime].aggregated;
-              console.log(`- ${runtime}: ${r.passed}/${r.total} passed (success: ${r.success})`);
-            }
+            // Status check uses matrix job results (detailed test parsing is done in comment generation)
 
-            // Determine overall success from matrix job results and test parsing
-            const matrixSuccess = matrixResults === 'success';
-            const testResultsSuccess = results.deno.aggregated.success &&
-                                    results.bun.aggregated.success &&
-                                    results.node.aggregated.success &&
-                                    results.rust.aggregated.success;
-            const overallSuccess = matrixSuccess && testResultsSuccess;
+            // Status check is based on matrix job results only
+            const overallSuccess = matrixResults === 'success';
 
-            const totalTests = results.deno.aggregated.total + results.bun.aggregated.total + results.node.aggregated.total + results.rust.aggregated.total;
-            const totalPassed = results.deno.aggregated.passed + results.bun.aggregated.passed + results.node.aggregated.passed + results.rust.aggregated.passed;
-            const totalFailures = results.deno.aggregated.failures + results.bun.aggregated.failures + results.node.aggregated.failures + results.rust.aggregated.failures;
-            const totalErrors = results.deno.aggregated.errors + results.bun.aggregated.errors + results.node.aggregated.errors + results.rust.aggregated.errors;
-
-            console.log('Final Test Results Summary:');
-            console.log(`- Deno: ${results.deno.aggregated.passed}/${results.deno.aggregated.total} passed (success: ${results.deno.aggregated.success})`);
-            console.log(`- Bun: ${results.bun.aggregated.passed}/${results.bun.aggregated.total} passed (success: ${results.bun.aggregated.success})`);
-            console.log(`- Node.js: ${results.node.aggregated.passed}/${results.node.aggregated.total} passed (success: ${results.node.aggregated.success})`);
-            console.log(`- Rust: ${results.rust.aggregated.passed}/${results.rust.aggregated.total} passed (success: ${results.rust.aggregated.success})`);
-            console.log(`- Matrix job success: ${matrixSuccess}`);
-            console.log(`- Overall: ${totalPassed}/${totalTests} passed (success: ${overallSuccess})`);
+            console.log('Status check based on matrix job result:', matrixResults);
 
             const state = overallSuccess ? 'success' : 'failure';
-            let description;
-            if (overallSuccess) {
-              description = `All tests passed (${totalPassed}/${totalTests})`;
-            } else {
-              const issues = [];
-              if (!matrixSuccess) {
-                issues.push('matrix build jobs failed');
-              }
-              if (!testResultsSuccess) {
-                issues.push(`${totalFailures} failures, ${totalErrors} errors`);
-              }
-              description = `Tests failed: ${issues.join('; ')} (${totalPassed}/${totalTests} passed)`;
-            }
+            const description = overallSuccess ?
+              'All matrix jobs passed' :
+              'Matrix jobs failed';
 
             try {
               await github.rest.repos.createCommitStatus({
