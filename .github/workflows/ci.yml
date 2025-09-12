@@ -497,11 +497,11 @@ jobs:
             }
 
             // Look for test result files from all platforms
-            const testFiles = allFiles.filter(f => f.endsWith('.xml'));
-            console.log('Processing test files:', testFiles);
+            const statusTestFiles = allFiles.filter(f => f.endsWith('.xml'));
+            console.log('Processing test files:', statusTestFiles);
 
             // Process each test file
-            for (const fileName of testFiles) {
+            for (const fileName of statusTestFiles) {
               try {
                 const xml = fs.readFileSync(fileName, 'utf8');
                 const parsed = parseJUnit(xml);
@@ -737,11 +737,11 @@ jobs:
 
             // Look for test result files from all platforms
             // Since files are merged, we need to parse all available test files
-            const testFiles = allFiles.filter(f => f.endsWith('.xml'));
-            console.log('Processing test files:', testFiles);
+            const statusCheckTestFiles = allFiles.filter(f => f.endsWith('.xml'));
+            console.log('Processing test files:', statusCheckTestFiles);
 
             // Process each test file
-            for (const fileName of testFiles) {
+            for (const fileName of statusCheckTestFiles) {
               try {
                 const xml = fs.readFileSync(fileName, 'utf8');
                 const parsed = parseJUnit(xml);
