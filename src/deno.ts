@@ -33,13 +33,8 @@ export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 // Library loading - multi-platform binary selection
 // For remote imports (JSR, npm CDN), use relative paths from current working directory
 function getBaseDir(): string {
-  // Check if this is a remote import (JSR or npm CDN) by looking at the import.meta.url
-  const isRemoteImport = import.meta.url.includes("jsr.io") ||
-    import.meta.url.includes("unpkg.com") ||
-    import.meta.url.includes("jsdelivr.com") ||
-    import.meta.url.includes("esm.sh") ||
-    import.meta.url.includes("cdn.skypack.dev") ||
-    import.meta.url.startsWith("https://");
+  // Check if this is a remote import by looking at the import.meta.url
+  const isRemoteImport = import.meta.url.startsWith("https://");
 
   if (isRemoteImport) {
     // For remote imports (JSR, npm CDN, etc.), use relative path from current working directory
@@ -80,16 +75,11 @@ const libPath = libraryInfo.path;
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
-  const isRemoteImport = import.meta.url.includes("jsr.io") ||
-    import.meta.url.includes("unpkg.com") ||
-    import.meta.url.includes("jsdelivr.com") ||
-    import.meta.url.includes("esm.sh") ||
-    import.meta.url.includes("cdn.skypack.dev") ||
-    import.meta.url.startsWith("https://");
+  const isRemoteImport = import.meta.url.startsWith("https://");
 
   let importType = "Local";
   if (import.meta.url.includes("jsr.io")) importType = "JSR";
-  else if (isRemoteImport) importType = "npm CDN";
+  else if (isRemoteImport) importType = "Remote";
 
   console.log(`Platform: ${Deno.build.os}, Architecture: ${Deno.build.arch}`);
   console.log(`Import source: ${importType} (${import.meta.url})`);
@@ -326,15 +316,10 @@ try {
   console.error(`Current working directory: ${Deno.cwd()}`);
   console.error(`Expected library path: ${libPath}`);
 
-  const isRemoteImport = import.meta.url.includes("jsr.io") ||
-    import.meta.url.includes("unpkg.com") ||
-    import.meta.url.includes("jsdelivr.com") ||
-    import.meta.url.includes("esm.sh") ||
-    import.meta.url.includes("cdn.skypack.dev") ||
-    import.meta.url.startsWith("https://");
+  const isRemoteImport = import.meta.url.startsWith("https://");
 
   if (isRemoteImport) {
-    const importType = import.meta.url.includes("jsr.io") ? "JSR" : "npm CDN";
+    const importType = import.meta.url.includes("jsr.io") ? "JSR" : "remote CDN";
     throw new Error(
       `FFI library not found for ${importType} import. When using remote imports, you need to build the native libraries locally first.\n\n` +
         `To fix this:\n` +
