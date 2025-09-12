@@ -30,9 +30,21 @@ export interface JobStatus {
  */
 export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 
+// Remote import detection
+function isRemoteImport(): boolean {
+  return import.meta.url.startsWith("https://");
+}
+
 // Library loading - multi-platform binary selection
-// Use import.meta.resolve to get proper path resolution
+// For remote imports (JSR, npm CDN), use relative paths from current working directory
 function getBaseDir(): string {
+  if (isRemoteImport()) {
+    // For remote imports (JSR, npm CDN, etc.), use relative path from current working directory
+    // Users need to build the libraries locally when using remote imports
+    return Deno.build.os === "windows" ? "..\\" : "../";
+  }
+
+  // For local development, use the resolved path
   const url = new URL("../", import.meta.url);
   let path = url.pathname;
 
@@ -65,10 +77,41 @@ const libPath = libraryInfo.path;
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
-  console.log(`[DEBUG] Loading FFI library from: ${libPath}`);
-  console.log(`[DEBUG] Current working directory: ${Deno.cwd()}`);
-  console.log(`[DEBUG] Expected library name: ${libraryInfo.name}`);
-  console.log(`[DEBUG] Library exists: ${libraryInfo.exists}`);
+  const importType = isRemoteImport() ? "Remote" : "Local";
+
+  console.log(`Platform: ${Deno.build.os}, Architecture: ${Deno.build.arch}`);
+  console.log(`Import source: ${importType} (${import.meta.url})`);
+  console.log(`Base directory: ${baseDir}`);
+  console.log(
+    `Library info:`,
+    JSON.stringify(
+      {
+        name: libraryInfo.name,
+        path: libraryInfo.path,
+        exists: libraryInfo.exists,
+      },
+      null,
+      2,
+    ),
+  );
+  console.log(`Library exists: ${libraryInfo.exists}`);
+
+  if (!libraryInfo.exists) {
+    console.log(`Target directory exists: ${
+      (() => {
+        try {
+          const targetDir = libPath.replace(/[^/\\]+$/, "");
+          Deno.statSync(targetDir);
+          return true;
+        } catch {
+          return false;
+        }
+      })()
+    }`);
+  }
+
+  console.log(`Current working directory: ${Deno.cwd()}`);
+  console.log(`Expected library path: ${libPath}`);
 }
 
 // FFI Utilities
@@ -270,6 +313,19 @@ try {
 
   console.error(`Current working directory: ${Deno.cwd()}`);
   console.error(`Expected library path: ${libPath}`);
+
+  if (isRemoteImport()) {
+    throw new Error(
+      `FFI library not found for remote import. When using remote imports, you need to build the native libraries locally first.\n\n` +
+        `To fix this:\n` +
+        `1. Clone the repository: git clone https://github.com/your-org/printers-js\n` +
+        `2. Build the FFI library: cd printers-js && task build:ffi\n` +
+        `3. Run your script from the repository directory\n\n` +
+        `Alternatively, use a local import instead of remote imports for development.\n\n` +
+        `Original error: ${error}`,
+    );
+  }
+
   throw new Error(`FFI library loading failed: ${error}`);
 }
 
