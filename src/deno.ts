@@ -34,23 +34,23 @@ export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 // For remote imports (JSR, npm CDN), use relative paths from current working directory
 function getBaseDir(): string {
   // Check if this is a remote import (JSR or npm CDN) by looking at the import.meta.url
-  const isRemoteImport = import.meta.url.includes('jsr.io') || 
-                        import.meta.url.includes('unpkg.com') ||
-                        import.meta.url.includes('jsdelivr.com') ||
-                        import.meta.url.includes('esm.sh') ||
-                        import.meta.url.includes('cdn.skypack.dev') ||
-                        import.meta.url.startsWith('https://');
-  
+  const isRemoteImport = import.meta.url.includes("jsr.io") ||
+    import.meta.url.includes("unpkg.com") ||
+    import.meta.url.includes("jsdelivr.com") ||
+    import.meta.url.includes("esm.sh") ||
+    import.meta.url.includes("cdn.skypack.dev") ||
+    import.meta.url.startsWith("https://");
+
   if (isRemoteImport) {
     // For remote imports (JSR, npm CDN, etc.), use relative path from current working directory
     // Users need to build the libraries locally when using remote imports
     return Deno.build.os === "windows" ? "..\\" : "../";
   }
-  
+
   // For local development, use the resolved path
   const url = new URL("../", import.meta.url);
   let path = url.pathname;
-  
+
   // On Windows, fix the path format: remove leading slash and convert forward slashes
   if (Deno.build.os === "windows") {
     // Remove leading slash and convert to Windows format
@@ -80,39 +80,48 @@ const libPath = libraryInfo.path;
 
 // Debug logging for development
 if (Deno.env.get("PRINTERS_JS_DEBUG") === "true") {
-  const isRemoteImport = import.meta.url.includes('jsr.io') || 
-                        import.meta.url.includes('unpkg.com') ||
-                        import.meta.url.includes('jsdelivr.com') ||
-                        import.meta.url.includes('esm.sh') ||
-                        import.meta.url.includes('cdn.skypack.dev') ||
-                        import.meta.url.startsWith('https://');
-  
-  let importType = 'Local';
-  if (import.meta.url.includes('jsr.io')) importType = 'JSR';
-  else if (isRemoteImport) importType = 'npm CDN';
-  
+  const isRemoteImport = import.meta.url.includes("jsr.io") ||
+    import.meta.url.includes("unpkg.com") ||
+    import.meta.url.includes("jsdelivr.com") ||
+    import.meta.url.includes("esm.sh") ||
+    import.meta.url.includes("cdn.skypack.dev") ||
+    import.meta.url.startsWith("https://");
+
+  let importType = "Local";
+  if (import.meta.url.includes("jsr.io")) importType = "JSR";
+  else if (isRemoteImport) importType = "npm CDN";
+
   console.log(`Platform: ${Deno.build.os}, Architecture: ${Deno.build.arch}`);
   console.log(`Import source: ${importType} (${import.meta.url})`);
   console.log(`Base directory: ${baseDir}`);
-  console.log(`Library info:`, JSON.stringify({
-    name: libraryInfo.name,
-    path: libraryInfo.path,
-    exists: libraryInfo.exists
-  }, null, 2));
+  console.log(
+    `Library info:`,
+    JSON.stringify(
+      {
+        name: libraryInfo.name,
+        path: libraryInfo.path,
+        exists: libraryInfo.exists,
+      },
+      null,
+      2,
+    ),
+  );
   console.log(`Library exists: ${libraryInfo.exists}`);
-  
+
   if (!libraryInfo.exists) {
-    console.log(`Target directory exists: ${(() => {
-      try {
-        const targetDir = libPath.replace(/[^/\\]+$/, '');
-        Deno.statSync(targetDir);
-        return true;
-      } catch {
-        return false;
-      }
-    })()}`);
+    console.log(`Target directory exists: ${
+      (() => {
+        try {
+          const targetDir = libPath.replace(/[^/\\]+$/, "");
+          Deno.statSync(targetDir);
+          return true;
+        } catch {
+          return false;
+        }
+      })()
+    }`);
   }
-  
+
   console.log(`Current working directory: ${Deno.cwd()}`);
   console.log(`Expected library path: ${libPath}`);
 }
@@ -316,27 +325,27 @@ try {
 
   console.error(`Current working directory: ${Deno.cwd()}`);
   console.error(`Expected library path: ${libPath}`);
-  
-  const isRemoteImport = import.meta.url.includes('jsr.io') || 
-                        import.meta.url.includes('unpkg.com') ||
-                        import.meta.url.includes('jsdelivr.com') ||
-                        import.meta.url.includes('esm.sh') ||
-                        import.meta.url.includes('cdn.skypack.dev') ||
-                        import.meta.url.startsWith('https://');
-  
+
+  const isRemoteImport = import.meta.url.includes("jsr.io") ||
+    import.meta.url.includes("unpkg.com") ||
+    import.meta.url.includes("jsdelivr.com") ||
+    import.meta.url.includes("esm.sh") ||
+    import.meta.url.includes("cdn.skypack.dev") ||
+    import.meta.url.startsWith("https://");
+
   if (isRemoteImport) {
-    const importType = import.meta.url.includes('jsr.io') ? 'JSR' : 'npm CDN';
+    const importType = import.meta.url.includes("jsr.io") ? "JSR" : "npm CDN";
     throw new Error(
       `FFI library not found for ${importType} import. When using remote imports, you need to build the native libraries locally first.\n\n` +
-      `To fix this:\n` +
-      `1. Clone the repository: git clone https://github.com/your-org/printers-js\n` +
-      `2. Build the FFI library: cd printers-js && task build:ffi\n` +
-      `3. Run your script from the repository directory\n\n` +
-      `Alternatively, use a local import instead of remote imports for development.\n\n` +
-      `Original error: ${error}`
+        `To fix this:\n` +
+        `1. Clone the repository: git clone https://github.com/your-org/printers-js\n` +
+        `2. Build the FFI library: cd printers-js && task build:ffi\n` +
+        `3. Run your script from the repository directory\n\n` +
+        `Alternatively, use a local import instead of remote imports for development.\n\n` +
+        `Original error: ${error}`,
     );
   }
-  
+
   throw new Error(`FFI library loading failed: ${error}`);
 }
 

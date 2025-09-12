@@ -20,8 +20,10 @@ export function getLibraryInfo(
   const { suffixedName, standardName } = getLibraryNames(platform, arch);
 
   // Ensure baseDir doesn't end with a slash to avoid double slashes
-  const cleanBaseDir = baseDir.endsWith('/') || baseDir.endsWith('\\') ? baseDir.slice(0, -1) : baseDir;
-  
+  const cleanBaseDir = baseDir.endsWith("/") || baseDir.endsWith("\\")
+    ? baseDir.slice(0, -1)
+    : baseDir;
+
   const suffixedPath = `${cleanBaseDir}/target/release/${suffixedName}`;
   const standardPath = `${cleanBaseDir}/target/release/${standardName}`;
 
