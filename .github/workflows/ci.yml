@@ -221,6 +221,7 @@ jobs:
       # Generate JUnit report from Cargo test output
       - name: Generate Cargo test JUnit report
         id: cargo-junit
+        shell: bash
         run: |
 
           # Parse the test results from cargo output
