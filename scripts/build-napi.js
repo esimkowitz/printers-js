@@ -4,49 +4,40 @@ import { execSync } from "child_process";
 import { arch, platform } from "process";
 import { existsSync, writeFileSync, readFileSync } from "fs";
 
-// Platform mapping from Node.js to NAPI-RS naming
+// Platform mapping from Node.js to NAPI-RS target names
 function getPlatformTarget() {
-  let platformName;
-  let archName;
-
-  // Map platform
+  // Map to NAPI-RS standard target names that match package.json targets
   switch (platform) {
     case "darwin":
-      platformName = "darwin";
-      break;
+      switch (arch) {
+        case "x64":
+          return "x86_64-apple-darwin";
+        case "arm64":
+          return "aarch64-apple-darwin";
+        default:
+          throw new Error(`Unsupported architecture for Darwin: ${arch}`);
+      }
     case "win32":
-      platformName = "win32";
-      break;
+      switch (arch) {
+        case "x64":
+          return "x86_64-pc-windows-msvc";
+        case "arm64":
+          return "aarch64-pc-windows-msvc";
+        default:
+          throw new Error(`Unsupported architecture for Windows: ${arch}`);
+      }
     case "linux":
-      platformName = "linux";
-      break;
+      switch (arch) {
+        case "x64":
+          return "x86_64-unknown-linux-gnu";
+        case "arm64":
+          return "aarch64-unknown-linux-gnu";
+        default:
+          throw new Error(`Unsupported architecture for Linux: ${arch}`);
+      }
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
-
-  // Map architecture
-  switch (arch) {
-    case "x64":
-      archName =
-        platformName === "win32"
-          ? "x64-msvc"
-          : platformName === "linux"
-            ? "x64-gnu"
-            : "x64";
-      break;
-    case "arm64":
-      archName =
-        platformName === "win32"
-          ? "arm64-msvc"
-          : platformName === "linux"
-            ? "arm64-gnu"
-            : "arm64";
-      break;
-    default:
-      throw new Error(`Unsupported architecture: ${arch}`);
-  }
-
-  return `${platformName}-${archName}`;
 }
 
 function main() {
