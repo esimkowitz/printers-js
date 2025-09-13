@@ -1,18 +1,10 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
     "moduleResolution": "bundler",
-    "declaration": true,
-    "declarationMap": true,
-    "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
     "noImplicitAny": false,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmitOnError": false,
@@ -20,19 +12,15 @@
     "noCheck": true,
     "preserveWatchOutput": true,
     "removeComments": false,
-    "sourceMap": true,
     "noEmit": false,
     "lib": ["ES2022", "DOM"]
   },
   "include": ["src/**/*.ts"],
   "exclude": [
     "src/**/*.test.ts",
-    "tests/**/*",
+    "src/tests/**/*",
     "examples/**/*",
     "scripts/**/*",
-    "lib/**/*",
-    "dist/**/*",
-    "target/**/*",
-    "npm/**/*"
+    "lib/**/*"
   ]
 }

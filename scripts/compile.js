@@ -110,6 +110,9 @@ for (const file of filesToProcess) {
         'await import("./$1.js")'
       );
 
+      // Fix export var to export const for ESLint compliance
+      content = content.replace(/export var/g, 'export const');
+
       writeFileSync(filePath, content, "utf8");
       console.log(`🔧 Fixed import paths in ${file}`);
     } catch (error) {

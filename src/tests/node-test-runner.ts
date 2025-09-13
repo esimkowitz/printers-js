@@ -42,7 +42,7 @@ function parseNodeTestOutput(output: string): TestResults {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, "..");
+const projectRoot = join(__dirname, "../..");
 
 // Set simulation mode
 process.env.PRINTERS_JS_SIMULATE = "true";
@@ -65,7 +65,7 @@ async function runTests() {
 
       // Run the shared test suite with c8 coverage and capture output
       const result = execSync(
-        "npx c8 --reporter=lcov --reporter=text --temp-directory=test-results/coverage/node-temp --report-dir=test-results/coverage/node npx tsx tests/shared.test.ts",
+        "npx c8 --reporter=lcov --reporter=text --temp-directory=test-results/coverage/node-temp --report-dir=test-results/coverage/node npx tsx src/tests/shared.test.ts",
         {
           stdio: "pipe",
           env: {
@@ -182,10 +182,10 @@ function generateJUnitXML(results) {
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<testsuites name="node test" tests="${results.total}" assertions="0" failures="${results.failed}" skipped="0" time="${totalTime.toFixed(6)}">\n`;
-  xml += `  <testsuite name="Node.js Tests" file="tests/shared.test.ts" tests="${results.total}" assertions="0" failures="${results.failed}" skipped="0" time="${totalTime.toFixed(6)}" hostname="${process.platform}">\n`;
+  xml += `  <testsuite name="Node.js Tests" file="src/tests/shared.test.ts" tests="${results.total}" assertions="0" failures="${results.failed}" skipped="0" time="${totalTime.toFixed(6)}" hostname="${process.platform}">\n`;
 
   for (const testCase of results.testCases) {
-    xml += `    <testcase name="${testCase.name}" classname="Node.js Tests" time="${testCase.duration.toFixed(6)}" file="tests/shared.test.ts" line="1" assertions="0"`;
+    xml += `    <testcase name="${testCase.name}" classname="Node.js Tests" time="${testCase.duration.toFixed(6)}" file="src/tests/shared.test.ts" line="1" assertions="0"`;
 
     if (testCase.status === "failed") {
       xml += `>\n`;

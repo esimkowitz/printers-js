@@ -31,13 +31,11 @@ tasks:
 
   test:deno:
     desc: Run Deno tests in simulation mode
-    cmd: "{{.SIMULATE}} deno test --allow-env --allow-read --no-check shared.test.ts"
-    dir: tests
+    cmd: "{{.SIMULATE}} deno test --allow-env --allow-read --no-check src/tests/shared.test.ts"
 
   test:deno:real:
     desc: Run Deno tests with real printing
-    cmd: "deno test --allow-env --allow-read shared.test.ts"
-    dir: tests
+    cmd: "deno test --allow-env --allow-read src/tests/shared.test.ts"
 
   test:doc:
     desc: Run documentation tests
@@ -45,19 +43,19 @@ tasks:
 
   test:node:
     desc: Run Node.js tests in simulation mode
-    cmd: "{{.SIMULATE}} npx tsx tests/node-test-runner.ts"
+    cmd: "{{.SIMULATE}} npx tsx src/tests/node-test-runner.ts"
 
   test:node:real:
     desc: Run Node.js tests with real printing
-    cmd: npx tsx tests/node-test-runner.ts
+    cmd: npx tsx src/tests/node-test-runner.ts
 
   test:bun:
     desc: Run Bun tests in simulation mode
-    cmd: "{{.SIMULATE}} bun test tests/shared.test.ts"
+    cmd: "{{.SIMULATE}} bun test src/tests/shared.test.ts"
 
   test:bun:real:
     desc: Run Bun tests with real printing
-    cmd: bun test tests/shared.test.ts
+    cmd: bun test src/tests/shared.test.ts
 
   lint:
     desc: Lint all code

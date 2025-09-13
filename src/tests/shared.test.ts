@@ -14,7 +14,7 @@ import { test } from "@cross/test";
 // deno-lint-ignore no-explicit-any
 let printerAPI: any;
 try {
-  printerAPI = await import("../src/index.ts");
+  printerAPI = await import("../index.ts");
   console.log("Debug: Successfully imported src/index.ts");
 } catch (error) {
   console.error("Error importing src/index.ts:", error);

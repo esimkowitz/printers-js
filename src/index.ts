@@ -86,7 +86,7 @@ interface GlobalWithBun {
 
 const isNode =
   typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
-  (globalThis as GlobalWithProcess).process?.versions?.node;
+  !!(globalThis as GlobalWithProcess).process?.versions?.node;
 const isBun = typeof (globalThis as GlobalWithBun).Bun !== "undefined";
 // @ts-expect-error: Deno namespace exists
 const isDeno = typeof Deno !== "undefined";

@@ -1,7 +1,7 @@
 /**
- * Deno example using NPM import
+ * Deno example using npm import
  *
- * Run with: deno run --allow-ffi --allow-env --allow-read --allow-net main.ts
+ * Run with: deno run --allow-env --allow-read --allow-net main.ts
  */
 
 import {
@@ -10,7 +10,7 @@ import {
   getPrinterByName,
   isSimulationMode,
   runtimeInfo,
-} from "@printers/printers";
+} from "npm:@printers/printers";
 
 async function main() {
   console.log("🦕 Deno Printers Example (NPM Import)");
@@ -79,11 +79,11 @@ async function main() {
           );
         }
       } catch (error) {
-        console.log(`❌ Some print jobs failed: ${error.message}`);
+        console.log(`❌ Some print jobs failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   } catch (error) {
-    console.error("💥 Error:", error.message);
+    console.error("💥 Error:", error instanceof Error ? error.message : String(error));
     Deno.exit(1);
   }
 
