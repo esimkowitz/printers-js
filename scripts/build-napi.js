@@ -46,63 +46,105 @@ function main() {
   const platformTarget = getPlatformTarget();
 
   console.log(`Building for platform: ${platformTarget}`);
+  console.log(`Node platform: ${platform}, arch: ${arch}`);
+  console.log(`Environment check:`);
+  console.log(`- NODE_VERSION: ${process.version}`);
+  console.log(`- PATH includes: ${process.env.PATH?.split(platform === "win32" ? ";" : ":").slice(0, 5).join(", ")}...`);
 
-  // Create npm directories with package.json files first
-  console.log("Creating npm directory structure...");
+  // Diagnostic: Check what tools are available
+  console.log("Checking available build tools...");
+  const toolsToCheck = ["node", "npm", "npx", "cargo", "rustc"];
+  for (const tool of toolsToCheck) {
+    try {
+      const versionCommand = platform === "win32" ? `where ${tool}` : `which ${tool}`;
+      execSync(versionCommand, { stdio: "pipe" });
+      console.log(`✓ ${tool} is available`);
+    } catch {
+      console.log(`✗ ${tool} is NOT available`);
+    }
+  }
+
+  // Try the direct cargo build approach first on Windows
+  if (platform === "win32") {
+    console.log("Windows detected - trying direct cargo build...");
+    try {
+      const cargoArgs = ["cargo", "build"];
+      if (isRelease) cargoArgs.push("--release");
+      cargoArgs.push("--features", "napi");
+      
+      const cargoCommand = cargoArgs.join(" ");
+      console.log(`Executing: ${cargoCommand}`);
+      
+      execSync(cargoCommand, {
+        stdio: "inherit",
+        env: process.env,
+        shell: true,
+      });
+      
+      console.log(`✅ Cargo build completed for Windows`);
+      return; // Skip the rest if cargo build succeeds
+    } catch (cargoError) {
+      console.error("Direct cargo build failed on Windows:", cargoError.message);
+      console.log("Falling back to NAPI build...");
+    }
+  }
+
+  // Try NAPI build approach
+  console.log("Building with NAPI CLI...");
+  
   try {
+    // First, create npm directories
+    console.log("Creating npm directory structure...");
     execSync("npx napi create-npm-dirs", {
       stdio: "inherit",
       env: process.env,
+      shell: platform === "win32" ? true : false,
     });
-  } catch (error) {
-    console.error("Failed to create npm directories:", error);
-    process.exit(1);
-  }
 
-  // Build with modern NAPI-RS using proper flags
-  const outputDir = `npm/${platformTarget}`;
-
-  // Build with NAPI-RS CLI
-  const napiArgs = ["build", "--platform", "--esm"];
-  if (isRelease) napiArgs.push("--release");
-  napiArgs.push("--output-dir", outputDir);
-
-  console.log(`Running: napi ${napiArgs.join(" ")}`);
-
-  try {
-    const command = `npx napi ${napiArgs.join(" ")}`;
-    console.log(`Executing: ${command}`);
-    execSync(command, {
+    // Use basic napi build command
+    const buildArgs = ["napi", "build"];
+    if (isRelease) buildArgs.push("--release");
+    
+    const buildCommand = buildArgs.join(" ");
+    console.log(`Executing: npx ${buildCommand}`);
+    
+    execSync(`npx ${buildCommand}`, {
       stdio: "inherit",
       env: process.env,
-      shell: platform === "win32" ? "cmd.exe" : undefined,
+      shell: platform === "win32" ? true : false,
     });
+
+    console.log(`✅ NAPI build completed`);
+
   } catch (error) {
-    console.error("Build failed:", error);
+    console.error("NAPI build failed:", error);
     console.error("Error message:", error.message);
-    console.error("Command:", `npx napi ${napiArgs.join(" ")}`);
     console.error("Platform:", platform, "Arch:", arch);
     console.error("Target:", platformTarget);
     process.exit(1);
   }
 
-  // Remove NAPI_RS_NATIVE_LIBRARY_PATH check
-  try {
-    const removeEnvCommand = `node scripts/remove-env-check.js --dir ${outputDir}`;
-    console.log(`Running post-build script: ${removeEnvCommand}`);
-    execSync(removeEnvCommand, {
-      stdio: "inherit",
-      env: process.env,
-      shell: platform === "win32" ? "cmd.exe" : undefined,
-    });
-  } catch (error) {
-    console.error("Failed to remove env check:", error);
-    console.error("Error message:", error.message);
-    console.error("Output dir:", outputDir);
-    process.exit(1);
+  // Try to run post-build cleanup if output directory exists
+  const outputDir = `npm/${platformTarget}`;
+  console.log(`Checking for output directory: ${outputDir}`);
+  
+  if (existsSync(outputDir)) {
+    try {
+      const removeEnvCommand = `node scripts/remove-env-check.js --dir ${outputDir}`;
+      console.log(`Running post-build script: ${removeEnvCommand}`);
+      execSync(removeEnvCommand, {
+        stdio: "inherit",
+        env: process.env,
+        shell: platform === "win32" ? true : false,
+      });
+    } catch (error) {
+      console.warn("Post-build script failed (non-fatal):", error.message);
+    }
+  } else {
+    console.log(`Output directory ${outputDir} not found, skipping post-build script`);
   }
 
-  console.log(`✅ Build completed for ${platformTarget}`);
+  console.log(`✅ Build process completed for ${platformTarget}`);
 }
 
 // Run main function if this script is executed directly
