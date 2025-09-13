@@ -1,6 +1,5 @@
 # @printers/printers
 
-[![JSR](https://jsr.io/badges/@printers/printers)](https://jsr.io/@printers/printers)
 [![NPM](https://img.shields.io/npm/v/%40printers%2Fprinters)](https://www.npmjs.com/package/@printers/printers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/esimkowitz/printers-js/blob/main/LICENSE)
 [![Build](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml)
@@ -19,22 +18,6 @@ Cross-runtime printer library for Deno, Bun, and Node.js.
 
 ## Installation
 
-### Deno
-
-```bash
-deno add @printers/printers
-```
-
-<details>
-<summary>Alternative: NPM</summary>
-
-```bash
-# Not recommended - use JSR for better tree-shaking
-deno add npm:@printers/printers
-```
-
-</details>
-
 ### Node.js
 
 ```bash
@@ -45,30 +28,17 @@ yarn add @printers/printers
 pnpm add @printers/printers
 ```
 
-<details>
-<summary>Alternative: JSR</summary>
+### Deno
 
 ```bash
-npx jsr add @printers/printers
+deno add npm:@printers/printers
 ```
-
-</details>
 
 ### Bun
 
 ```bash
 bun add @printers/printers
 ```
-
-<details>
-<summary>Alternative: JSR</summary>
-
-```bash
-# Requires JSR CLI
-bunx jsr add @printers/printers
-```
-
-</details>
 
 ## Quick Start
 
@@ -77,7 +47,10 @@ import { getAllPrinters, Printer } from "@printers/printers";
 
 // List all available printers
 const printers = getAllPrinters();
-console.log("Available printers:", printers.map((p) => p.name));
+console.log(
+  "Available printers:",
+  printers.map(p => p.name)
+);
 
 // Print a file (returns a Promise)
 const printer = printers[0];
@@ -301,30 +274,28 @@ import { getAllPrinters } from "@printers/printers";
 const printers = getAllPrinters();
 
 // Find default printer
-const defaultPrinter = printers.find((p) => p.isDefault);
+const defaultPrinter = printers.find(p => p.isDefault);
 console.log(`Default printer: ${defaultPrinter?.name || "None"}`);
 
 // Find printers by state
-const readyPrinters = printers.filter((p) => p.state === "READY");
-console.log(`Ready printers: ${readyPrinters.map((p) => p.name).join(", ")}`);
+const readyPrinters = printers.filter(p => p.state === "READY");
+console.log(`Ready printers: ${readyPrinters.map(p => p.name).join(", ")}`);
 
 // Find network printers
-const networkPrinters = printers.filter((p) => p.isShared);
-console.log(
-  `Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`,
-);
+const networkPrinters = printers.filter(p => p.isShared);
+console.log(`Network printers: ${networkPrinters.map(p => p.name).join(", ")}`);
 ```
 
 ## Platform Support
 
-| OS      | Architecture | Deno (FFI) | Bun (FFI) | Node.js (N-API) |
-| ------- | ------------ | ---------- | --------- | --------------- |
-| Windows | x64          | ✅         | ✅        | ✅              |
-| Windows | ARM64        | ❌         | ❌        | ✅              |
-| macOS   | x64          | ✅         | ✅        | ✅              |
-| macOS   | ARM64        | ✅         | ✅        | ✅              |
-| Linux   | x64          | ✅         | ✅        | ✅              |
-| Linux   | ARM64        | ✅         | ✅        | ✅              |
+| OS      | Architecture | Deno | Bun | Node.js |
+| ------- | ------------ | ---- | --- | ------- |
+| Windows | x64          | ✅   | ✅  | ✅      |
+| Windows | ARM64        | ❌   | ❌  | ✅      |
+| macOS   | x64          | ✅   | ✅  | ✅      |
+| macOS   | ARM64        | ✅   | ✅  | ✅      |
+| Linux   | x64          | ✅   | ✅  | ✅      |
+| Linux   | ARM64        | ✅   | ✅  | ✅      |
 
 ## Development & Contributing
 

@@ -1,25 +1,4 @@
 {
-  "name": "@printers/printers",
-  "version": "0.4.4",
-  "license": "MIT",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "publish": {
-    "include": [
-      "src/",
-      "README.md",
-      "LICENSE",
-      "npm/**",
-      "target/release/*.dll",
-      "target/release/*.dylib",
-      "target/release/*.so"
-    ],
-    "exclude": [
-      "!npm",
-      "!target/release"
-    ]
-  },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
     "@std/path": "jsr:@std/path@1",
@@ -58,9 +37,7 @@
       "src/bun.ts"
     ],
     "rules": {
-      "exclude": [
-        "ban-unused-ignore"
-      ]
+      "exclude": ["ban-unused-ignore"]
     }
   },
   "exclude": [
@@ -77,10 +54,7 @@
   ],
   "nodeModulesDir": "auto",
   "compilerOptions": {
-    "lib": [
-      "deno.window",
-      "deno.unstable"
-    ],
+    "lib": ["deno.window", "deno.unstable"],
     "strict": true
   }
 }

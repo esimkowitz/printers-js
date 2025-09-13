@@ -197,7 +197,7 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install
 
-      # Build all runtime libraries using our cross-platform TypeScript script
+      # Build all runtime libraries (includes compilation)
       - name: Build all runtime libraries
         run: task build
 

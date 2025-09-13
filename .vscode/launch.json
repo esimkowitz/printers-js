@@ -11,12 +11,7 @@
         "PRINTERS_JS_SIMULATE": "true"
       },
       "runtimeExecutable": "deno",
-      "runtimeArgs": [
-        "run",
-        "--inspect-wait",
-        "--allow-ffi",
-        "--allow-env"
-      ],
+      "runtimeArgs": ["run", "--inspect-wait", "--allow-ffi", "--allow-env"],
       "attachSimplePort": 9229
     },
     {
@@ -84,10 +79,7 @@
         "PRINTERS_JS_SIMULATE": "true"
       },
       "runtimeExecutable": "bun",
-      "runtimeArgs": [
-        "run",
-        "bun.js"
-      ]
+      "runtimeArgs": ["run", "bun.js"]
     },
     {
       "request": "launch",
@@ -98,20 +90,14 @@
         "PRINTERS_JS_SIMULATE": "true"
       },
       "runtimeExecutable": "bun",
-      "runtimeArgs": [
-        "run",
-        "tests/bun.test.ts"
-      ]
+      "runtimeArgs": ["run", "tests/bun.test.ts"]
     },
     {
       "request": "launch",
       "name": "🔧 Build - Rust Library",
       "type": "process",
       "program": "cargo",
-      "args": [
-        "build",
-        "--release"
-      ],
+      "args": ["build", "--release"],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "options": {
@@ -123,10 +109,7 @@
       "name": "🔧 Build - N-API Module",
       "type": "node",
       "program": "npm",
-      "args": [
-        "run",
-        "build"
-      ],
+      "args": ["run", "build"],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole"
     }

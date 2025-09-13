@@ -6,8 +6,8 @@ code in this repository.
 ## Project Overview
 
 This is a **cross-runtime printer library** for JavaScript that supports
-**Deno**, **Bun**, and **Node.js** with a unified API. Each runtime uses
-different native bindings but exposes the same interface.
+**Deno**, **Bun**, and **Node.js** with a unified API. All runtimes use
+N-API native bindings with the same interface.
 
 ## Quick Start Commands
 
@@ -18,9 +18,9 @@ runtime and loads the appropriate implementation:
 
 ```bash
 # Universal entrypoint (RECOMMENDED - works in all runtimes)
-deno run --allow-ffi --allow-env index.ts
-node -e "import('./index.ts')"
-bun index.ts
+deno run --allow-env src/index.ts
+npx tsx src/index.ts
+bun src/index.ts
 ```
 
 ### CI and Status Checks
@@ -36,12 +36,11 @@ The CI system provides comprehensive testing with:
 ### Building and Testing
 
 ```bash
-# Build all runtimes (recommended)
+# Build N-API module and compile TypeScript (recommended)
 task build
 
-# Build individual runtimes
-task build:ffi           # Build FFI library (Deno/Bun)
-task build:napi          # Build N-API module (Node.js)
+# Build N-API module only
+task build:napi          # Build N-API module for all runtimes
 
 # Test all runtimes with comprehensive reporting
 task test
@@ -52,9 +51,9 @@ task test:node                    # Node.js tests with c8 coverage
 task test:bun                     # Bun tests
 
 # Runtime-specific entrypoints (use only for debugging)
-deno run --allow-ffi --allow-env deno.ts   # Deno-specific
-bun bun.js                                  # Bun-specific
-node node.js                                # Node.js-specific
+deno run --allow-env src/index.ts          # Deno with N-API
+bun src/index.ts                            # Bun with N-API
+npx tsx src/index.ts                        # Node.js with N-API
 ```
 
 ### Development Workflow
@@ -88,24 +87,18 @@ task bump:major    # 0.1.4 -> 1.0.0
 
 ### Primary Entry Point
 
-- **`index.ts`**: ⭐ **PRIMARY UNIVERSAL ENTRY POINT** - auto-detects runtime
-  and loads appropriate implementation. Always use this for consistent behavior.
-
-### Runtime-Specific Implementation Files
-
-- **`deno.ts`**: Deno-specific implementation (FFI-based)
-- **`bun.js`**: Bun-specific implementation (FFI-based)
-- **`node.js`**: Node.js-specific implementation (N-API wrapper)
+- **`src/index.ts`**: ⭐ **PRIMARY UNIVERSAL ENTRY POINT** - auto-detects runtime
+  and loads N-API implementation for all runtimes. Always use this for consistent behavior.
 
 ### Backend
 
 - **`lib/core.rs`**: Shared business logic for all runtimes
-- **`lib/ffi.rs`**: FFI bindings for Deno/Bun
-- **`lib/napi.rs`**: N-API bindings for Node.js
+- **`lib/node.rs`**: N-API bindings for all JavaScript runtimes
+- **`lib/napi.rs`**: N-API module definitions
 
 ### Testing
 
-- **`tests/shared.test.ts`**: Cross-runtime test suite using index.ts
+- **`tests/shared.test.ts`**: Cross-runtime test suite using src/index.ts
 - **`tests/node-test-runner.mjs`**: Custom Node.js test runner with TypeScript
   support and c8 coverage generation
 
@@ -122,8 +115,8 @@ task bump:major    # 0.1.4 -> 1.0.0
 
 - **`scripts/build-napi.js`**: N-API module building (requires Node.js
   subprocess environment)
-- **`scripts/remove-env-check.js`**: Post-build N-API processing for JSR
-  compatibility
+- **`scripts/remove-env-check.js`**: Post-build N-API processing
+- **`scripts/compile.ts`**: TypeScript to JavaScript compilation for npm publishing
 - **`scripts/build-all-node.js`**: Alternative Node.js-based build script
 
 **Script Runtime Selection**: Deno handles automation/orchestration; Node.js
@@ -146,8 +139,8 @@ ALWAYS run these after changes:
 
 - `deno fmt` - Format TypeScript/JavaScript
 - `cargo fmt` - Format Rust code
-- `deno lint` - Lint Deno-managed files (deno.ts, tests/shared.test.ts,
-  scripts/*.ts)
+- `deno lint` - Lint Deno-managed files (src/index.ts, tests/shared.test.ts,
+  scripts/\*.ts)
 - `task lint` - Lint all files (runs both Deno and Node.js linters)
 - `cargo clippy` - Lint Rust code
 
@@ -168,7 +161,7 @@ ALWAYS run these after changes:
 
 1. **N-API build architecture**: `npm run build` creates `npm/platform/`
    directories for all N-API operations - don't commit these
-2. **Different binary formats**: FFI uses `.dylib/.so/.dll`, N-API uses `.node`
+2. **Binary format**: All runtimes use N-API `.node` binaries
 3. **Test files**: Use `tests/shared.test.ts` for all cross-runtime testing
 4. **Simulation mode**: Always test with `PRINTERS_JS_SIMULATE=true` first
 5. **Thread cleanup**: The library automatically handles background thread
@@ -179,7 +172,7 @@ ALWAYS run these after changes:
    node-lcov.info, bun-lcov.info, rust.lcov)
 8. **Cross-platform scripts**: All build and test scripts are now Deno
    TypeScript for cross-platform compatibility
-9. **Universal entrypoint**: Always import from `index.ts` for consistent
+9. **Universal entrypoint**: Always import from `src/index.ts` for consistent
    runtime detection and behavior
 10. **Android support**: Intentionally excluded from N-API builds
 
@@ -206,7 +199,7 @@ distribution:
    `npm/`
 3. **Artifact reconstruction**: Download and combine all platforms before
    publishing
-4. **Dual publishing**: JSR (direct) and npm (via NAPI-RS prepublish)
+4. **npm publishing**: npm registry (via NAPI-RS prepublish), cross-runtime access via npm: syntax
 
 ### Critical Release Workflow Details
 
@@ -215,7 +208,7 @@ distribution:
   `npm/`
 - **Cross-platform scripts**: Use `shell: bash` for Windows compatibility
 - **NAPI-RS commands**: `napi create-npm-dirs` + `napi prepublish` workflow
-- **Platform matrix**: Must match between FFI and N-API build jobs
+- **Platform matrix**: N-API build jobs for all supported platforms
 
 ### Debugging Release Issues
 

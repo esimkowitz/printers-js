@@ -8,7 +8,7 @@ export default [
     ignores: [
       // Deno-managed files (use deno lint instead)
       "**/src/deno.ts",
-      "**/tests/shared.test.ts",
+      "**/src/tests/shared.test.ts",
 
       // Scripts directory (use deno lint instead)
       "scripts/**/*",
@@ -17,6 +17,7 @@ export default [
       "examples/**/*",
 
       // Build artifacts and dependencies
+      "dist/**/*",
       "target/**/*",
       "npm/**/*",
       "node_modules/**/*",
@@ -66,11 +67,14 @@ export default [
       ...tseslint.configs.recommended.rules,
 
       // TypeScript-specific rules
-      "@typescript-eslint/no-unused-vars": ["error", {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_",
-      }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
       "@typescript-eslint/no-explicit-any": "off", // Allow any for cross-runtime dynamic imports
       "@typescript-eslint/no-require-imports": "off", // Allow require() for Node.js compatibility
       "@typescript-eslint/explicit-function-return-type": "off",
@@ -83,8 +87,8 @@ export default [
       "no-unused-vars": "off", // Use TypeScript version instead
       "prefer-const": "error",
       "no-var": "error",
-      "eqeqeq": "error",
-      "curly": "off", // Disable for cross-runtime compatibility
+      eqeqeq: "error",
+      curly: "off", // Disable for cross-runtime compatibility
     },
   },
 ];

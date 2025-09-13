@@ -15,24 +15,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Support --dir parameter for custom directory, or process all platforms
-const dirArg = process.argv.find((arg) => arg.startsWith("--dir="));
+const dirArg = process.argv.find(arg => arg.startsWith("--dir="));
 const customDir = dirArg ? dirArg.split("=")[1] : null;
 
 function getIndexPaths() {
   if (customDir) {
     return [join(__dirname, "..", customDir, "index.js")];
   }
-  
+
   // Process all platform directories in npm/
   const npmDir = join(__dirname, "..", "npm");
   if (!existsSync(npmDir)) {
     return [];
   }
-  
+
   const platforms = readdirSync(npmDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
-  
+
   return platforms.map(platform => join(npmDir, platform, "index.js"));
 }
 
@@ -52,18 +52,18 @@ function processIndexFile(indexPath) {
     // Updated to handle the current NAPI-RS structure
     const modifiedContent = content.replace(
       /\s+if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s*\}\s*else\s+if\s+\(process\.platform\s*===\s*['"]android['"]\)/,
-      "\n  if (process.platform === 'android')",
+      "\n  if (process.platform === 'android')"
     );
 
     if (content !== modifiedContent) {
       writeFileSync(indexPath, modifiedContent);
       console.log(
-        `✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from ${indexPath}`,
+        `✅ Removed NAPI_RS_NATIVE_LIBRARY_PATH check from ${indexPath}`
       );
       return true;
     } else {
       console.log(
-        `ℹ️ NAPI_RS_NATIVE_LIBRARY_PATH check not found or already removed in ${indexPath}`,
+        `ℹ️ NAPI_RS_NATIVE_LIBRARY_PATH check not found or already removed in ${indexPath}`
       );
       return false;
     }
@@ -75,7 +75,9 @@ function processIndexFile(indexPath) {
 
 try {
   if (indexPaths.length === 0) {
-    console.log("⚠️ No npm platform directories found - skipping env check removal");
+    console.log(
+      "⚠️ No npm platform directories found - skipping env check removal"
+    );
     process.exit(0);
   }
 
@@ -89,7 +91,9 @@ try {
     }
   }
 
-  console.log(`📊 Processed ${processedCount} platform(s), modified ${modifiedCount} file(s)`);
+  console.log(
+    `📊 Processed ${processedCount} platform(s), modified ${modifiedCount} file(s)`
+  );
 } catch (error) {
   console.error("❌ Error processing index files:", error);
   process.exit(1);

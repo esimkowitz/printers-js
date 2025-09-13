@@ -1,14 +1,12 @@
 {
   "name": "@printers/printers",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "src/",
-    "target/release/*.dll",
-    "target/release/*.dylib",
-    "target/release/*.so"
+    "dist/"
   ],
   "napi": {
     "binaryName": "printers",
@@ -35,14 +33,23 @@
     "@std/assert": "npm:@jsr/std__assert@^1.0.14",
     "@types/bun": "^1.2.21",
     "@types/node": "^24.3.1",
+    "@types/prettier": "^2.7.3",
+    "@types/semver": "^7.7.1",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
     "c8": "^10.1.2",
     "eslint": "^9.35.0",
-    "tsx": "^4.20.5"
+    "prettier": "^3.6.2",
+    "semver": "^7.7.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
   },
   "packageManager": "npm@10.0.0",
   "scripts": {
-    "prepublishOnly": "task prepublish"
+    "compile": "node scripts/compile.js",
+    "build": "node scripts/build-all.js",
+    "format": "prettier --write .",
+    "lint": "eslint . --fix",
+    "prepublishOnly": "npm run compile && task prepublish"
   }
 }

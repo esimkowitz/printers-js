@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "rootDir": "./src",
+    "strict": false,
+    "noImplicitAny": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmitOnError": false,
+    "skipDefaultLibCheck": true,
+    "noCheck": true,
+    "preserveWatchOutput": true,
+    "removeComments": false,
+    "noEmit": false,
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/tests/**/*",
+    "examples/**/*",
+    "scripts/**/*",
+    "lib/**/*"
+  ]
+}

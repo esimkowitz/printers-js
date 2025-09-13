@@ -1,63 +1,39 @@
 # Examples
 
 This directory contains example projects demonstrating how to use
-`@printers/printers` across different JavaScript runtimes and package managers.
+`@printers/printers` across different JavaScript runtimes.
 
 ## Directory Structure
 
 ```
 examples/
-├── deno/
-│   ├── jsr-import/         # Using JSR import
-│   └── npm-import/         # Using NPM import
-├── node/
-│   ├── jsr-import/         # Using JSR import (requires Node.js 22+)
-│   └── npm-import/         # Using NPM package
-└── bun/
-    ├── jsr-import/         # Using JSR import
-    └── npm-import/         # Using NPM package
+├── deno/           # Deno runtime using npm:@printers/printers
+├── node/           # Node.js using @printers/printers
+└── bun/            # Bun runtime using @printers/printers
 ```
 
 ## Quick Start
 
-### Deno Examples
+### Deno Example
 
 ```bash
-# JSR import
-cd examples/deno/jsr-import
+cd examples/deno
 deno task start
-# or: deno run --allow-ffi --allow-env main.ts
-
-# NPM import
-cd examples/deno/npm-import
-deno task start
-# or: deno run --allow-ffi --allow-env --allow-read --allow-net main.ts
+# or: deno run --allow-env --allow-read --allow-net main.ts
 ```
 
-### Node.js Examples
+### Node.js Example
 
 ```bash
-# JSR import (Node.js 22+)
-cd examples/node/jsr-import
-npm start
-# or: node --experimental-strip-types main.js
-
-# NPM import
-cd examples/node/npm-import
+cd examples/node
 npm install
 npm start
 ```
 
-### Bun Examples
+### Bun Example
 
 ```bash
-# JSR import
-cd examples/bun/jsr-import
-bun start
-# or: bun run main.ts
-
-# NPM import
-cd examples/bun/npm-import
+cd examples/bun
 bun install
 bun start
 # or: bun run main.ts
@@ -67,23 +43,23 @@ bun start
 
 Each example includes the appropriate configuration files for its runtime:
 
-### Deno Examples
+### Deno Example
 
-- **`deno.json`**: Contains tasks, imports, and compiler options
-- Import configurations for both JSR and NPM packages
+- **`deno.json`**: Contains tasks, npm imports, and compiler options
+- Uses `npm:@printers/printers` for cross-runtime compatibility
 - Predefined tasks: `start`, `dev`
 
-### Node.js Examples
+### Node.js Example
 
 - **`package.json`**: Standard Node.js package configuration
-- JSR example includes import maps for Node.js 22+ JSR support
-- Scripts: `start`, `dev`, `start:legacy` (JSR example)
+- Uses `@printers/printers` npm package
+- Scripts: `start`, `dev`
 
-### Bun Examples
+### Bun Example
 
 - **`package.json`**: Package configuration and scripts
 - **`bunfig.toml`**: Bun-specific configuration
-- Registry configurations for both JSR and NPM
+- Uses `@printers/printers` npm package
 - Environment variables preset for simulation mode
 
 ## Safety Notice

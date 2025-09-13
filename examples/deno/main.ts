@@ -1,7 +1,7 @@
 /**
- * Deno example using NPM import
+ * Deno example using npm import
  *
- * Run with: deno run --allow-ffi --allow-env --allow-read --allow-net main.ts
+ * Run with: deno run --allow-env --allow-read --allow-net main.ts
  */
 
 import {
@@ -10,7 +10,7 @@ import {
   getPrinterByName,
   isSimulationMode,
   runtimeInfo,
-} from "@printers/printers";
+} from "npm:@printers/printers";
 
 async function main() {
   console.log("🦕 Deno Printers Example (NPM Import)");
@@ -19,7 +19,7 @@ async function main() {
   console.log(
     `Simulation Mode: ${
       isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
-    }\n`,
+    }\n`
   );
 
   try {
@@ -46,14 +46,14 @@ async function main() {
       const samePrinter = getPrinterByName(printer1.name);
 
       console.log(
-        `   ${printer1.name} equals ${printer2.name}: ${
-          printer1.equals(printer2)
-        }`,
+        `   ${printer1.name} equals ${printer2.name}: ${printer1.equals(
+          printer2
+        )}`
       );
       console.log(
-        `   ${printer1.name} equals same printer: ${
-          samePrinter?.equals(printer1)
-        }`,
+        `   ${printer1.name} equals same printer: ${samePrinter?.equals(
+          printer1
+        )}`
       );
     }
 
@@ -75,15 +75,20 @@ async function main() {
 
         if (isSimulationMode) {
           console.log(
-            "   (These were simulations - no actual printing occurred)",
+            "   (These were simulations - no actual printing occurred)"
           );
         }
       } catch (error) {
-        console.log(`❌ Some print jobs failed: ${error.message}`);
+        console.log(
+          `❌ Some print jobs failed: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   } catch (error) {
-    console.error("💥 Error:", error.message);
+    console.error(
+      "💥 Error:",
+      error instanceof Error ? error.message : String(error)
+    );
     Deno.exit(1);
   }
 
