@@ -49,31 +49,35 @@ Install the required development tools:
 **Required Tools:**
 
 1. **Rust** - Core backend development
+
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    rustup update
    ```
 
 2. **Task** - Build automation ([taskfile.dev](https://taskfile.dev/))
+
    ```bash
    # macOS (Homebrew)
    brew install go-task
-   
+
    # Linux/Windows (Go)
    go install github.com/go-task/task/v3/cmd/task@latest
-   
+
    # Or download binary from https://github.com/go-task/task/releases
    ```
 
 **JavaScript Runtimes (install as needed):**
 
 1. **Node.js** - Required for build scripts and N-API builds
+
    ```bash
    # Use nvm, fnm, or download from nodejs.org
    # Requires Node.js 20+ for N-API builds and automation scripts
    ```
 
 2. **Deno** - For Deno runtime testing
+
    ```bash
    curl -fsSL https://deno.land/install.sh | sh
    ```
@@ -137,12 +141,14 @@ All build and automation scripts use Node.js for consistency:
 ### Testing
 
 **Primary test commands:**
+
 ```bash
 task test               # Run all tests (simulation mode) - recommended
 task test:real          # Run all tests with real printing
 ```
 
 **Runtime-specific testing:**
+
 ```bash
 # Simulation mode (safe testing)
 task test:deno          # Deno tests
@@ -156,6 +162,7 @@ task test:bun:real      # Bun tests with actual printing
 ```
 
 **Additional test commands:**
+
 ```bash
 task test:doc           # Documentation tests
 ```
@@ -168,23 +175,27 @@ actually print.
 **Essential commands to run after making changes:**
 
 **Formatting:**
+
 ```bash
 task fmt                # Format all code (Prettier + Rust fmt)
 task fmt:check          # Check formatting without changes
 ```
 
 **Linting:**
+
 ```bash
 task lint               # Lint all code
 task lint:fix           # Auto-fix linting issues
 ```
 
 **Type Checking:**
+
 ```bash
 task check              # Type check all code
 ```
 
 **Individual tools:**
+
 ```bash
 # Format specific languages
 task fmt:prettier:check # Check TypeScript/JavaScript formatting
@@ -204,6 +215,7 @@ task check:rust         # Type check Rust code
 **Manual release steps:**
 
 1. **Version bump**:
+
    ```bash
    task bump:patch    # Bug fixes (0.4.2 → 0.4.3)
    task bump:minor    # New features (0.4.2 → 0.5.0)
@@ -232,6 +244,7 @@ tags and handles:
 ### Platform Support
 
 **Supported platforms**:
+
 - **Linux**: `x64-gnu`, `arm64-gnu` (all runtimes)
 - **Windows**: `x64-msvc` (all runtimes), `arm64-msvc` (Node.js only)
 - **macOS**: `x64`, `arm64` (all runtimes)
@@ -239,6 +252,7 @@ tags and handles:
 ### Publishing Strategy
 
 **Primary distribution** via npm registry:
+
 - **Main package**: `@printers/printers` with `optionalDependencies`
 - **Platform packages**: `@printers/printers-{platform}` (auto-selected)
 - **Cross-runtime access**:

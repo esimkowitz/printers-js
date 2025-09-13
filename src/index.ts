@@ -136,7 +136,7 @@ if (isSimulationMode) {
         driverName: "Simulated Driver",
         isDefault: true,
         state: "READY",
-      }
+      },
     ],
     findPrinterByName: (name: string) =>
       name === "Simulated Printer"
@@ -386,9 +386,7 @@ export function getJobStatus(jobId: number): JobStatus | null {
   }
 }
 
-export function cleanupOldJobs(
-  maxAgeMs: number = 30000
-): number {
+export function cleanupOldJobs(maxAgeMs: number = 30000): number {
   try {
     const maxAgeSeconds = Math.floor(maxAgeMs / 1000);
     return nativeModule.cleanupOldJobs
