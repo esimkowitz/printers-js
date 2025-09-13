@@ -1,0 +1,15 @@
+target/
+npm/
+coverage/
+reports/
+test-results/
+.claude/
+dist/
+node_modules/
+*.lock
+*.log
+Cargo.toml
+Cargo.lock
+LICENSE
+*.rs
+*.node

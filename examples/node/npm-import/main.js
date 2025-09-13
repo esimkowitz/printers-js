@@ -23,7 +23,7 @@ async function main() {
   console.log(
     `Simulation Mode: ${
       isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
-    }\n`,
+    }\n`
   );
 
   try {
@@ -72,7 +72,7 @@ async function main() {
 
         if (isSimulationMode) {
           console.log(
-            "   (This was a simulation - no actual printing occurred)",
+            "   (This was a simulation - no actual printing occurred)"
           );
         }
       } catch (error) {
@@ -88,7 +88,7 @@ async function main() {
 }
 
 // Run the example
-main().catch((error) => {
+main().catch(error => {
   console.error("💥 Unhandled error:", error);
   process.exit(1);
 });

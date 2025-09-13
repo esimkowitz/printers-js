@@ -22,7 +22,7 @@ async function updateDenoJson(newVersion: string): Promise<void> {
 
   await Deno.writeTextFile(
     denoJsonPath,
-    JSON.stringify(config, null, 2) + "\n",
+    JSON.stringify(config, null, 2) + "\n"
   );
 }
 
@@ -35,7 +35,7 @@ async function updatePackageJson(newVersion: string): Promise<void> {
 
   await Deno.writeTextFile(
     packageJsonPath,
-    JSON.stringify(config, null, 2) + "\n",
+    JSON.stringify(config, null, 2) + "\n"
   );
 }
 
@@ -45,7 +45,7 @@ async function updateCargoToml(newVersion: string): Promise<void> {
 
   const updatedContent = content.replace(
     /^version = "[\d.]+"/m,
-    `version = "${newVersion}"`,
+    `version = "${newVersion}"`
   );
 
   await Deno.writeTextFile(cargoTomlPath, updatedContent);
@@ -60,11 +60,11 @@ async function getCurrentVersion(): Promise<string> {
 
 function showUsage(): void {
   console.log(
-    "Usage: deno run --allow-read --allow-write scripts/bump-version.ts <type> [--dry-run]",
+    "Usage: deno run --allow-read --allow-write scripts/bump-version.ts <type> [--dry-run]"
   );
   console.log("  where <type> is one of: major, minor, patch");
   console.log(
-    "  --dry-run: Show what would be changed without modifying files",
+    "  --dry-run: Show what would be changed without modifying files"
   );
   console.log("");
   console.log("Examples:");
@@ -72,7 +72,7 @@ function showUsage(): void {
   console.log("  deno task bump:minor         # 0.1.3 -> 0.2.0");
   console.log("  deno task bump:major         # 0.1.3 -> 1.0.0");
   console.log(
-    "  deno run --allow-read scripts/bump-version.ts patch --dry-run  # Preview changes",
+    "  deno run --allow-read scripts/bump-version.ts patch --dry-run  # Preview changes"
   );
 }
 
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
 
   // Parse arguments
   const isDryRun = args.includes("--dry-run");
-  const filteredArgs = args.filter((arg) => arg !== "--dry-run");
+  const filteredArgs = args.filter(arg => arg !== "--dry-run");
 
   if (
     filteredArgs.length !== 1 ||
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
       console.log("  - package-lock.json (via npm install)");
       console.log("  - Cargo.lock (via cargo check)");
       console.log(
-        `\n✅ Would bump ${bumpType} version from ${currentVersionString} to ${newVersionString}`,
+        `\n✅ Would bump ${bumpType} version from ${currentVersionString} to ${newVersionString}`
       );
     } else {
       // Update files
@@ -141,7 +141,7 @@ async function main(): Promise<void> {
       const npmResult = await npmInstall.output();
       if (!npmResult.success) {
         console.warn(
-          "⚠️ npm install failed, package-lock.json may be out of sync",
+          "⚠️ npm install failed, package-lock.json may be out of sync"
         );
       }
 
@@ -157,12 +157,12 @@ async function main(): Promise<void> {
       }
 
       console.log(
-        `✅ Successfully bumped ${bumpType} version to ${newVersionString}`,
+        `✅ Successfully bumped ${bumpType} version to ${newVersionString}`
       );
     }
   } catch (error) {
     console.error(
-      `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
+      `❌ Error: ${error instanceof Error ? error.message : String(error)}`
     );
     Deno.exit(1);
   }

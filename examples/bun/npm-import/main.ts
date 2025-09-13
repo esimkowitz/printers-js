@@ -23,7 +23,7 @@ async function main() {
   console.log(
     `Simulation Mode: ${
       isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
-    }\n`,
+    }\n`
   );
 
   try {
@@ -69,17 +69,17 @@ async function main() {
         ]);
 
         const duration = Date.now() - startTime;
-        const successful = jobs.filter((job) =>
-          job.status === "fulfilled"
+        const successful = jobs.filter(
+          job => job.status === "fulfilled"
         ).length;
-        const failed = jobs.filter((job) => job.status === "rejected").length;
+        const failed = jobs.filter(job => job.status === "rejected").length;
 
         console.log(`✅ Print jobs completed in ${duration}ms`);
         console.log(`   Successful: ${successful}, Failed: ${failed}`);
 
         if (isSimulationMode) {
           console.log(
-            "   (These were simulations - no actual printing occurred)",
+            "   (These were simulations - no actual printing occurred)"
           );
         }
       } catch (error) {
@@ -118,7 +118,7 @@ async function main() {
 }
 
 // Run the example
-main().catch((error) => {
+main().catch(error => {
   console.error("💥 Unhandled error:", error);
   process.exit(1);
 });

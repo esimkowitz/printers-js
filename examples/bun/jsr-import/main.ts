@@ -23,7 +23,7 @@ async function main() {
   console.log(
     `Simulation Mode: ${
       isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
-    }\n`,
+    }\n`
   );
 
   try {
@@ -62,7 +62,7 @@ async function main() {
 
         if (isSimulationMode) {
           console.log(
-            "   (This was a simulation - no actual printing occurred)",
+            "   (This was a simulation - no actual printing occurred)"
           );
         }
       } catch (error) {
@@ -71,11 +71,11 @@ async function main() {
         // Check for specific error types
         if (error.message.includes("File not found")) {
           console.log(
-            `   Error type: PrintError.FileNotFound (${PrintError.FileNotFound})`,
+            `   Error type: PrintError.FileNotFound (${PrintError.FileNotFound})`
           );
         } else if (error.message.includes("Simulated failure")) {
           console.log(
-            `   Error type: PrintError.SimulatedFailure (${PrintError.SimulatedFailure})`,
+            `   Error type: PrintError.SimulatedFailure (${PrintError.SimulatedFailure})`
           );
         }
       }
@@ -91,9 +91,9 @@ async function main() {
 
     const endTime = performance.now();
     console.log(
-      `   5 printer enumeration calls took ${
-        (endTime - startTime).toFixed(2)
-      }ms`,
+      `   5 printer enumeration calls took ${(endTime - startTime).toFixed(
+        2
+      )}ms`
     );
 
     // Test all available PrintError enum values
@@ -112,7 +112,7 @@ async function main() {
 }
 
 // Run the example
-main().catch((error) => {
+main().catch(error => {
   console.error("💥 Unhandled error:", error);
   process.exit(1);
 });

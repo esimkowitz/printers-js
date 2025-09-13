@@ -1,114 +1,60 @@
 {
-  "deno.enable": true,
-  "deno.lint": true,
-  "deno.config": "./deno.json",
-  "deno.codeLens.test": true,
-  "deno.codeLens.testArgs": [
-    "--allow-all",
-    "--no-check",
-    "--trace-leaks"
-  ],
-  "deno.enablePaths": [
-    "./deno.ts",
-    "./tests/shared.test.ts",
-    "./scripts/"
-  ],
   // File-specific editor settings
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "modifications",
   "editor.autoIndentOnPaste": true,
 
-  // Default formatter for Deno-managed files
-  "editor.defaultFormatter": "denoland.vscode-deno",
+  // Default formatter is Prettier
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-  // ESLint-managed files use ESLint formatter
-  "[index.ts]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  // TypeScript/JavaScript files use Prettier with ESLint
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "explicit"
     }
   },
-  "[node.ts]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-  "[bun.ts]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-  "[tests/node-test-runner.ts]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
-    }
-  },
-
-  // Generated files
-  "[napi/index.js]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[package.json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  // JavaScript files (general)
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
   },
+
   "debug.javascript.autoAttachFilter": "disabled",
 
   "files.exclude": {
     "**/.git": true,
     "**/.DS_Store": true,
     "**/.vscode/extensions": true,
-    "**/napi": true,
-    "**/target": true
+    "**/npm": true,
+    "**/target": true,
+    "**/dist": true
   },
 
   "search.exclude": {
     "**/coverage": true,
     "**/.vscode/extensions": true,
-    "**/napi": true,
-    "**/target": true
+    "**/npm": true,
+    "**/target": true,
+    "**/dist": true
   },
 
   "rust-analyzer.lens.enable": true,
   "rust-analyzer.lens.run.enable": true,
   "rust-analyzer.lens.debug.enable": true,
-  // File associations for multi-runtime support
-  "files.associations": {
-    "deno.ts": "typescript",
-    "index.ts": "typescript",
-    "bun.ts": "typescript",
-    "node.ts": "typescript",
-    "tests/shared.test.ts": "typescript",
-    "tests/node-test-runner.ts": "typescript",
-    "scripts/*.ts": "typescript"
-  },
-  // Disable markdownlint in favor of deno lint for markdown
-  "markdownlint.config": {
-    "default": false
-  },
 
-  // ESLint configuration for non-Deno files
+  // ESLint configuration
   "eslint.enable": true,
   "eslint.workingDirectories": ["."],
-  "eslint.validate": [
-    "javascript",
-    "typescript"
-  ],
-  // Deno test discovery
+  "eslint.validate": ["javascript", "typescript"],
+
+  // TypeScript configuration
   "typescript.suggest.autoImports": true,
   "typescript.suggest.completeFunctionCalls": false,
   "typescript.suggest.paths": true,
-  "deno.testing.args": [
-    "--allow-ffi",
-    "--allow-env"
-  ],
-  // Multi-runtime test configuration
+
+  // Test configuration
   "testExplorer.useNativeTesting": true,
   "testExplorer.mergeSuites": false,
   "testExplorer.showCollapseButton": true

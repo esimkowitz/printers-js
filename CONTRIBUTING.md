@@ -59,6 +59,7 @@ Install the required development tools:
   rustup update
   ```
 - **Task** - Build automation ([taskfile.dev](https://taskfile.dev/))
+
   ```bash
   # macOS (Homebrew)
   brew install go-task
@@ -91,7 +92,7 @@ Install the required development tools:
 task --version
 rustc --version
 deno --version    # if installed
-node --version    # if installed  
+node --version    # if installed
 bun --version     # if installed
 ```
 
@@ -154,7 +155,7 @@ task test:real
 
 # Individual runtimes (simulation mode)
 task test:deno          # Run Deno tests in simulation mode
-task test:node          # Run Node.js tests in simulation mode  
+task test:node          # Run Node.js tests in simulation mode
 task test:bun           # Run Bun tests in simulation mode
 
 # Individual runtimes (real printing)
@@ -177,7 +178,7 @@ Run after changes:
 # Format all code
 task fmt                # Format TypeScript/JavaScript and Rust
 
-# Check formatting without changes  
+# Check formatting without changes
 task fmt:check          # Check all formatting
 task fmt:deno:check     # Check TypeScript/JavaScript formatting
 task fmt:rust:check     # Check Rust formatting
@@ -188,7 +189,7 @@ task lint:fix           # Fix linting issues automatically
 
 # Individual linting
 task lint:deno          # Lint Deno-managed files
-task lint:node          # Lint Node.js-managed files  
+task lint:node          # Lint Node.js-managed files
 task lint:rust          # Lint Rust code with Clippy
 
 # Type checking
@@ -299,14 +300,14 @@ The N-API build process integrates with the NAPI-RS publishing workflow:
 task build:napi
 # → npm/darwin-arm64/printers.darwin-arm64.node (+ other empty dirs)
 
-# CI: each runner builds its platform  
+# CI: each runner builds its platform
 # → darwin-arm64 runner: npm/darwin-arm64/printers.darwin-arm64.node
 # → linux-x64 runner: npm/linux-x64-gnu/printers.linux-x64-gnu.node
 # → etc.
 
 # Publishing: combines all platforms
 # → npm/darwin-arm64/printers.darwin-arm64.node
-# → npm/linux-x64-gnu/printers.linux-x64-gnu.node  
+# → npm/linux-x64-gnu/printers.linux-x64-gnu.node
 # → npm/win32-x64-msvc/printers.win32-x64-msvc.node
 # → etc.
 ```

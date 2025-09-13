@@ -77,7 +77,10 @@ import { getAllPrinters, Printer } from "@printers/printers";
 
 // List all available printers
 const printers = getAllPrinters();
-console.log("Available printers:", printers.map((p) => p.name));
+console.log(
+  "Available printers:",
+  printers.map(p => p.name)
+);
 
 // Print a file (returns a Promise)
 const printer = printers[0];
@@ -301,18 +304,16 @@ import { getAllPrinters } from "@printers/printers";
 const printers = getAllPrinters();
 
 // Find default printer
-const defaultPrinter = printers.find((p) => p.isDefault);
+const defaultPrinter = printers.find(p => p.isDefault);
 console.log(`Default printer: ${defaultPrinter?.name || "None"}`);
 
 // Find printers by state
-const readyPrinters = printers.filter((p) => p.state === "READY");
-console.log(`Ready printers: ${readyPrinters.map((p) => p.name).join(", ")}`);
+const readyPrinters = printers.filter(p => p.state === "READY");
+console.log(`Ready printers: ${readyPrinters.map(p => p.name).join(", ")}`);
 
 // Find network printers
-const networkPrinters = printers.filter((p) => p.isShared);
-console.log(
-  `Network printers: ${networkPrinters.map((p) => p.name).join(", ")}`,
-);
+const networkPrinters = printers.filter(p => p.isShared);
+console.log(`Network printers: ${networkPrinters.map(p => p.name).join(", ")}`);
 ```
 
 ## Platform Support

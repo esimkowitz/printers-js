@@ -1,38 +1,16 @@
 /**
- * Universal entrypoint for @printers/printers
+ * Universal cross-runtime printer library
  *
- * This module automatically detects the JavaScript runtime and loads
- * the appropriate implementation. Works with Deno, Node.js, and Bun.
+ * This library provides printer functionality for JavaScript runtimes
+ * through Node-API bindings, compatible with Node.js, Deno, and Bun.
+ *
+ * Usage:
+ * - Node.js: import { getPrinters } from "@printers/printers"
+ * - Deno: import { getPrinters } from "npm:@printers/printers"
+ * - Bun: import { getPrinters } from "@printers/printers"
  */
 
-// Runtime detection helpers
-interface GlobalWithProcess {
-  process?: {
-    versions?: {
-      node?: string;
-    };
-    version?: string;
-    env?: {
-      PRINTERS_JS_SIMULATE?: string;
-    };
-  };
-}
-
-interface GlobalWithBun {
-  Bun?: {
-    version: string;
-  };
-}
-
-// Runtime detection
-const isNode: boolean =
-  typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
-  (globalThis as GlobalWithProcess).process?.versions?.node;
-const isBun: boolean = typeof (globalThis as GlobalWithBun).Bun !== "undefined";
-// @ts-expect-error: Deno namespace exists
-const isDeno: boolean = typeof Deno !== "undefined";
-
-// Type definitions (shared across all runtimes)
+// Type definitions
 export enum PrintError {
   InvalidParams = 1,
   InvalidPrinterName = 2,
@@ -76,22 +54,15 @@ export interface Printer {
   getName(): string;
   printFile(
     filePath: string,
-    jobProperties?: Record<string, string>,
+    jobProperties?: Record<string, string>
   ): Promise<void>;
 }
 
-// Static methods interface for Printer class
 export interface PrinterClass {
-  /**
-   * Create a Printer instance from a printer name
-   * @param name The name of the printer to find
-   * @returns A Printer instance if found, null if not found or name is invalid
-   */
   fromName(name: string): Printer | null;
-  new (): never; // Prevent direct construction
+  new (): never;
 }
 
-// Runtime information interface
 export interface RuntimeInfo {
   name: "deno" | "node" | "bun" | "unknown";
   isDeno: boolean;
@@ -100,64 +71,27 @@ export interface RuntimeInfo {
   version: string;
 }
 
-// Runtime-specific imports and exports
-let printerModule: {
-  getAllPrinters: () => Printer[];
-  getAllPrinterNames: () => string[];
-  getPrinterByName: (name: string) => Printer | null;
-  printerExists: (name: string) => boolean;
-  getJobStatus: (jobId: number) => JobStatus | null;
-  cleanupOldJobs: (maxAgeMs?: number) => Promise<number>;
-  shutdown: () => Promise<void>;
-  Printer: PrinterClass;
-};
-
-if (isDeno) {
-  // Deno runtime
-  printerModule = await import("./deno.ts");
-} else if (isBun) {
-  printerModule = await import("./bun.ts");
-} else if (isNode) {
-  const nodeModule = await import("./node.ts");
-  printerModule = nodeModule;
-} else {
-  throw new Error(
-    "Unsupported JavaScript runtime. This library supports Deno, Node.js, and Bun.",
-  );
+// Runtime detection
+interface GlobalWithProcess {
+  process?: {
+    versions?: { node?: string };
+    version?: string;
+    env?: { PRINTERS_JS_SIMULATE?: string };
+  };
 }
 
-// Re-export all functionality from the runtime-specific module with proper typing
-export const getAllPrinters: () => Printer[] = printerModule.getAllPrinters;
-export const getAllPrinterNames: () => string[] =
-  printerModule.getAllPrinterNames;
-export const getPrinterByName: (name: string) => Printer | null =
-  printerModule.getPrinterByName;
-export const printerExists: (name: string) => boolean =
-  printerModule.printerExists;
-export const getJobStatus: (jobId: number) => JobStatus | null =
-  printerModule.getJobStatus;
-export const cleanupOldJobs: (maxAgeMs?: number) => Promise<number> =
-  printerModule.cleanupOldJobs;
-export const shutdown: () => Promise<void> = printerModule.shutdown;
-export const PrinterConstructor: PrinterClass = printerModule.Printer;
+interface GlobalWithBun {
+  Bun?: { version: string };
+}
 
-// Runtime information
-export const runtimeInfo: RuntimeInfo = {
-  name: isDeno ? "deno" : isBun ? "bun" : isNode ? "node" : "unknown",
-  isDeno,
-  isNode,
-  isBun,
-  version: isDeno
-    // @ts-expect-error: Deno namespace exists
-    ? Deno.version.deno
-    : isBun
-    ? (globalThis as GlobalWithBun).Bun?.version ?? "unknown"
-    : isNode
-    ? (globalThis as GlobalWithProcess).process?.version ?? "unknown"
-    : "unknown",
-};
+const isNode =
+  typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
+  (globalThis as GlobalWithProcess).process?.versions?.node;
+const isBun = typeof (globalThis as GlobalWithBun).Bun !== "undefined";
+// @ts-expect-error: Deno namespace exists
+const isDeno = typeof Deno !== "undefined";
 
-// Simulation mode detection (works across all runtimes)
+// Simulation mode detection
 export const isSimulationMode: boolean =
   // @ts-expect-error: Deno namespace exists
   (isDeno && Deno?.env?.get?.("PRINTERS_JS_SIMULATE") === "true") ||
@@ -167,3 +101,327 @@ export const isSimulationMode: boolean =
   (isBun &&
     (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE ===
       "true");
+
+// Runtime information
+export const runtimeInfo: RuntimeInfo = {
+  name: isDeno ? "deno" : isBun ? "bun" : isNode ? "node" : "unknown",
+  isDeno,
+  isNode,
+  isBun,
+  version: isDeno
+    ? // @ts-expect-error: Deno namespace exists
+      Deno.version.deno
+    : isBun
+      ? ((globalThis as GlobalWithBun).Bun?.version ?? "unknown")
+      : isNode
+        ? ((globalThis as GlobalWithProcess).process?.version ?? "unknown")
+        : "unknown",
+};
+
+// N-API module loading
+let nativeModule: any;
+
+if (isSimulationMode) {
+  // Simulation mode - provide mock implementations
+  console.log(
+    `[SIMULATION] ${runtimeInfo.name} running in simulation mode - no actual printing will occur`
+  );
+
+  nativeModule = {
+    getAllPrinterNames: () => ["Simulated Printer"],
+    findPrinterByName: (name: string) =>
+      name === "Simulated Printer"
+        ? {
+            name: "Simulated Printer",
+            systemName: "SIM001",
+            driverName: "Simulated Driver",
+            isDefault: true,
+            state: "READY",
+          }
+        : null,
+    printerExists: (name: string) => name === "Simulated Printer",
+    getJobStatus: (jobId: number) =>
+      jobId === 1 ? { id: jobId, status: "completed" } : null,
+    cleanupOldJobs: () => 0,
+    shutdown: () => {},
+    printFile: async (
+      printerName: string,
+      filePath: string,
+      jobProperties?: Record<string, string>
+    ) => {
+      console.log(`[SIMULATION] Would print file: ${filePath}`);
+      if (jobProperties && Object.keys(jobProperties).length > 0) {
+        console.log(`[SIMULATION] Job properties:`, jobProperties);
+      }
+      return Promise.resolve();
+    },
+    PrintErrorCode: {},
+
+    // Printer class mock
+    Printer: {
+      fromName: (name: string) =>
+        name === "Simulated Printer"
+          ? {
+              name: "Simulated Printer",
+              systemName: "SIM001",
+              driverName: "Simulated Driver",
+              isDefault: true,
+              state: "READY",
+              exists: () => true,
+              getName: () => "Simulated Printer",
+              toString: () => "Simulated Printer",
+              equals: (other: any) => other.name === "Simulated Printer",
+              printFile: async (
+                filePath: string,
+                jobProperties?: Record<string, string>
+              ) => {
+                console.log(`[SIMULATION] Would print file: ${filePath}`);
+                if (jobProperties) {
+                  console.log(`[SIMULATION] Job properties:`, jobProperties);
+                }
+                return Promise.resolve();
+              },
+            }
+          : null,
+    },
+  };
+} else {
+  // Load real N-API module
+  try {
+    // Platform detection for N-API module loading
+    let platformName: string;
+    let archName: string;
+
+    if (process.platform === "win32") {
+      platformName = "win32";
+    } else if (process.platform === "darwin") {
+      platformName = "darwin";
+    } else {
+      platformName = "linux";
+    }
+
+    if (process.arch === "x64") {
+      archName = "x64";
+    } else if (process.arch === "arm64") {
+      archName = "arm64";
+    } else {
+      throw new Error(`Unsupported architecture: ${process.arch}`);
+    }
+
+    // Build platform string for N-API module
+    const platformString =
+      platformName === "linux"
+        ? `${platformName}-${archName}-gnu`
+        : platformName === "win32"
+          ? `${platformName}-${archName}-msvc`
+          : `${platformName}-${archName}`;
+
+    // Try to load the platform-specific N-API module
+    try {
+      nativeModule = require(`@printers/printers-${platformString}`);
+    } catch (requireError) {
+      // Fallback: try to load from npm directory structure
+      try {
+        nativeModule = require(`../npm/${platformString}/index.node`);
+      } catch (fallbackError) {
+        throw new Error(
+          `Failed to load N-API module for platform ${platformString}. ` +
+            `Make sure the platform-specific package is installed. ` +
+            `Primary error: ${requireError}. Fallback error: ${fallbackError}`
+        );
+      }
+    }
+  } catch (error) {
+    throw new Error(
+      `Failed to initialize printer library: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+// Wrapper class for consistent API
+class PrinterWrapper implements Printer {
+  private nativePrinter: any;
+
+  constructor(nativePrinter: any) {
+    this.nativePrinter = nativePrinter;
+  }
+
+  get name(): string {
+    return this.nativePrinter.name || "";
+  }
+  get systemName(): string {
+    return this.nativePrinter.systemName || "";
+  }
+  get driverName(): string {
+    return this.nativePrinter.driverName || "";
+  }
+  get uri(): string {
+    return this.nativePrinter.uri || "";
+  }
+  get portName(): string {
+    return this.nativePrinter.portName || "";
+  }
+  get processor(): string {
+    return this.nativePrinter.processor || "";
+  }
+  get dataType(): string {
+    return this.nativePrinter.dataType || "";
+  }
+  get description(): string {
+    return this.nativePrinter.description || "";
+  }
+  get location(): string {
+    return this.nativePrinter.location || "";
+  }
+  get isDefault(): boolean {
+    return this.nativePrinter.isDefault || false;
+  }
+  get isShared(): boolean {
+    return this.nativePrinter.isShared || false;
+  }
+  get state(): PrinterState {
+    return this.nativePrinter.state || "unknown";
+  }
+  get stateReasons(): string[] {
+    return this.nativePrinter.stateReasons || [];
+  }
+
+  exists(): boolean {
+    return this.nativePrinter.exists ? this.nativePrinter.exists() : true;
+  }
+
+  toString(): string {
+    return this.nativePrinter.toString
+      ? this.nativePrinter.toString()
+      : this.name;
+  }
+
+  equals(other: Printer): boolean {
+    return this.name === other.name;
+  }
+
+  dispose(): void {
+    if (this.nativePrinter.dispose) {
+      this.nativePrinter.dispose();
+    }
+  }
+
+  getName(): string {
+    return this.name;
+  }
+
+  async printFile(
+    filePath: string,
+    jobProperties?: Record<string, string>
+  ): Promise<void> {
+    if (this.nativePrinter.printFile) {
+      return this.nativePrinter.printFile(filePath, jobProperties);
+    }
+    throw new Error("Print functionality not available");
+  }
+}
+
+// Public API functions
+export function getAllPrinters(): Printer[] {
+  try {
+    const printers = nativeModule.getAllPrinters
+      ? nativeModule.getAllPrinters()
+      : [];
+    return printers.map((p: any) => new PrinterWrapper(p));
+  } catch (error) {
+    console.error("Failed to get all printers:", error);
+    return [];
+  }
+}
+
+export function getAllPrinterNames(): string[] {
+  try {
+    return nativeModule.getAllPrinterNames
+      ? nativeModule.getAllPrinterNames()
+      : [];
+  } catch (error) {
+    console.error("Failed to get printer names:", error);
+    return [];
+  }
+}
+
+export function getPrinterByName(name: string): Printer | null {
+  try {
+    const nativePrinter = nativeModule.findPrinterByName
+      ? nativeModule.findPrinterByName(name)
+      : null;
+    return nativePrinter ? new PrinterWrapper(nativePrinter) : null;
+  } catch (error) {
+    console.error(`Failed to get printer ${name}:`, error);
+    return null;
+  }
+}
+
+export function printerExists(name: string): boolean {
+  try {
+    return nativeModule.printerExists
+      ? nativeModule.printerExists(name)
+      : false;
+  } catch (error) {
+    console.error(`Failed to check if printer ${name} exists:`, error);
+    return false;
+  }
+}
+
+export function getJobStatus(jobId: number): JobStatus | null {
+  try {
+    return nativeModule.getJobStatus ? nativeModule.getJobStatus(jobId) : null;
+  } catch (error) {
+    console.error(`Failed to get job status for ${jobId}:`, error);
+    return null;
+  }
+}
+
+export async function cleanupOldJobs(
+  maxAgeMs: number = 30000
+): Promise<number> {
+  try {
+    const maxAgeSeconds = Math.floor(maxAgeMs / 1000);
+    return nativeModule.cleanupOldJobs
+      ? nativeModule.cleanupOldJobs(maxAgeSeconds)
+      : 0;
+  } catch (error) {
+    console.error("Failed to cleanup old jobs:", error);
+    return 0;
+  }
+}
+
+export async function shutdown(): Promise<void> {
+  try {
+    if (nativeModule.shutdown) {
+      nativeModule.shutdown();
+    }
+  } catch (error) {
+    console.error("Failed to shutdown:", error);
+  }
+}
+
+// Printer class for static methods
+export const PrinterConstructor: PrinterClass = {
+  fromName: (name: string): Printer | null => getPrinterByName(name),
+  // @ts-expect-error: Prevent direct construction
+  new: () => {
+    throw new Error("Use PrinterConstructor.fromName() instead");
+  },
+};
+
+// Legacy exports for backward compatibility
+export const findPrinter = getPrinterByName;
+export const getDefaultPrinter = () =>
+  getAllPrinters().find(p => p.isDefault) || null;
+export const createPrintJob = async (
+  printerName: string,
+  filePath: string,
+  options?: Record<string, string>
+) => {
+  const printer = getPrinterByName(printerName);
+  if (!printer) {
+    throw new Error(`Printer not found: ${printerName}`);
+  }
+  return printer.printFile(filePath, options);
+};

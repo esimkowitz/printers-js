@@ -73,7 +73,7 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
 
   // Debug: Print current state for troubleshooting
   console.log(
-    `Debug: Runtime=${runtimeName}, isSimulationMode=${isSimulationMode}, printerNames.length=${printerNames.length}`,
+    `Debug: Runtime=${runtimeName}, isSimulationMode=${isSimulationMode}, printerNames.length=${printerNames.length}`
   );
 
   // @ts-ignore: process may not be defined in all runtimes
@@ -81,22 +81,22 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
     `Debug: PRINTERS_JS_SIMULATE environment variable:`,
     typeof Deno !== "undefined"
       ? Deno.env.get("PRINTERS_JS_SIMULATE")
-      // @ts-ignore: process may not be defined in all runtimes
-      : typeof process !== "undefined"
-      // @ts-ignore: process may not be defined in all runtimes
-      ? process?.env?.PRINTERS_JS_SIMULATE
-      : "unknown",
+      : // @ts-ignore: process may not be defined in all runtimes
+        typeof process !== "undefined"
+        ? // @ts-ignore: process may not be defined in all runtimes
+          process?.env?.PRINTERS_JS_SIMULATE
+        : "unknown"
   );
   console.log(`Debug: Printer names received:`, JSON.stringify(printerNames));
 
   // In simulation mode, we should get at least some printers
   if (isSimulationMode && printerNames.length === 0) {
     console.error(
-      "ERROR: No printers found in simulation mode. This indicates a library loading issue.",
+      "ERROR: No printers found in simulation mode. This indicates a library loading issue."
     );
     console.error(
       "Debug: getAllPrinterNames function type:",
-      typeof getAllPrinterNames,
+      typeof getAllPrinterNames
     );
     console.error("Debug: getAllPrinterNames result:", getAllPrinterNames());
 
@@ -137,7 +137,7 @@ test(`${runtimeName}: should return typed printer instances from getAllPrinters`
     // Check that printer has the expected interface properties
     if (!printer.name || typeof printer.getName !== "function") {
       throw new Error(
-        "Each printer should have the expected Printer interface",
+        "Each printer should have the expected Printer interface"
       );
     }
   }
@@ -147,7 +147,7 @@ test(`${runtimeName}: should return false for non-existent printer in printerExi
   const exists = printerExists("NonExistentPrinter12345");
   if (exists !== false) {
     throw new Error(
-      "printerExists should return false for non-existent printer",
+      "printerExists should return false for non-existent printer"
     );
   }
 });
@@ -156,7 +156,7 @@ test(`${runtimeName}: should return null for non-existent printer in getPrinterB
   const printer = getPrinterByName("NonExistentPrinter12345");
   if (printer !== null) {
     throw new Error(
-      "getPrinterByName should return null for non-existent printer",
+      "getPrinterByName should return null for non-existent printer"
     );
   }
 });
@@ -257,13 +257,14 @@ test(`${runtimeName}: should reflect environment in isSimulationMode`, () => {
     envSimulate = Deno.env.get("PRINTERS_JS_SIMULATE") === "true";
   } else {
     // @ts-ignore - process may not be defined in all runtimes
-    envSimulate = typeof process !== "undefined" &&
+    envSimulate =
+      typeof process !== "undefined" &&
       process.env.PRINTERS_JS_SIMULATE === "true";
   }
 
   if (envSimulate && !isSimulationMode) {
     throw new Error(
-      "isSimulationMode should be true when PRINTERS_JS_SIMULATE=true",
+      "isSimulationMode should be true when PRINTERS_JS_SIMULATE=true"
     );
   }
 });
@@ -274,7 +275,7 @@ test(`${runtimeName}: should have consistent API across getAllPrinterNames and g
 
   if (printerNames.length !== printers.length) {
     throw new Error(
-      "getAllPrinterNames and getAllPrinters should return same count",
+      "getAllPrinterNames and getAllPrinters should return same count"
     );
   }
 
@@ -305,9 +306,9 @@ test(`${runtimeName}: should have runtimeInfo with name and version`, () => {
   const expectedRuntimes = ["Deno", "Bun", "Node.js", "deno", "bun", "node"];
   if (!expectedRuntimes.includes(runtimeInfo.name)) {
     throw new Error(
-      `Runtime should be one of ${
-        expectedRuntimes.join(", ")
-      }, got ${runtimeInfo.name}`,
+      `Runtime should be one of ${expectedRuntimes.join(
+        ", "
+      )}, got ${runtimeInfo.name}`
     );
   }
 });

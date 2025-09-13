@@ -26,7 +26,7 @@ async function main() {
   console.log(
     `Simulation Mode: ${
       isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
-    }\n`,
+    }\n`
   );
 
   try {
@@ -59,13 +59,13 @@ async function main() {
     console.log(
       `   Job 999999 status: ${
         jobStatus === null ? "Not found (expected)" : "Found"
-      }`,
+      }`
     );
 
     // Test printing with error handling
     if (specificPrinter) {
       console.log(
-        `\n🧪 Testing print with error handling: ${specificPrinter.name}`,
+        `\n🧪 Testing print with error handling: ${specificPrinter.name}`
       );
 
       try {
@@ -84,7 +84,7 @@ async function main() {
 }
 
 // Run the example
-main().catch((error) => {
+main().catch(error => {
   console.error("💥 Unhandled error:", error);
   process.exit(1);
 });

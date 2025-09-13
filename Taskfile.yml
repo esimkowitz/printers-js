@@ -5,16 +5,17 @@ vars:
 
 tasks:
   dev:
-    desc: Run Deno development server with file watching
-    cmd: deno run --allow-ffi --allow-env --watch src/deno.ts
+    desc: Run development server with file watching
+    cmd: deno run --allow-env --watch src/index.ts
+
+  compile:
+    desc: Compile TypeScript to JavaScript with declarations
+    cmd: node scripts/compile.js
 
   build:
-    desc: Build all runtimes (FFI + N-API)
-    cmd: deno run -A scripts/build-all.ts
-
-  build:ffi:
-    desc: Build FFI library for Deno/Bun
-    cmd: cargo build --release
+    desc: Build N-API module and compile TypeScript
+    deps: [compile]
+    cmd: node scripts/build-all.js
 
   build:napi:
     desc: Build N-API module for Node.js
@@ -30,17 +31,17 @@ tasks:
 
   test:deno:
     desc: Run Deno tests in simulation mode
-    cmd: "{{.SIMULATE}} deno test --allow-ffi --allow-env --allow-read --no-check shared.test.ts"
+    cmd: "{{.SIMULATE}} deno test --allow-env --allow-read --no-check shared.test.ts"
     dir: tests
 
   test:deno:real:
     desc: Run Deno tests with real printing
-    cmd: "deno test --allow-ffi --allow-env --allow-read shared.test.ts"
+    cmd: "deno test --allow-env --allow-read shared.test.ts"
     dir: tests
 
   test:doc:
     desc: Run documentation tests
-    cmd: deno test --doc --allow-ffi --allow-env src/deno.ts
+    cmd: deno test --doc --allow-env src/index.ts
 
   test:node:
     desc: Run Node.js tests in simulation mode
@@ -60,14 +61,10 @@ tasks:
 
   lint:
     desc: Lint all code
-    deps: [lint:deno, lint:node, lint:rust]
+    deps: [lint:eslint, lint:rust]
 
-  lint:deno:
-    desc: Lint Deno-managed files
-    cmd: deno lint
-
-  lint:node:
-    desc: Lint Node.js-managed files
+  lint:eslint:
+    desc: Lint TypeScript/JavaScript files
     cmd: npx eslint .
 
   lint:rust:
@@ -76,10 +73,6 @@ tasks:
 
   lint:fix:
     desc: Fix linting issues in all code
-    deps: [lint:fix:node]
-
-  lint:fix:node:
-    desc: Fix linting issues in Node.js-managed files
     cmd: npx eslint . --fix
 
   remove-env-check:
@@ -96,19 +89,19 @@ tasks:
 
   fmt:
     desc: Format all code
-    deps: [fmt:deno, fmt:rust]
+    deps: [fmt:prettier, fmt:rust]
 
   fmt:check:
     desc: Check formatting for all code
-    deps: [fmt:deno:check, fmt:rust:check]
+    deps: [fmt:prettier:check, fmt:rust:check]
 
-  fmt:deno:
-    desc: Format TypeScript/JavaScript with Deno
-    cmd: deno fmt
+  fmt:prettier:
+    desc: Format TypeScript/JavaScript with Prettier
+    cmd: npx prettier --write .
 
-  fmt:deno:check:
-    desc: Check TypeScript/JavaScript formatting with Deno
-    cmd: deno fmt --check
+  fmt:prettier:check:
+    desc: Check TypeScript/JavaScript formatting with Prettier
+    cmd: npx prettier --check .
 
   fmt:rust:
     desc: Format Rust code
@@ -120,11 +113,11 @@ tasks:
 
   check:
     desc: Type check all code
-    deps: [check:deno, check:node, check:rust]
+    deps: [check:typescript, check:rust]
 
-  check:deno:
-    desc: Type check Deno code
-    cmd: deno check src/deno.ts src/ffi-loader.ts
+  check:typescript:
+    desc: Type check TypeScript code
+    cmd: npx tsc --noEmit
 
   check:node:
     desc: Type check Node.js code (via build)
@@ -148,11 +141,11 @@ tasks:
 
   docs:
     desc: Generate documentation
-    cmd: deno doc --html --name="@printers/printers" src/deno.ts src/index.ts
+    cmd: deno doc --html --name="@printers/printers" src/index.ts
 
   docs:serve:
     desc: Serve documentation locally
-    cmd: deno doc --serve --name="@printers/printers" src/deno.ts src/index.ts
+    cmd: deno doc --serve --name="@printers/printers" src/index.ts
 
   ci:local:
     desc: Run CI locally with nektos/act

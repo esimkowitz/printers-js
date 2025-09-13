@@ -24,6 +24,9 @@ index.d.ts
 # Node modules (if any dev dependencies are added)
 node_modules/
 
+# Compiled JavaScript files (if any)
+/dist/
+
 # ==========================================
 # BUILD & RELEASE ARTIFACTS
 # ==========================================
@@ -90,3 +93,9 @@ pids/
 # Temporary directories
 tmp/
 temp/
+
+# Example lock and modules files
+/examples/**/*.lock
+/examples/**/node_modules/
+/examples/**/dist/
+/examples/**/package-lock.json

@@ -19,7 +19,7 @@ async function main() {
   console.log(
     `Simulation Mode: ${
       isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
-    }\n`,
+    }\n`
   );
 
   try {
@@ -46,14 +46,14 @@ async function main() {
       const samePrinter = getPrinterByName(printer1.name);
 
       console.log(
-        `   ${printer1.name} equals ${printer2.name}: ${
-          printer1.equals(printer2)
-        }`,
+        `   ${printer1.name} equals ${printer2.name}: ${printer1.equals(
+          printer2
+        )}`
       );
       console.log(
-        `   ${printer1.name} equals same printer: ${
-          samePrinter?.equals(printer1)
-        }`,
+        `   ${printer1.name} equals same printer: ${samePrinter?.equals(
+          printer1
+        )}`
       );
     }
 
@@ -75,7 +75,7 @@ async function main() {
 
         if (isSimulationMode) {
           console.log(
-            "   (These were simulations - no actual printing occurred)",
+            "   (These were simulations - no actual printing occurred)"
           );
         }
       } catch (error) {

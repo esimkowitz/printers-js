@@ -1,11 +1,9 @@
-//! Cross-runtime printer library
+//! Cross-runtime printer library via N-API
 //!
-//! This library provides printer functionality for multiple JavaScript runtimes:
-//! - Deno and Bun via FFI
-//! - Node.js via N-API
+//! This library provides printer functionality for JavaScript runtimes
+//! through Node-API bindings, compatible with Node.js, Deno, and Bun.
 
 pub mod core;
-pub mod ffi;
 
 #[cfg(feature = "napi")]
 pub mod napi;

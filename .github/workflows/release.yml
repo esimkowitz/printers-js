@@ -6,95 +6,6 @@ on:
       - "v*.*.*" # Trigger on version tags like v1.2.3
 
 jobs:
-  build-native:
-    name: Build native libraries
-    runs-on: ${{ matrix.os }}
-    permissions: {}
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-            source_artifact_name: libprinters_js.so
-            dest_artifact_name: libprinters_js-x64.so
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            source_artifact_name: libprinters_js.so
-            dest_artifact_name: libprinters_js-arm64.so
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            source_artifact_name: printers_js.dll
-            dest_artifact_name: printers_js-x64.dll
-          - target: x86_64-apple-darwin
-            os: macos-13
-            source_artifact_name: libprinters_js.dylib
-            dest_artifact_name: libprinters_js-x64.dylib
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            source_artifact_name: libprinters_js.dylib
-            dest_artifact_name: libprinters_js-arm64.dylib
-    steps:
-      # Speed up apt-get operations by disabling unnecessary man-db auto-update
-      - name: Disable man-db auto-update
-        if: runner.os == 'Linux'
-        run: |
-          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
-          sudo rm -f /var/lib/man-db/auto-update
-      - uses: actions/checkout@v5
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          cache: false
-      - name: Install system dependencies for Linux
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcups2-dev pkg-config clang
-      - name: Install cross for ARM64 cross-compilation
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          cargo install cross
-      - name: Build native library
-        shell: bash
-        run: |
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            cross build --release --target ${{ matrix.target }}
-          else
-            cargo build --release --target ${{ matrix.target }}
-          fi
-
-          # Debug: Check what was actually built
-          echo "Contents of target/${{ matrix.target }}/release:"
-          ls -la target/${{ matrix.target }}/release/ || dir target\\${{ matrix.target }}\\release\\ 2>/dev/null || echo "Release directory not found"
-      - name: Prepare artifact for target/release structure
-        shell: bash
-        run: |
-          mkdir -p target/release
-
-          # Debug: Check source file exists before copying
-          SOURCE_FILE="target/${{ matrix.target }}/release/${{ matrix.source_artifact_name }}"
-          echo "Looking for source file: $SOURCE_FILE"
-          if [ -f "$SOURCE_FILE" ]; then
-            echo "Source file exists, copying to target/release/${{ matrix.dest_artifact_name }}"
-            cp "$SOURCE_FILE" target/release/${{ matrix.dest_artifact_name }}
-            echo "Copy successful. Contents of target/release:"
-            ls -la target/release/ || dir target\\release\\ 2>/dev/null
-          else
-            echo "ERROR: Source file $SOURCE_FILE does not exist!"
-            echo "All files in target/${{ matrix.target }}/release/:"
-            ls -la target/${{ matrix.target }}/release/ || dir target\\${{ matrix.target }}\\release\\ 2>/dev/null || echo "Directory not found"
-            exit 1
-          fi
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: target-release-${{ matrix.target }}
-          path: |
-            target/release/*.so
-            target/release/*.dll
-            target/release/*.dylib
-          if-no-files-found: error
-
   build-napi:
     name: Build N-API modules
     runs-on: ${{ matrix.settings.host }}
@@ -187,7 +98,7 @@ jobs:
   test-targets:
     name: Cross-runtime test on ${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
-    needs: [build-napi, build-native]
+    needs: build-napi
     permissions: {}
     strategy:
       fail-fast: false
@@ -239,12 +150,6 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download all native binary artifacts
-        uses: actions/download-artifact@v5
-        with:
-          pattern: target-release-*
-          path: target/release
-          merge-multiple: true
       - name: Download all N-API binary artifacts
         uses: actions/download-artifact@v5
         with:
@@ -264,7 +169,7 @@ jobs:
           ls -la npm/ 2>/dev/null || dir npm
       - name: Install Node.js dependencies
         run: npm ci
-      - name: Run comprehensive tests
+      - name: Run comprehensive tests (includes compilation)
         run: task test
 
   publish:
@@ -277,9 +182,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - registry: jsr
-            publish_command: "deno publish --allow-dirty --no-check"
-            env_vars: {}
           - registry: npm
             publish_command: "npm publish --access public"
     steps:
@@ -289,27 +191,13 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Deno
-        if: matrix.registry == 'jsr'
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-          cache: false
       - name: Setup Node
-        if: matrix.registry == 'npm'
         uses: actions/setup-node@v5
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
           package-manager-cache: false
-      - name: Download all native binary artifacts
-        uses: actions/download-artifact@v5
-        with:
-          pattern: target-release-*
-          path: target/release
-          merge-multiple: true
       - name: Install Node.js dependencies
-        if: matrix.registry == 'npm'
         run: npm ci
       - name: Download all N-API binary artifacts
         uses: actions/download-artifact@v5
@@ -328,6 +216,8 @@ jobs:
             fi
           done
           ls -la npm/ 2>/dev/null || dir npm
+      - name: Compile TypeScript for publishing
+        run: task compile
       - name: Publish to ${{ matrix.registry }}
         run: ${{ matrix.publish_command }}
         env:

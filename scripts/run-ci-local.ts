@@ -19,7 +19,7 @@ function colorize(color: keyof typeof colors, text: string): string {
 
 async function runCommand(
   command: string[],
-  options: { env?: Record<string, string> } = {},
+  options: { env?: Record<string, string> } = {}
 ): Promise<{ success: boolean; output: string }> {
   try {
     const cmd = new Deno.Command(command[0], {
@@ -33,8 +33,8 @@ async function runCommand(
     });
 
     const { code, stdout, stderr } = await cmd.output();
-    const output = new TextDecoder().decode(stdout) +
-      new TextDecoder().decode(stderr);
+    const output =
+      new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr);
 
     return {
       success: code === 0,
@@ -59,7 +59,7 @@ async function runWorkflow(
   workflowName: string,
   workflowFile: string,
   event: string,
-  verbose = false,
+  verbose = false
 ): Promise<boolean> {
   console.log(colorize("blue", `🔄 Running ${workflowName} workflow...`));
   console.log(`Workflow file: ${workflowFile}`);
@@ -75,7 +75,7 @@ async function runWorkflow(
 
   if (result.success) {
     console.log(
-      colorize("green", `✅ ${workflowName} workflow completed successfully`),
+      colorize("green", `✅ ${workflowName} workflow completed successfully`)
     );
     return true;
   } else {
@@ -105,11 +105,11 @@ async function main(): Promise<void> {
   console.log(
     colorize(
       "blue",
-      "🏃 Running GitHub Actions workflows locally with nektos/act",
-    ),
+      "🏃 Running GitHub Actions workflows locally with nektos/act"
+    )
   );
   console.log(
-    "==================================================================",
+    "=================================================================="
   );
 
   // Parse command line arguments
@@ -166,7 +166,7 @@ async function main(): Promise<void> {
     console.log();
     console.log("# Linux (using curl):");
     console.log(
-      "curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash",
+      "curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash"
     );
     console.log();
     console.log("# Or download from: https://github.com/nektos/act/releases");
@@ -182,7 +182,7 @@ async function main(): Promise<void> {
   // Dry run mode - just show what would be executed
   if (dryRun) {
     console.log(
-      colorize("yellow", "🔍 DRY RUN MODE - showing what would be executed:"),
+      colorize("yellow", "🔍 DRY RUN MODE - showing what would be executed:")
     );
     console.log();
 
@@ -190,7 +190,7 @@ async function main(): Promise<void> {
       console.log("Would run:");
       console.log("  1. Build workflow (push event): .github/workflows/ci.yml");
       console.log(
-        "  2. Build workflow (pull_request_target event): .github/workflows/ci.yml",
+        "  2. Build workflow (pull_request_target event): .github/workflows/ci.yml"
       );
     } else {
       console.log("Would run:");
@@ -222,7 +222,7 @@ async function main(): Promise<void> {
         "Build (pull_request_target)",
         "ci.yml",
         "pull_request_target",
-        verbose,
+        verbose
       ))
     ) {
       success = false;
@@ -236,7 +236,7 @@ async function main(): Promise<void> {
 
   console.log();
   console.log(
-    "==================================================================",
+    "=================================================================="
   );
 
   if (success) {
@@ -247,7 +247,7 @@ async function main(): Promise<void> {
     console.log("  • Use --dry-run to preview without execution");
     console.log("  • Check .act/ directory for cached images and data");
     console.log(
-      "  • Workflows run in Docker containers matching Ubuntu runner",
+      "  • Workflows run in Docker containers matching Ubuntu runner"
     );
   } else {
     console.log(colorize("red", "❌ Some workflows failed"));

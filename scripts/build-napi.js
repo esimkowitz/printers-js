@@ -27,14 +27,20 @@ function getPlatformTarget() {
   // Map architecture
   switch (arch) {
     case "x64":
-      archName = platformName === "win32"
-        ? "x64-msvc"
-        : (platformName === "linux" ? "x64-gnu" : "x64");
+      archName =
+        platformName === "win32"
+          ? "x64-msvc"
+          : platformName === "linux"
+            ? "x64-gnu"
+            : "x64";
       break;
     case "arm64":
-      archName = platformName === "win32"
-        ? "arm64-msvc"
-        : (platformName === "linux" ? "arm64-gnu" : "arm64");
+      archName =
+        platformName === "win32"
+          ? "arm64-msvc"
+          : platformName === "linux"
+            ? "arm64-gnu"
+            : "arm64";
       break;
     default:
       throw new Error(`Unsupported architecture: ${arch}`);
