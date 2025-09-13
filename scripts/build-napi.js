@@ -62,31 +62,43 @@ function main() {
   // Build with modern NAPI-RS using proper flags
   const outputDir = `npm/${platformTarget}`;
 
-  // Try using direct napi command instead of npx
-  const napiArgs = ["build", "--platform", "--features", "napi", "--esm"];
+  // Build with NAPI-RS CLI
+  const napiArgs = ["build", "--platform", "--esm"];
   if (isRelease) napiArgs.push("--release");
   napiArgs.push("--output-dir", outputDir);
 
   console.log(`Running: napi ${napiArgs.join(" ")}`);
 
   try {
-    execSync(`npx napi ${napiArgs.join(" ")}`, {
+    const command = `npx napi ${napiArgs.join(" ")}`;
+    console.log(`Executing: ${command}`);
+    execSync(command, {
       stdio: "inherit",
       env: process.env,
+      shell: platform === "win32" ? "cmd.exe" : undefined,
     });
   } catch (error) {
     console.error("Build failed:", error);
+    console.error("Error message:", error.message);
+    console.error("Command:", `npx napi ${napiArgs.join(" ")}`);
+    console.error("Platform:", platform, "Arch:", arch);
+    console.error("Target:", platformTarget);
     process.exit(1);
   }
 
   // Remove NAPI_RS_NATIVE_LIBRARY_PATH check
   try {
-    execSync(`node scripts/remove-env-check.js --dir ${outputDir}`, {
+    const removeEnvCommand = `node scripts/remove-env-check.js --dir ${outputDir}`;
+    console.log(`Running post-build script: ${removeEnvCommand}`);
+    execSync(removeEnvCommand, {
       stdio: "inherit",
       env: process.env,
+      shell: platform === "win32" ? "cmd.exe" : undefined,
     });
   } catch (error) {
     console.error("Failed to remove env check:", error);
+    console.error("Error message:", error.message);
+    console.error("Output dir:", outputDir);
     process.exit(1);
   }
 
