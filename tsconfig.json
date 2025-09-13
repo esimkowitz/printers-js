@@ -16,9 +16,7 @@
     "lib": ["ES2020", "DOM"],
     "types": ["node"]
   },
-  "include": [
-    "src/index.ts"
-  ],
+  "include": ["src/index.ts"],
   "exclude": [
     "src/tests/**/*",
     "node_modules",

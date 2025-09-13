@@ -111,7 +111,7 @@ for (const file of filesToProcess) {
       );
 
       // Fix export var to export const for ESLint compliance
-      content = content.replace(/export var/g, 'export const');
+      content = content.replace(/export var/g, "export const");
 
       writeFileSync(filePath, content, "utf8");
       console.log(`🔧 Fixed import paths in ${file}`);

@@ -79,11 +79,16 @@ async function main() {
           );
         }
       } catch (error) {
-        console.log(`❌ Some print jobs failed: ${error instanceof Error ? error.message : String(error)}`);
+        console.log(
+          `❌ Some print jobs failed: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   } catch (error) {
-    console.error("💥 Error:", error instanceof Error ? error.message : String(error));
+    console.error(
+      "💥 Error:",
+      error instanceof Error ? error.message : String(error)
+    );
     Deno.exit(1);
   }
 

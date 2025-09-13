@@ -90,16 +90,14 @@ async function runTests() {
   // Test Deno
   console.log(colorize("yellow", "🦕 Testing with Deno..."));
   console.log("--------------------");
-  const denoResult = await runCommand(
-    [
-      "deno",
-      "test",
-      "--allow-env",
-      "--allow-read",
-      "--no-check",
-      "src/tests/shared.test.ts",
-    ]
-  );
+  const denoResult = await runCommand([
+    "deno",
+    "test",
+    "--allow-env",
+    "--allow-read",
+    "--no-check",
+    "src/tests/shared.test.ts",
+  ]);
 
   if (denoResult.success) {
     console.log(colorize("green", "✅ Deno tests passed"));
@@ -143,7 +141,11 @@ async function runTests() {
   // Test Bun
   console.log(colorize("yellow", "🥟 Testing with Bun..."));
   console.log("--------------------");
-  const bunResult = await runCommand(["bun", "test", "src/tests/shared.test.ts"]);
+  const bunResult = await runCommand([
+    "bun",
+    "test",
+    "src/tests/shared.test.ts",
+  ]);
 
   if (bunResult.success) {
     console.log(colorize("green", "✅ Bun tests passed"));
