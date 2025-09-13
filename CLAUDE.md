@@ -199,7 +199,7 @@ distribution:
    `npm/`
 3. **Artifact reconstruction**: Download and combine all platforms before
    publishing
-4. **npm publishing**: npm only (via NAPI-RS prepublish), JSR access via npm: syntax
+4. **npm publishing**: npm registry (via NAPI-RS prepublish), cross-runtime access via npm: syntax
 
 ### Critical Release Workflow Details
 

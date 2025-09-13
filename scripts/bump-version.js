@@ -78,9 +78,7 @@ function getCurrentVersion() {
 }
 
 function showUsage() {
-  console.log(
-    "Usage: node scripts/bump-version.js <type> [--dry-run]"
-  );
+  console.log("Usage: node scripts/bump-version.js <type> [--dry-run]");
   console.log("  where <type> is one of: major, minor, patch");
   console.log(
     "  --dry-run: Show what would be changed without modifying files"
@@ -123,7 +121,9 @@ async function main() {
     const newVersionString = semver.inc(currentVersionString, bumpType);
 
     if (!newVersionString) {
-      throw new Error(`Failed to increment ${bumpType} version from ${currentVersionString}`);
+      throw new Error(
+        `Failed to increment ${bumpType} version from ${currentVersionString}`
+      );
     }
 
     console.log(`New version: ${newVersionString}`);

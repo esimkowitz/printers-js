@@ -129,6 +129,15 @@ if (isSimulationMode) {
 
   nativeModule = {
     getAllPrinterNames: () => ["Simulated Printer"],
+    getAllPrinters: () => [
+      {
+        name: "Simulated Printer",
+        systemName: "SIM001",
+        driverName: "Simulated Driver",
+        isDefault: true,
+        state: "READY",
+      }
+    ],
     findPrinterByName: (name: string) =>
       name === "Simulated Printer"
         ? {
@@ -377,9 +386,9 @@ export function getJobStatus(jobId: number): JobStatus | null {
   }
 }
 
-export async function cleanupOldJobs(
+export function cleanupOldJobs(
   maxAgeMs: number = 30000
-): Promise<number> {
+): number {
   try {
     const maxAgeSeconds = Math.floor(maxAgeMs / 1000);
     return nativeModule.cleanupOldJobs

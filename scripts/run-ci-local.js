@@ -1,8 +1,10 @@
-#!/usr/bin/env -S deno run --allow-run --allow-env --allow-read
+#!/usr/bin/env node
 /**
- * run-ci-local.ts - Run CI workflows locally using nektos/act
+ * run-ci-local.js - Run CI workflows locally using nektos/act
  * This script allows you to test GitHub Actions workflows locally before pushing
  */
+
+import { spawn } from "node:child_process";
 
 // Colors for output
 const colors = {
@@ -13,54 +15,61 @@ const colors = {
   reset: "\x1b[0m", // No Color
 };
 
-function colorize(color: keyof typeof colors, text: string): string {
+function colorize(color, text) {
   return `${colors[color]}${text}${colors.reset}`;
 }
 
-async function runCommand(
-  command: string[],
-  options: { env?: Record<string, string> } = {}
-): Promise<{ success: boolean; output: string }> {
-  try {
-    const cmd = new Deno.Command(command[0], {
-      args: command.slice(1),
-      env: {
-        ...Deno.env.toObject(),
-        ...options.env,
-      },
-      stdout: "piped",
-      stderr: "piped",
-    });
+async function runCommand(command, options = {}) {
+  return new Promise(resolve => {
+    try {
+      const [cmd, ...args] = command;
+      const child = spawn(cmd, args, {
+        env: {
+          ...process.env,
+          ...options.env,
+        },
+        stdio: ["inherit", "pipe", "pipe"],
+      });
 
-    const { code, stdout, stderr } = await cmd.output();
-    const output =
-      new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr);
+      let stdout = "";
+      let stderr = "";
 
-    return {
-      success: code === 0,
-      output,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      output: `Command failed: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    };
-  }
+      child.stdout?.on("data", data => {
+        stdout += data.toString();
+      });
+
+      child.stderr?.on("data", data => {
+        stderr += data.toString();
+      });
+
+      child.on("close", code => {
+        resolve({
+          success: code === 0,
+          output: stdout + stderr,
+        });
+      });
+
+      child.on("error", error => {
+        resolve({
+          success: false,
+          output: `Command failed: ${error.message}`,
+        });
+      });
+    } catch (error) {
+      resolve({
+        success: false,
+        output: `Command failed: ${error.message}`,
+      });
+    }
+  });
 }
 
-async function checkActInstalled(): Promise<boolean> {
+async function checkActInstalled() {
   const result = await runCommand(["act", "--version"]);
   return result.success;
 }
 
-async function runWorkflow(
-  workflowName: string,
-  workflowFile: string,
-  event: string,
-  verbose = false
-): Promise<boolean> {
+async function runWorkflow(workflowName, workflowFile, event, verbose = false) {
   console.log(colorize("blue", `🔄 Running ${workflowName} workflow...`));
   console.log(`Workflow file: ${workflowFile}`);
   console.log(`Event: ${event}`);
@@ -85,7 +94,7 @@ async function runWorkflow(
   }
 }
 
-function printUsage(scriptName: string): void {
+function printUsage(scriptName) {
   console.log(`Usage: ${scriptName} [OPTIONS]`);
   console.log();
   console.log("Options:");
@@ -101,7 +110,7 @@ function printUsage(scriptName: string): void {
   console.log(`  ${scriptName} --dry-run    # Preview what would run`);
 }
 
-async function main(): Promise<void> {
+async function main() {
   console.log(
     colorize(
       "blue",
@@ -113,7 +122,7 @@ async function main(): Promise<void> {
   );
 
   // Parse command line arguments
-  const args = Deno.args;
+  const args = process.argv.slice(2);
   let workflow = "build"; // default
   let dryRun = false;
   let verbose = false;
@@ -138,13 +147,13 @@ async function main(): Promise<void> {
         break;
       case "--help":
       case "-h":
-        printUsage("deno run scripts/run-ci-local.ts");
-        Deno.exit(0);
+        printUsage("node scripts/run-ci-local.js");
+        process.exit(0);
         break;
       default:
         console.log(colorize("red", `Unknown option: ${arg}`));
         console.log("Use --help for usage information");
-        Deno.exit(1);
+        process.exit(1);
     }
   }
 
@@ -171,7 +180,7 @@ async function main(): Promise<void> {
     console.log();
     console.log("# Or download from: https://github.com/nektos/act/releases");
     console.log();
-    Deno.exit(1);
+    process.exit(1);
   }
 
   const versionResult = await runCommand(["act", "--version"]);
@@ -257,10 +266,10 @@ async function main(): Promise<void> {
     console.log("  • Review error messages above for specific issues");
     console.log("  • Consider running individual steps manually first");
     console.log("  • Some GitHub Actions features may not work locally");
-    Deno.exit(1);
+    process.exit(1);
   }
 }
 
-if (import.meta.main) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   await main();
 }

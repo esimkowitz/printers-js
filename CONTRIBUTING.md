@@ -1,48 +1,43 @@
 # Contributing to @printers/printers
 
-Technical documentation for this cross-runtime printer library.
+This document provides technical documentation for contributing to this cross-runtime printer library.
 
-## Architecture
+## Architecture Overview
 
-This library supports Deno, Bun, and Node.js with identical APIs:
+This library provides unified printer functionality across multiple JavaScript runtimes:
 
-- **Deno/Bun**: Use FFI to load shared libraries (`.dylib/.so/.dll`)
-- **Node.js**: Uses N-API modules (`.node`)
-- **Rust backend**: Shared business logic for all runtimes
+- **Cross-runtime compatibility**: Uses N-API modules (`.node`) for Deno, Bun, and Node.js
+- **Native performance**: Rust backend provides shared business logic
+- **Single API**: Identical interface across all supported runtimes
 
 ### File Structure
 
 ```
 lib/                    # Rust backend source
 ├── core.rs            # Shared business logic
-├── ffi.rs             # FFI bindings (Deno/Bun)
-├── napi.rs            # N-API bindings (Node.js)
-├── node.rs            # Node.js-specific functionality
+├── napi.rs            # N-API bindings (all runtimes)
 └── lib.rs             # Module orchestration
 
 src/                    # TypeScript/JavaScript source
-├── index.ts           # Universal entry point (auto-detects runtime)
-├── deno.ts            # Deno-specific implementation (FFI-based)
-├── bun.ts             # Bun-specific implementation (FFI-based)
-├── node.ts            # Node.js-specific implementation (N-API wrapper)
-└── ffi-loader.ts      # FFI loading utilities
+└── index.ts           # Universal entry point (N-API based, all runtimes)
 
 tests/
 ├── shared.test.ts     # Cross-runtime test suite
 └── node-test-runner.ts # Custom Node.js test runner
 
-scripts/                # Build and automation scripts
-├── build-all.ts       # Cross-runtime build orchestration (Deno)
-├── test-all.ts        # Comprehensive test runner (Deno)
-├── bump-version.ts    # Version management (Deno)
-├── run-ci-local.ts    # Local CI simulation (Deno)
-├── build-napi.js      # N-API module building (Node.js)
-└── remove-env-check.js # Post-build N-API processing (Node.js)
+scripts/                # Build and automation scripts (Node.js)
+├── build-all.js       # Cross-runtime build orchestration
+├── test-all.js        # Comprehensive test runner
+├── bump-version.js    # Version management
+├── run-ci-local.js    # Local CI simulation
+├── compile.js         # TypeScript compilation
+└── remove-env-check.js # Post-build N-API processing
 
 # Generated artifacts (gitignored)
 npm/               # N-API platform packages for publishing
-target/release/    # FFI binaries
+target/release/    # N-API binaries
 test-results/      # Test reports and coverage
+dist/              # Compiled JavaScript output
 ```
 
 ## Development
@@ -51,40 +46,42 @@ test-results/      # Test reports and coverage
 
 Install the required development tools:
 
-**Required:**
+**Required Tools:**
 
-- **Rust** - Core backend development
-  ```bash
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-  rustup update
-  ```
-- **Task** - Build automation ([taskfile.dev](https://taskfile.dev/))
+1. **Rust** - Core backend development
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   rustup update
+   ```
 
-  ```bash
-  # macOS (Homebrew)
-  brew install go-task
+2. **Task** - Build automation ([taskfile.dev](https://taskfile.dev/))
+   ```bash
+   # macOS (Homebrew)
+   brew install go-task
+   
+   # Linux/Windows (Go)
+   go install github.com/go-task/task/v3/cmd/task@latest
+   
+   # Or download binary from https://github.com/go-task/task/releases
+   ```
 
-  # Linux/Windows (Go)
-  go install github.com/go-task/task/v3/cmd/task@latest
+**JavaScript Runtimes (install as needed):**
 
-  # Or download binary from https://github.com/go-task/task/releases
-  ```
+1. **Node.js** - Required for build scripts and N-API builds
+   ```bash
+   # Use nvm, fnm, or download from nodejs.org
+   # Requires Node.js 20+ for N-API builds and automation scripts
+   ```
 
-**Runtime-specific (install as needed):**
+2. **Deno** - For Deno runtime testing
+   ```bash
+   curl -fsSL https://deno.land/install.sh | sh
+   ```
 
-- **Deno** - For Deno runtime and automation scripts
-  ```bash
-  curl -fsSL https://deno.land/install.sh | sh
-  ```
-- **Node.js** - For Node.js runtime and N-API builds
-  ```bash
-  # Use nvm, fnm, or download from nodejs.org
-  # Requires Node.js 18+ for N-API builds
-  ```
-- **Bun** - For Bun runtime testing
-  ```bash
-  curl -fsSL https://bun.sh/install | bash
-  ```
+3. **Bun** - For Bun runtime testing
+   ```bash
+   curl -fsSL https://bun.sh/install | bash
+   ```
 
 **Verify installation:**
 
@@ -96,15 +93,15 @@ node --version    # if installed
 bun --version     # if installed
 ```
 
-### Build
+### Build Commands
 
 ```bash
-# Build all runtimes (FFI + N-API)
+# Build everything (recommended)
 task build
 
-# Build individual runtimes
-task build:ffi           # Build FFI library for Deno/Bun
-task build:napi          # Build N-API module for Node.js
+# Individual build steps
+task build:napi          # Build N-API module
+task compile             # Compile TypeScript to JavaScript
 ```
 
 The N-API build process:
@@ -112,59 +109,55 @@ The N-API build process:
 1. Auto-detects current platform (darwin-arm64, linux-x64-gnu, etc.)
 2. Creates npm platform directories using `napi create-npm-dirs`
 3. Builds platform-specific binaries with napi-rs directly to `npm/platform/`
-4. Removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for JSR compatibility
+4. Removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for npm compatibility
 
 This approach uses the official NAPI-RS `npm/` directory structure for all N-API
 operations.
 
-### Scripts and Runtimes
+### Scripts and Automation
 
-The project uses different runtime environments for different script types:
-
-**Deno Scripts** (TypeScript with Deno runtime):
-
-- `scripts/build-all.ts` - Cross-runtime build orchestration
-- `scripts/test-all.ts` - Comprehensive test runner with coverage
-- `scripts/run-ci-local.ts` - Local CI simulation
-- `scripts/bump-version.ts` - Version management
+All build and automation scripts use Node.js for consistency:
 
 **Node.js Scripts** (ESM JavaScript with Node runtime):
 
-- `scripts/build-napi.js` - N-API module building (requires Node.js subprocess
-  environment)
+- `scripts/build-all.js` - Cross-runtime build orchestration
+- `scripts/test-all.js` - Comprehensive test runner with coverage
+- `scripts/run-ci-local.js` - Local CI simulation
+- `scripts/bump-version.js` - Version management
+- `scripts/compile.js` - TypeScript compilation
 - `scripts/remove-env-check.js` - Post-build N-API processing
-- `scripts/build-all-node.js` - Alternative Node.js-based build script
 
-**Why different runtimes?**
+**Why Node.js scripts?**
 
-- Deno scripts handle complex automation and cross-runtime orchestration
-- Node.js scripts handle N-API builds which require specific subprocess
-  environments that work better with native Node.js execution
-- Node.js scripts must run on Windows ARM CI runners where Deno is not available
-- This separation ensures optimal compatibility for each build target and CI
-  environment
+- Node.js provides the most consistent cross-platform compatibility
+- N-API builds integrate seamlessly with Node.js tooling
+- All CI environments support Node.js, ensuring reliable automation
+- Unified toolchain simplifies development and maintenance
 
-### Test
+### Testing
 
+**Primary test commands:**
 ```bash
-# Run comprehensive test suite across all runtimes (recommended)
-task test
+task test               # Run all tests (simulation mode) - recommended
+task test:real          # Run all tests with real printing
+```
 
-# Run comprehensive test suite with real printing
-task test:real
+**Runtime-specific testing:**
+```bash
+# Simulation mode (safe testing)
+task test:deno          # Deno tests
+task test:node          # Node.js tests
+task test:bun           # Bun tests
 
-# Individual runtimes (simulation mode)
-task test:deno          # Run Deno tests in simulation mode
-task test:node          # Run Node.js tests in simulation mode
-task test:bun           # Run Bun tests in simulation mode
+# Real printing mode (use with caution)
+task test:deno:real     # Deno tests with actual printing
+task test:node:real     # Node.js tests with actual printing
+task test:bun:real      # Bun tests with actual printing
+```
 
-# Individual runtimes (real printing)
-task test:deno:real     # Run Deno tests with real printing
-task test:node:real     # Run Node.js tests with real printing
-task test:bun:real      # Run Bun tests with real printing
-
-# Additional test commands
-task test:doc           # Run documentation tests
+**Additional test commands:**
+```bash
+task test:doc           # Documentation tests
 ```
 
 All tests use `PRINTERS_JS_SIMULATE=true` by default. Use `:real` variants to
@@ -172,102 +165,88 @@ actually print.
 
 ### Code Quality
 
-Run after changes:
+**Essential commands to run after making changes:**
 
+**Formatting:**
 ```bash
-# Format all code
-task fmt                # Format TypeScript/JavaScript and Rust
+task fmt                # Format all code (Prettier + Rust fmt)
+task fmt:check          # Check formatting without changes
+```
 
-# Check formatting without changes
-task fmt:check          # Check all formatting
-task fmt:deno:check     # Check TypeScript/JavaScript formatting
+**Linting:**
+```bash
+task lint               # Lint all code
+task lint:fix           # Auto-fix linting issues
+```
+
+**Type Checking:**
+```bash
+task check              # Type check all code
+```
+
+**Individual tools:**
+```bash
+# Format specific languages
+task fmt:prettier:check # Check TypeScript/JavaScript formatting
 task fmt:rust:check     # Check Rust formatting
 
-# Lint all code
-task lint               # Lint Deno, Node.js, and Rust code
-task lint:fix           # Fix linting issues automatically
-
-# Individual linting
-task lint:deno          # Lint Deno-managed files
-task lint:node          # Lint Node.js-managed files
+# Lint specific components
+task lint:node          # Lint Node.js files
 task lint:rust          # Lint Rust code with Clippy
 
-# Type checking
-task check              # Type check all code
-task check:deno         # Type check Deno code
-task check:node         # Type check Node.js code (via build)
+# Type check specific components
+task check:node         # Type check Node.js code
 task check:rust         # Type check Rust code
 ```
 
 ## Release Process
 
-1. **Bump version**:
+**Manual release steps:**
+
+1. **Version bump**:
    ```bash
-   task bump:patch    # 0.4.2 -> 0.4.3
-   task bump:minor    # 0.4.2 -> 0.5.0
-   task bump:major    # 0.4.2 -> 1.0.0
+   task bump:patch    # Bug fixes (0.4.2 → 0.4.3)
+   task bump:minor    # New features (0.4.2 → 0.5.0)
+   task bump:major    # Breaking changes (0.4.2 → 1.0.0)
    ```
-2. **Commit and push**: `git add . && git commit -m "v0.4.3" && git push`
-3. **Create tag and push**: `git tag v0.4.3 && git push origin v0.4.3`
+
+2. **Commit and tag**:
+   ```bash
+   git add .
+   git commit -m "v0.4.3"
+   git push
+   git tag v0.4.3
+   git push origin v0.4.3
+   ```
 
 The release workflow (`.github/workflows/release.yml`) is triggered by version
 tags and handles:
 
-### Automated Release Pipeline
+**Automated CI/CD pipeline** (triggered by version tags):
 
-1. **Cross-platform builds**: Builds native libraries and N-API modules for all
-   supported platforms
-2. **Cross-runtime testing**: Runs comprehensive tests on Deno, Bun, and Node.js
-   across all platforms
-3. **Artifact collection**: Downloads and combines all platform-specific
-   binaries
-4. **Dual publishing**: Publishes to both JSR and npm simultaneously
+1. **Cross-platform builds** - N-API modules for all supported platforms
+2. **Cross-runtime testing** - Deno, Bun, and Node.js on all platforms
+3. **Artifact collection** - Combines all platform-specific binaries
+4. **npm publishing** - Publishes with cross-runtime compatibility
 
-### Platform Matrix
+### Platform Support
 
-**FFI Libraries** (for Deno/Bun):
-
-- `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`
-- `x86_64-pc-windows-msvc`
-- `x86_64-apple-darwin`, `aarch64-apple-darwin`
-
-**N-API Modules** (for Node.js):
-
-- `linux-x64-gnu`, `linux-arm64-gnu`
-- `win32-x64-msvc`, `win32-arm64-msvc`
-- `darwin-x64`, `darwin-arm64`
+**Supported platforms**:
+- **Linux**: `x64-gnu`, `arm64-gnu` (all runtimes)
+- **Windows**: `x64-msvc` (all runtimes), `arm64-msvc` (Node.js only)
+- **macOS**: `x64`, `arm64` (all runtimes)
 
 ### Publishing Strategy
 
-**JSR**: Direct publish from universal `src/index.ts` with all platform binaries
-included
+**Primary distribution** via npm registry:
+- **Main package**: `@printers/printers` with `optionalDependencies`
+- **Platform packages**: `@printers/printers-{platform}` (auto-selected)
+- **Cross-runtime access**:
+  - Node.js: `npm install @printers/printers`
+  - Deno: `deno add npm:@printers/printers`
+  - Bun: `bun add @printers/printers`
 
-**npm**: Uses NAPI-RS `prepublish` workflow:
-
-- Main package (`@printers/printers`) with `optionalDependencies`
-- Platform-specific packages (`@printers/printers-darwin-arm64`, etc.)
-- Automatic platform detection during installation
-
-## JSR Publishing
-
-### Configuration
-
-`deno.json` includes N-API artifacts despite gitignore:
-
-```json
-{
-  "publish": {
-    "include": [
-      "*.ts",
-      "README.md",
-      "LICENSE",
-      "npm/**",
-      "target/release/*.{dll,dylib,so}"
-    ],
-    "exclude": ["!napi"]
-  }
-}
-```
+## npm Publishing
 
 ### N-API Build Architecture
 
@@ -280,7 +259,7 @@ The N-API build process integrates with the NAPI-RS publishing workflow:
   `package.json` files
 - Builds using `napi build --platform` for current platform only
 - `scripts/remove-env-check.js` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for
-  JSR compatibility
+  npm compatibility
 
 **CI/CD Pipeline:**
 
@@ -315,8 +294,9 @@ task build:napi
 ### Manual Testing
 
 ```bash
-# Test JSR configuration
-deno publish --dry-run --no-check --allow-dirty
+# Test npm publishing configuration
+npm pack --dry-run
+npm publish --dry-run
 ```
 
 ## Memory Management
@@ -330,15 +310,15 @@ needed.
 **Rust** (`Cargo.toml`):
 
 - `printers = "2.2.0"` - Core printer functionality
-- `napi = "3"` - N-API bindings (optional)
-
-**Deno** (`deno.json`):
-
-- `@std/assert`, `@std/path`, `@std/semver`
+- `napi = "3"` - N-API bindings
 
 **Node.js** (`package.json`):
 
 - `@napi-rs/cli` - N-API build toolchain
+- `prettier` - Code formatting
+- `eslint` - Code linting
+- `typescript` - TypeScript compilation
+- `semver` - Version management
 
 ## CI/CD
 
@@ -355,7 +335,7 @@ needed.
 - Cross-platform native library builds
 - Cross-platform N-API module builds
 - Cross-runtime integration testing
-- Simultaneous JSR and npm publishing
+- npm publishing with cross-runtime support
 
 ### Local CI Testing
 

@@ -23,11 +23,11 @@ tasks:
 
   test:
     desc: Run comprehensive test suite across all runtimes
-    cmd: "{{.SIMULATE}} deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts"
+    cmd: node scripts/test-all.js
 
   test:real:
-    desc: Run comprehensive test suite with real printing
-    cmd: deno run --allow-run --allow-write --allow-read --allow-env scripts/test-all.ts
+    desc: Run comprehensive test suite with real printing (not recommended)
+    cmd: PRINTERS_JS_SIMULATE=false node scripts/test-all.js
 
   test:deno:
     desc: Run Deno tests in simulation mode
@@ -149,4 +149,4 @@ tasks:
 
   ci:local:
     desc: Run CI locally with nektos/act
-    cmd: deno run --allow-run --allow-env --allow-read scripts/run-ci-local.ts
+    cmd: node scripts/run-ci-local.js
