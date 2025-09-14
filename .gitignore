@@ -26,6 +26,7 @@ node_modules/
 
 # Compiled JavaScript files (if any)
 /dist/
+/index.d.ts
 
 # ==========================================
 # BUILD & RELEASE ARTIFACTS

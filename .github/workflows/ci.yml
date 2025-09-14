@@ -18,8 +18,7 @@ jobs:
     outputs:
       rust-fmt-result: ${{ steps.rust-fmt.outcome }}
       rust-lint-result: ${{ steps.rust-lint.outcome }}
-      deno-fmt-result: ${{ steps.deno-fmt.outcome }}
-      deno-lint-result: ${{ steps.deno-lint.outcome }}
+      prettier-fmt-result: ${{ steps.prettier-fmt.outcome }}
       eslint-result: ${{ steps.eslint.outcome }}
     steps:
       - name: Checkout base branch
@@ -101,23 +100,18 @@ jobs:
         run: task lint:rust
         continue-on-error: true
 
-      - name: Check Deno formatting
-        id: deno-fmt
-        run: task fmt:deno:check
-        continue-on-error: true
-
-      - name: Run Deno linter
-        id: deno-lint
-        run: task lint:deno
+      - name: Check TypeScript/JavaScript formatting
+        id: prettier-fmt
+        run: task fmt:prettier:check
         continue-on-error: true
 
       # Install Node.js dependencies
       - name: Install Node.js dependencies
         run: npm install
 
-      - name: Run ESLint for non-Deno files
+      - name: Run ESLint
         id: eslint
-        run: task lint:node
+        run: task lint:eslint
         continue-on-error: true
 
   build-and-test:
@@ -959,23 +953,20 @@ jobs:
             // Get individual step outcomes from build job outputs
             const rustFmtResult = '${{ needs.code-quality.outputs.rust-fmt-result }}';
             const rustLintResult = '${{ needs.code-quality.outputs.rust-lint-result }}';
-            const denoFmtResult = '${{ needs.code-quality.outputs.deno-fmt-result }}';
-            const denoLintResult = '${{ needs.code-quality.outputs.deno-lint-result }}';
+            const prettierFmtResult = '${{ needs.code-quality.outputs.prettier-fmt-result }}';
             const eslintResult = '${{ needs.code-quality.outputs.eslint-result }}';
 
             console.log('Code quality step results:');
             console.log(`- Rust fmt: ${rustFmtResult}`);
             console.log(`- Rust lint: ${rustLintResult}`);
-            console.log(`- Deno fmt: ${denoFmtResult}`);
-            console.log(`- Deno lint: ${denoLintResult}`);
+            console.log(`- Prettier fmt: ${prettierFmtResult}`);
             console.log(`- ESLint: ${eslintResult}`);
 
             // Check if any code quality steps failed
             const codeQualityResults = {
               'Rust format': rustFmtResult,
               'Rust lint': rustLintResult,
-              'Deno format': denoFmtResult,
-              'Deno lint': denoLintResult,
+              'Prettier format': prettierFmtResult,
               'ESLint': eslintResult
             };
 
