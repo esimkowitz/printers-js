@@ -344,7 +344,7 @@ The CI/CD pipeline uses a secure two-workflow approach to separate code executio
 
 - **Trigger**: `pull_request` and `push` events (secure, no elevated permissions)
 - **Cross-runtime compatibility tests**: Deno, Bun, Node.js on Linux, macOS, and Windows
-- **Code quality checks**: 
+- **Code quality checks**:
   - Rust formatting (`task fmt:rust:check`)
   - Prettier formatting (`task fmt:prettier:check`)
   - Rust linting with Clippy (`task lint:rust`)
@@ -387,6 +387,7 @@ When you open a PR:
 4. Status checks and PR comments are posted without executing any PR code
 
 **Note**: Status checks will appear as:
+
 - **Code Quality**: Shows formatting and linting results
 - **CI / Tests**: Shows overall test pass/fail status
 
