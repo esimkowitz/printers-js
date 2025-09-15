@@ -129,7 +129,7 @@ function main() {
     // List contents to verify the build output
     const files = readdirSync(outputDir);
     console.log(`Files in ${outputDir}:`, files);
-    
+
     // Check if .node file exists
     const nodeFile = files.find(f => f.endsWith(".node"));
     if (!nodeFile) {
@@ -155,19 +155,20 @@ function main() {
       `ERROR: Output directory ${outputDir} not found after build!`
     );
     console.error("The N-API build did not create the expected output");
-    
+
     // Try to find where the output actually went
     console.log("Checking for .node files in project...");
     try {
-      const findCommand = platform === "win32" 
-        ? `dir /s /b *.node`
-        : `find . -name "*.node" -type f`;
+      const findCommand =
+        platform === "win32"
+          ? `dir /s /b *.node`
+          : `find . -name "*.node" -type f`;
       const output = execSync(findCommand, { encoding: "utf8" });
       console.log("Found .node files at:", output);
     } catch (e) {
       console.log("Could not search for .node files");
     }
-    
+
     process.exit(1);
   }
 
