@@ -82,6 +82,10 @@ Install the required development tools:
    curl -fsSL https://deno.land/install.sh | sh
    ```
 
+   **Note**: Deno requires special configuration for N-API modules:
+   - Add `"nodeModulesDir": "auto"` to your `deno.json`
+   - Run with `--allow-ffi` flag for FFI permissions
+
 3. **Bun** - For Bun runtime testing
    ```bash
    curl -fsSL https://bun.sh/install | bash
@@ -257,7 +261,7 @@ tags and handles:
 - **Platform packages**: `@printers/printers-{platform}` (auto-selected)
 - **Cross-runtime access**:
   - Node.js: `npm install @printers/printers`
-  - Deno: `deno add npm:@printers/printers`
+  - Deno: `deno add npm:@printers/printers` (requires `"nodeModulesDir": "auto"` in deno.json)
   - Bun: `bun add @printers/printers`
 
 ## npm Publishing
@@ -271,6 +275,7 @@ The N-API build process integrates with the NAPI-RS publishing workflow:
 - `scripts/build-napi.js` (Node.js ESM) auto-detects current platform
 - Calls `napi create-npm-dirs` to create all platform directories with
   `package.json` files
+- Uses `--esm` flag to generate ESM wrapper files for Deno compatibility
 - Builds using `napi build --platform` for current platform only
 - `scripts/remove-env-check.js` removes `NAPI_RS_NATIVE_LIBRARY_PATH` check for
   npm compatibility
