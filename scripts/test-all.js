@@ -156,6 +156,26 @@ async function runTests() {
   await ensureDir("test-results");
   await ensureDir("test-results/coverage");
 
+  // Test Rust code first
+  console.log(colorize("yellow", "🦀 Testing Rust code..."));
+  console.log("--------------------");
+  const cargoResult = await runCommand(["cargo", "test"]);
+
+  if (cargoResult.success) {
+    console.log(colorize("green", "✅ Rust tests passed"));
+    results.push({ runtime: "rust", success: true });
+  } else {
+    console.log(colorize("red", "❌ Rust tests failed"));
+    console.log(cargoResult.output);
+    results.push({
+      runtime: "rust",
+      success: false,
+      output: cargoResult.output,
+    });
+    allSucceeded = false;
+  }
+  console.log();
+
   // Test Deno with coverage
   console.log(colorize("yellow", "🦕 Testing with Deno..."));
   console.log("--------------------");
@@ -164,6 +184,7 @@ async function runTests() {
     "test",
     "--allow-env",
     "--allow-read",
+    "--allow-ffi",
     "--no-check",
     "--coverage=test-results/coverage/deno-temp",
     "src/tests/shared.test.ts",

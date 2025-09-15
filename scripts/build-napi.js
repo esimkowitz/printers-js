@@ -106,6 +106,9 @@ function main() {
     // The --platform flag tells it to build for the current platform and put in platform-specific dir
     buildArgs.push("--platform");
 
+    // Generate ESM instead of CJS (only works with --platform flag)
+    buildArgs.push("--esm");
+
     // Explicitly set output directory
     buildArgs.push("--output-dir", `npm/${npmPlatform}`);
 

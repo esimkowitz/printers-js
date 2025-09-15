@@ -10,18 +10,7 @@ declare var process: any;
 
 import { test } from "@cross/test";
 
-// Always use the universal entrypoint for consistency
-// deno-lint-ignore no-explicit-any
-let printerAPI: any;
-try {
-  printerAPI = await import("../index.ts");
-  console.log("Debug: Successfully imported src/index.ts");
-} catch (error) {
-  console.error("Error importing src/index.ts:", error);
-  throw error;
-}
-
-// Runtime detection and simulation mode setup
+// Runtime detection and simulation mode setup - MUST happen before importing the module
 let runtimeName: string;
 if (typeof Deno !== "undefined") {
   if (Deno.env.get("FORCE_NODE_RUNTIME") === "true") {
@@ -43,6 +32,17 @@ if (typeof Deno !== "undefined") {
   // Ensure simulation mode is enabled for safe testing in Node.js
   // @ts-ignore - Node.js provides process global
   if (typeof process !== "undefined") process.env.PRINTERS_JS_SIMULATE = "true";
+}
+
+// Always use the universal entrypoint for consistency
+// deno-lint-ignore no-explicit-any
+let printerAPI: any;
+try {
+  printerAPI = await import("../index.ts");
+  console.log("Debug: Successfully imported src/index.ts");
+} catch (error) {
+  console.error("Error importing src/index.ts:", error);
+  throw error;
 }
 
 // Extract API functions
