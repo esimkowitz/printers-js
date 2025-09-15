@@ -2,7 +2,7 @@
 
 import { execSync } from "child_process";
 import { arch, platform } from "process";
-import { existsSync, writeFileSync, readFileSync } from "fs";
+import { existsSync, writeFileSync, readFileSync, readdirSync } from "fs";
 
 // Platform mapping from Node.js to NAPI-RS target names
 function getPlatformTarget() {
@@ -71,6 +71,22 @@ function main() {
     }
   }
 
+  // Map platform target to NPM directory names
+  const npmPlatformMap = {
+    "x86_64-apple-darwin": "darwin-x64",
+    "aarch64-apple-darwin": "darwin-arm64",
+    "x86_64-pc-windows-msvc": "win32-x64-msvc",
+    "aarch64-pc-windows-msvc": "win32-arm64-msvc",
+    "x86_64-unknown-linux-gnu": "linux-x64-gnu",
+    "aarch64-unknown-linux-gnu": "linux-arm64-gnu",
+  };
+
+  const npmPlatform = npmPlatformMap[platformTarget];
+  if (!npmPlatform) {
+    console.error(`Unknown platform mapping for ${platformTarget}`);
+    process.exit(1);
+  }
+
   // Try NAPI build approach
   console.log("Building with NAPI CLI...");
 
@@ -83,9 +99,15 @@ function main() {
       shell: platform === "win32" ? true : false,
     });
 
-    // Use basic napi build command
+    // Use napi build command - it auto-detects the platform
     const buildArgs = ["napi", "build"];
     if (isRelease) buildArgs.push("--release");
+
+    // The --platform flag tells it to build for the current platform and put in platform-specific dir
+    buildArgs.push("--platform");
+
+    // Explicitly set output directory
+    buildArgs.push("--output-dir", `npm/${npmPlatform}`);
 
     const buildCommand = buildArgs.join(" ");
     console.log(`Executing: npx ${buildCommand}`);
@@ -106,10 +128,23 @@ function main() {
   }
 
   // Try to run post-build cleanup if output directory exists
-  const outputDir = `npm/${platformTarget}`;
+  const outputDir = `npm/${npmPlatform}`;
   console.log(`Checking for output directory: ${outputDir}`);
 
   if (existsSync(outputDir)) {
+    // List contents to verify the build output
+    const files = readdirSync(outputDir);
+    console.log(`Files in ${outputDir}:`, files);
+
+    // Check if .node file exists
+    const nodeFile = files.find(f => f.endsWith(".node"));
+    if (!nodeFile) {
+      console.error(`ERROR: No .node file found in ${outputDir}`);
+      console.error(`Build may have failed to produce output`);
+      process.exit(1);
+    }
+    console.log(`✅ Found N-API binary: ${nodeFile}`);
+
     try {
       const removeEnvCommand = `node scripts/remove-env-check.js --dir ${outputDir}`;
       console.log(`Running post-build script: ${removeEnvCommand}`);
@@ -122,9 +157,25 @@ function main() {
       console.warn("Post-build script failed (non-fatal):", error.message);
     }
   } else {
-    console.log(
-      `Output directory ${outputDir} not found, skipping post-build script`
+    console.error(
+      `ERROR: Output directory ${outputDir} not found after build!`
     );
+    console.error("The N-API build did not create the expected output");
+
+    // Try to find where the output actually went
+    console.log("Checking for .node files in project...");
+    try {
+      const findCommand =
+        platform === "win32"
+          ? `dir /s /b *.node`
+          : `find . -name "*.node" -type f`;
+      const output = execSync(findCommand, { encoding: "utf8" });
+      console.log("Found .node files at:", output);
+    } catch (e) {
+      console.log("Could not search for .node files");
+    }
+
+    process.exit(1);
   }
 
   console.log(`✅ Build process completed for ${platformTarget}`);
