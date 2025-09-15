@@ -77,6 +77,8 @@ interface GlobalWithProcess {
     versions?: { node?: string };
     version?: string;
     env?: { PRINTERS_JS_SIMULATE?: string };
+    platform?: string;
+    arch?: string;
   };
 }
 
@@ -118,8 +120,50 @@ export const runtimeInfo: RuntimeInfo = {
         : "unknown",
 };
 
+// Native module interface - matches what NAPI-RS exports but typed for our wrapper
+interface NativePrinter {
+  name?: string;
+  systemName?: string;
+  driverName?: string;
+  uri?: string;
+  portName?: string;
+  processor?: string;
+  dataType?: string;
+  description?: string;
+  location?: string;
+  isDefault?: boolean;
+  isShared?: boolean;
+  state?: string;
+  stateReasons?: string[];
+  exists?: () => boolean;
+  dispose?: () => void;
+  printFile?: (
+    filePath: string,
+    jobProperties?: Record<string, string>
+  ) => Promise<unknown>;
+  getInfo?: () => unknown;
+}
+
+interface NativeModule {
+  getAllPrinterNames: () => string[];
+  getAllPrinters: () => NativePrinter[];
+  findPrinterByName: (name: string) => NativePrinter | null;
+  printerExists: (name: string) => boolean;
+  getJobStatus: (jobId: number) => JobStatus | null;
+  cleanupOldJobs: (maxAgeSeconds: number) => number;
+  shutdown: () => void;
+  printFile: (
+    printerName: string,
+    filePath: string,
+    jobProperties?: Record<string, string>
+  ) => Promise<unknown>;
+  Printer?: {
+    fromName: (name: string) => NativePrinter | null;
+  };
+}
+
 // N-API module loading
-let nativeModule: any;
+let nativeModule: NativeModule;
 
 if (isSimulationMode) {
   // Simulation mode - provide mock implementations
@@ -136,6 +180,17 @@ if (isSimulationMode) {
         driverName: "Simulated Driver",
         isDefault: true,
         state: "READY",
+        exists: () => true,
+        printFile: (
+          filePath: string,
+          jobProperties?: Record<string, string>
+        ) => {
+          console.log(`[SIMULATION] Would print file: ${filePath}`);
+          if (jobProperties && Object.keys(jobProperties).length > 0) {
+            console.log(`[SIMULATION] Job properties:`, jobProperties);
+          }
+          return Promise.resolve();
+        },
       },
     ],
     findPrinterByName: (name: string) =>
@@ -146,15 +201,34 @@ if (isSimulationMode) {
             driverName: "Simulated Driver",
             isDefault: true,
             state: "READY",
+            exists: () => true,
+            printFile: (
+              filePath: string,
+              jobProperties?: Record<string, string>
+            ) => {
+              console.log(`[SIMULATION] Would print file: ${filePath}`);
+              if (jobProperties && Object.keys(jobProperties).length > 0) {
+                console.log(`[SIMULATION] Job properties:`, jobProperties);
+              }
+              return Promise.resolve();
+            },
           }
         : null,
     printerExists: (name: string) => name === "Simulated Printer",
     getJobStatus: (jobId: number) =>
-      jobId === 1 ? { id: jobId, status: "completed" } : null,
+      jobId === 1
+        ? {
+            id: jobId,
+            printer_name: "Simulated Printer",
+            file_path: "test.pdf",
+            status: "completed",
+            age_seconds: 0,
+          }
+        : null,
     cleanupOldJobs: () => 0,
     shutdown: () => {},
-    printFile: async (
-      printerName: string,
+    printFile: (
+      _printerName: string,
       filePath: string,
       jobProperties?: Record<string, string>
     ) => {
@@ -164,7 +238,6 @@ if (isSimulationMode) {
       }
       return Promise.resolve();
     },
-    PrintErrorCode: {},
 
     // Printer class mock
     Printer: {
@@ -179,8 +252,8 @@ if (isSimulationMode) {
               exists: () => true,
               getName: () => "Simulated Printer",
               toString: () => "Simulated Printer",
-              equals: (other: any) => other.name === "Simulated Printer",
-              printFile: async (
+              equals: (other: Printer) => other.name === "Simulated Printer",
+              printFile: (
                 filePath: string,
                 jobProperties?: Record<string, string>
               ) => {
@@ -201,49 +274,72 @@ if (isSimulationMode) {
     let platformString: string;
 
     // Map to NAPI-RS standard target names that match build output
-    if (process.platform === "darwin") {
-      if (process.arch === "x64") {
+    const platform = (globalThis as GlobalWithProcess).process?.platform;
+    const arch = (globalThis as GlobalWithProcess).process?.arch;
+
+    if (platform === "darwin") {
+      if (arch === "x64") {
         platformString = "x86_64-apple-darwin";
-      } else if (process.arch === "arm64") {
+      } else if (arch === "arm64") {
         platformString = "aarch64-apple-darwin";
       } else {
-        throw new Error(`Unsupported architecture for Darwin: ${process.arch}`);
+        throw new Error(`Unsupported architecture for Darwin: ${arch}`);
       }
-    } else if (process.platform === "win32") {
-      if (process.arch === "x64") {
+    } else if (platform === "win32") {
+      if (arch === "x64") {
         platformString = "x86_64-pc-windows-msvc";
-      } else if (process.arch === "arm64") {
+      } else if (arch === "arm64") {
         platformString = "aarch64-pc-windows-msvc";
       } else {
-        throw new Error(
-          `Unsupported architecture for Windows: ${process.arch}`
-        );
+        throw new Error(`Unsupported architecture for Windows: ${arch}`);
       }
-    } else if (process.platform === "linux") {
-      if (process.arch === "x64") {
+    } else if (platform === "linux") {
+      if (arch === "x64") {
         platformString = "x86_64-unknown-linux-gnu";
-      } else if (process.arch === "arm64") {
+      } else if (arch === "arm64") {
         platformString = "aarch64-unknown-linux-gnu";
       } else {
-        throw new Error(`Unsupported architecture for Linux: ${process.arch}`);
+        throw new Error(`Unsupported architecture for Linux: ${arch}`);
       }
     } else {
-      throw new Error(`Unsupported platform: ${process.platform}`);
+      throw new Error(`Unsupported platform: ${platform}`);
     }
 
     // Try to load the platform-specific N-API module
-    try {
-      nativeModule = require(`@printers/printers-${platformString}`);
-    } catch (requireError) {
-      // Fallback: try to load from npm directory structure
+    // Check if we're in ESM or CommonJS context
+    if (typeof require !== "undefined") {
+      // CommonJS context - use require directly
       try {
-        nativeModule = require(`../npm/${platformString}/index.node`);
-      } catch (fallbackError) {
-        throw new Error(
-          `Failed to load N-API module for platform ${platformString}. ` +
-            `Make sure the platform-specific package is installed. ` +
-            `Primary error: ${requireError}. Fallback error: ${fallbackError}`
-        );
+        nativeModule = require(`@printers/printers-${platformString}`);
+      } catch (requireError) {
+        // Fallback: try to load from npm directory structure
+        try {
+          nativeModule = require(`../npm/${platformString}/index.node`);
+        } catch (fallbackError) {
+          throw new Error(
+            `Failed to load N-API module for platform ${platformString}. ` +
+              `Make sure the platform-specific package is installed. ` +
+              `Primary error: ${requireError}. Fallback error: ${fallbackError}`
+          );
+        }
+      }
+    } else {
+      // ESM context - use createRequire
+      const { createRequire } = await import("module");
+      const requireFunc = createRequire(import.meta.url);
+      try {
+        nativeModule = requireFunc(`@printers/printers-${platformString}`);
+      } catch (requireError) {
+        // Fallback: try to load from npm directory structure
+        try {
+          nativeModule = requireFunc(`../npm/${platformString}/index.node`);
+        } catch (fallbackError) {
+          throw new Error(
+            `Failed to load N-API module for platform ${platformString}. ` +
+              `Make sure the platform-specific package is installed. ` +
+              `Primary error: ${requireError}. Fallback error: ${fallbackError}`
+          );
+        }
       }
     }
   } catch (error) {
@@ -255,9 +351,9 @@ if (isSimulationMode) {
 
 // Wrapper class for consistent API
 class PrinterWrapper implements Printer {
-  private nativePrinter: any;
+  private nativePrinter: NativePrinter;
 
-  constructor(nativePrinter: any) {
+  constructor(nativePrinter: NativePrinter) {
     this.nativePrinter = nativePrinter;
   }
 
@@ -295,7 +391,7 @@ class PrinterWrapper implements Printer {
     return this.nativePrinter.isShared || false;
   }
   get state(): PrinterState {
-    return this.nativePrinter.state || "unknown";
+    return (this.nativePrinter.state as PrinterState) || "unknown";
   }
   get stateReasons(): string[] {
     return this.nativePrinter.stateReasons || [];
@@ -330,7 +426,8 @@ class PrinterWrapper implements Printer {
     jobProperties?: Record<string, string>
   ): Promise<void> {
     if (this.nativePrinter.printFile) {
-      return this.nativePrinter.printFile(filePath, jobProperties);
+      await this.nativePrinter.printFile(filePath, jobProperties);
+      return;
     }
     throw new Error("Print functionality not available");
   }
@@ -342,7 +439,7 @@ export function getAllPrinters(): Printer[] {
     const printers = nativeModule.getAllPrinters
       ? nativeModule.getAllPrinters()
       : [];
-    return printers.map((p: any) => new PrinterWrapper(p));
+    return printers.map(p => new PrinterWrapper(p));
   } catch (error) {
     console.error("Failed to get all printers:", error);
     return [];
@@ -404,7 +501,7 @@ export function cleanupOldJobs(maxAgeMs: number = 30000): number {
   }
 }
 
-export async function shutdown(): Promise<void> {
+export function shutdown(): void {
   try {
     if (nativeModule.shutdown) {
       nativeModule.shutdown();
@@ -436,5 +533,5 @@ export const createPrintJob = async (
   if (!printer) {
     throw new Error(`Printer not found: ${printerName}`);
   }
-  return printer.printFile(filePath, options);
+  return await printer.printFile(filePath, options);
 };
