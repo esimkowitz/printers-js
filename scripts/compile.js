@@ -101,6 +101,7 @@ for (const file of filesToProcess) {
   if (existsSync(filePath)) {
     try {
       let content = readFileSync(filePath, "utf8");
+      console.log(`Processing ${file}...`);
 
       // Fix .ts imports to .js imports for runtime compatibility
       content = content.replace(
@@ -119,6 +120,34 @@ for (const file of filesToProcess) {
       content = content.replace(
         /await\s+import\s*\(\s*["']\.\/([^"']+)\.ts["']\s*\)/g,
         'await import("./$1.js")'
+      );
+
+      // Fix TypeScript enum compilation issue with ES modules
+      // TypeScript generates "export var PrintError;" which is invalid for const enums
+      // This is a known issue when using enums with "module": "ESNext"
+      // See: https://github.com/microsoft/TypeScript/issues/45995
+      
+      // Fix enum declarations - TypeScript uses 'var' for enums
+      const enumMatches = content.match(/export var (\w+);(\s*\n\(function\s*\(\1\))/g);
+      if (enumMatches) {
+        console.log(`🔧 Fixing ${enumMatches.length} enum declaration(s)`);
+        content = content.replace(
+          /export var (\w+);(\s*\n\(function\s*\(\1\))/g,
+          'export const $1 = {};$2'
+        );
+      }
+      
+      // Also fix any export var to export const for ESLint compliance
+      content = content.replace(
+        /export var (\w+);/g,
+        'export const $1 = {};'
+      );
+
+      // Fix import.meta.url for createRequire in ESM
+      // TypeScript compiles it incorrectly, we need to preserve import.meta.url
+      content = content.replace(
+        /createRequire\(import\.meta\.url\)/g,
+        'createRequire(typeof __filename !== "undefined" ? __filename : import.meta.url)'
       );
 
       // Fix export var to export const for ESLint compliance
