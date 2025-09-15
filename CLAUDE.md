@@ -5,8 +5,8 @@ code in this repository.
 
 ## Project Overview
 
-This is a **cross-runtime printer library** for JavaScript that supports
-**Deno**, **Bun**, and **Node.js** with a unified API. All runtimes use
+This is a **cross-runtime printer library** for JavaScript with **Node.js as the primary runtime**,
+also supporting **Deno** and **Bun** with a unified API. All runtimes use
 N-API native bindings with the same interface.
 
 ## Quick Start Commands
@@ -18,9 +18,9 @@ runtime and loads the appropriate implementation:
 
 ```bash
 # Universal entrypoint (RECOMMENDED - works in all runtimes)
-deno run --allow-env --allow-ffi src/index.ts  # --allow-ffi required for N-API
-npx tsx src/index.ts
-bun src/index.ts
+npx tsx src/index.ts                            # Node.js with N-API (PRIMARY)
+bun src/index.ts                                # Bun with N-API
+deno run --allow-env --allow-ffi src/index.ts  # Deno with N-API (--allow-ffi required)
 ```
 
 ### CI and Status Checks
@@ -51,9 +51,9 @@ task test:node                    # Node.js tests with c8 coverage
 task test:bun                     # Bun tests
 
 # Runtime-specific entrypoints (use only for debugging)
-deno run --allow-env --allow-ffi src/index.ts  # Deno with N-API (--allow-ffi required)
+npx tsx src/index.ts                            # Node.js with N-API (PRIMARY)
 bun src/index.ts                                # Bun with N-API
-npx tsx src/index.ts                            # Node.js with N-API
+deno run --allow-env --allow-ffi src/index.ts  # Deno with N-API (--allow-ffi required)
 ```
 
 ### Development Workflow
@@ -135,14 +135,26 @@ on Windows ARM CI runners where Deno is not available.
 
 ## Code Quality Requirements
 
-ALWAYS run these after changes:
+**⚠️ IMPORTANT: Always use the taskfile commands for formatting and linting!**
 
-- `deno fmt` - Format TypeScript/JavaScript
-- `cargo fmt` - Format Rust code
-- `deno lint` - Lint Deno-managed files (src/index.ts, tests/shared.test.ts,
-  scripts/\*.ts)
-- `task lint` - Lint all files (runs both Deno and Node.js linters)
-- `cargo clippy` - Lint Rust code
+ALWAYS run these after changes through the taskfile:
+
+- `task fmt` - Format all code with **Prettier** (TypeScript/JavaScript) and cargo fmt (Rust)
+- `task lint` - Lint all code with **ESLint** (TypeScript/JavaScript) and cargo clippy (Rust)
+- `task check:all` - Type check all entry points
+
+**DO NOT run formatters/linters directly** - always use the taskfile to ensure consistency:
+- ❌ Never run `prettier` directly
+- ❌ Never run `eslint` directly
+- ❌ Never run `deno fmt` or `deno lint`
+- ✅ Always use `task fmt` for formatting
+- ✅ Always use `task lint` for linting
+
+**Formatting and Linting Tools:**
+- **Prettier** - Primary formatter for all TypeScript/JavaScript code
+- **ESLint** - Primary linter for all TypeScript/JavaScript code
+- **cargo fmt** - Formatter for Rust code
+- **cargo clippy** - Linter for Rust code
 
 ## File Organization
 
@@ -230,9 +242,11 @@ contribution guidelines, see:
 
 ---
 
-**Key Principle**: This codebase prioritizes **cross-runtime compatibility**
-while maintaining **identical APIs** across Deno, Bun, and Node.js. When making
-changes, always ensure all three runtimes continue to work consistently.
+**Key Principles**:
+1. **Node.js is the primary runtime** - While we maintain cross-runtime compatibility,
+   Node.js is the primary target and should be prioritized for tooling and workflows.
+2. **Cross-runtime compatibility** - Maintain **identical APIs** across Node.js, Deno, and Bun.
+3. **Always use taskfile commands** - Never run formatters or linters directly.
 
 ## Response Guidelines
 
