@@ -1,0 +1,359 @@
+name: CI Report
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+
+jobs:
+  report:
+    name: Report CI Results
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+      checks: write
+      statuses: write
+    steps:
+      # Download artifacts from the CI workflow run
+      - name: Download test reports
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: reports/
+          pattern: test-reports-*
+          merge-multiple: true
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: coverage-reports/
+          pattern: coverage-reports
+          merge-multiple: true
+
+      - name: Download code quality results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: code-quality-results/
+          pattern: code-quality-results
+          merge-multiple: true
+
+      # Get PR number from workflow run
+      - name: Get PR information
+        id: pr-info
+        uses: actions/github-script@v8
+        with:
+          script: |
+            // Get the PR number from the workflow run
+            const workflowRun = context.payload.workflow_run;
+            const pullRequests = workflowRun.pull_requests;
+
+            if (!pullRequests || pullRequests.length === 0) {
+              console.log('No pull requests found for this workflow run');
+              return { prNumber: null };
+            }
+
+            const prNumber = pullRequests[0].number;
+            console.log(`Found PR #${prNumber}`);
+
+            // Get the workflow run conclusion
+            const conclusion = workflowRun.conclusion;
+            const success = conclusion === 'success';
+
+            return {
+              prNumber,
+              success,
+              conclusion,
+              headSha: workflowRun.head_sha
+            };
+
+      # Parse test results and create summary
+      - name: Create test summary comment
+        if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const prNumber = ${{ fromJSON(steps.pr-info.outputs.result).prNumber }};
+            const workflowSuccess = ${{ fromJSON(steps.pr-info.outputs.result).success }};
+            const headSha = '${{ fromJSON(steps.pr-info.outputs.result).headSha }}';
+
+            // Function to parse JUnit XML
+            function parseJUnit(xmlContent) {
+              let testMatch = xmlContent.match(/<testsuite[^>]*tests="(\d+)"[^>]*errors="(\d+)"[^>]*failures="(\d+)"/);
+              
+              if (!testMatch) {
+                const testsMatch = xmlContent.match(/tests="(\d+)"/);
+                const errorsMatch = xmlContent.match(/errors="(\d+)"/);
+                const failuresMatch = xmlContent.match(/failures="(\d+)"/);
+                
+                if (testsMatch) {
+                  const tests = parseInt(testsMatch[1]);
+                  const errors = errorsMatch ? parseInt(errorsMatch[1]) : 0;
+                  const failures = failuresMatch ? parseInt(failuresMatch[1]) : 0;
+                  return {
+                    total: tests,
+                    errors: errors,
+                    failures: failures,
+                    passed: tests - errors - failures
+                  };
+                }
+              }
+              
+              if (!testMatch) {
+                const testcases = (xmlContent.match(/<testcase/g) || []).length;
+                const failures = (xmlContent.match(/<failure/g) || []).length;
+                const errors = (xmlContent.match(/<error/g) || []).length;
+                
+                if (testcases > 0) {
+                  return {
+                    total: testcases,
+                    errors: errors,
+                    failures: failures,
+                    passed: testcases - errors - failures
+                  };
+                }
+              }
+              
+              if (testMatch) {
+                return {
+                  total: parseInt(testMatch[1]),
+                  errors: parseInt(testMatch[2]),
+                  failures: parseInt(testMatch[3]),
+                  passed: parseInt(testMatch[1]) - parseInt(testMatch[2]) - parseInt(testMatch[3])
+                };
+              }
+              
+              return { total: 0, errors: 0, failures: 0, passed: 0 };
+            }
+
+            // Parse LCOV coverage
+            function parseLCOVCoverage(filePath) {
+              try {
+                if (!fs.existsSync(filePath)) {
+                  return 'No coverage';
+                }
+                
+                const lcovContent = fs.readFileSync(filePath, 'utf8');
+                let totalLines = 0;
+                let hitLines = 0;
+                
+                const lines = lcovContent.split('\n');
+                for (const line of lines) {
+                  if (line.startsWith('DA:')) {
+                    totalLines++;
+                    const hitCount = parseInt(line.split(',')[1] || '0');
+                    if (hitCount > 0) {
+                      hitLines++;
+                    }
+                  }
+                }
+                
+                if (totalLines === 0) {
+                  return 'No data';
+                }
+                
+                const percentage = Math.round((hitLines / totalLines) * 100);
+                return `${percentage}% (${hitLines}/${totalLines})`;
+              } catch (error) {
+                return 'Parse error';
+              }
+            }
+
+            // Generate summary
+            let summary = `## 🧪 Test Results\n\n`;
+
+            // Process test results
+            const results = {};
+            const runtimes = ['deno', 'bun', 'node', 'cargo'];
+
+            for (const runtime of runtimes) {
+              results[runtime] = { total: 0, passed: 0, failures: 0, errors: 0 };
+            }
+
+            // Read test result files
+            const reportsPath = 'reports';
+            if (fs.existsSync(reportsPath)) {
+              const files = fs.readdirSync(reportsPath);
+              for (const file of files) {
+                if (file.endsWith('.xml')) {
+                  const content = fs.readFileSync(path.join(reportsPath, file), 'utf8');
+                  const parsed = parseJUnit(content);
+                  
+                  let runtime = null;
+                  if (file.includes('deno')) runtime = 'deno';
+                  else if (file.includes('bun')) runtime = 'bun';
+                  else if (file.includes('node')) runtime = 'node';
+                  else if (file.includes('cargo')) runtime = 'cargo';
+                  
+                  if (runtime && parsed.total > 0) {
+                    results[runtime] = parsed;
+                  }
+                }
+              }
+            }
+
+            // Read coverage files
+            const denoCoverage = parseLCOVCoverage('coverage-reports/deno-lcov.info');
+            const bunCoverage = parseLCOVCoverage('coverage-reports/bun-lcov.info');
+            const nodeCoverage = parseLCOVCoverage('coverage-reports/node-lcov.info');
+            const rustCoverage = parseLCOVCoverage('coverage-reports/rust.lcov');
+
+            // Format results
+            summary += `### JavaScript Runtime Tests\n`;
+            summary += `| Runtime | Status | Tests | Coverage |\n`;
+            summary += `|---------|--------|-------|----------|\n`;
+
+            const formatResult = (result) => {
+              if (result.total === 0) return { status: '➖', text: 'No tests' };
+              const status = result.failures === 0 && result.errors === 0 ? '✅' : '❌';
+              return { status, text: `${result.passed}/${result.total} passed` };
+            };
+
+            const denoResult = formatResult(results.deno);
+            const bunResult = formatResult(results.bun);
+            const nodeResult = formatResult(results.node);
+            const rustResult = formatResult(results.cargo);
+
+            summary += `| 🦕 **Deno** | ${denoResult.status} | ${denoResult.text} | ${denoCoverage} |\n`;
+            summary += `| 🥟 **Bun** | ${bunResult.status} | ${bunResult.text} | ${bunCoverage} |\n`;
+            summary += `| 🟢 **Node.js** | ${nodeResult.status} | ${nodeResult.text} | ${nodeCoverage} |\n\n`;
+
+            summary += `### Rust Library Tests\n`;
+            summary += `| Component | Status | Tests | Coverage |\n`;
+            summary += `|-----------|--------|-------|----------|\n`;
+            summary += `| 🦀 **Core Library** | ${rustResult.status} | ${rustResult.text} | ${rustCoverage} |\n\n`;
+
+            const overallStatus = workflowSuccess ? '✅ All checks passing' : '❌ Some checks failed';
+            summary += `**Overall Status**: ${overallStatus}\n\n`;
+
+            const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.event.workflow_run.id }}`;
+            summary += `*Last updated: ${timestamp} UTC | [View CI Run](${runUrl})* 🤖`;
+
+            // Find and update or create comment
+            const COMMENT_IDENTIFIER = '## 🧪 Test Results';
+
+            try {
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+              
+              const existingComment = comments.data.find(comment =>
+                comment.user.type === 'Bot' &&
+                comment.body.includes(COMMENT_IDENTIFIER)
+              );
+              
+              if (existingComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                  body: summary
+                });
+                console.log('Updated existing test results comment');
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: summary
+                });
+                console.log('Created new test results comment');
+              }
+            } catch (error) {
+              console.error('Error managing comment:', error);
+            }
+
+      # Create code quality status check
+      - name: Create code quality status check
+        if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const headSha = '${{ fromJSON(steps.pr-info.outputs.result).headSha }}';
+
+            // Read code quality results if available
+            let codeQualityResults = null;
+            try {
+              const fs = require('fs');
+              const resultsPath = 'code-quality-results/results.json';
+              if (fs.existsSync(resultsPath)) {
+                const content = fs.readFileSync(resultsPath, 'utf8');
+                codeQualityResults = JSON.parse(content);
+              }
+            } catch (error) {
+              console.log('Could not read code quality results:', error.message);
+            }
+
+            if (codeQualityResults) {
+              // Check if any code quality checks failed
+              const failedChecks = [];
+              if (codeQualityResults.rust_fmt === 'failure') failedChecks.push('Rust format');
+              if (codeQualityResults.rust_lint === 'failure') failedChecks.push('Rust lint');
+              if (codeQualityResults.prettier_fmt === 'failure') failedChecks.push('Prettier format');
+              if (codeQualityResults.eslint === 'failure') failedChecks.push('ESLint');
+              
+              const allPassed = failedChecks.length === 0;
+              const state = allPassed ? 'success' : 'failure';
+              const description = allPassed 
+                ? 'All code quality checks passed'
+                : `Code quality issues: ${failedChecks.join(', ')}`;
+              
+              try {
+                await github.rest.repos.createCommitStatus({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  sha: headSha,
+                  state: state,
+                  target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.event.workflow_run.id }}`,
+                  description: description.substring(0, 140), // GitHub limits description to 140 chars
+                  context: 'Code Quality'
+                });
+                console.log(`Code quality status check created: ${state} - ${description}`);
+              } catch (error) {
+                console.error('Failed to create code quality status check:', error);
+              }
+            }
+
+      # Create test status check
+      - name: Create test status check
+        if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const success = ${{ fromJSON(steps.pr-info.outputs.result).success }};
+            const conclusion = '${{ fromJSON(steps.pr-info.outputs.result).conclusion }}';
+            const headSha = '${{ fromJSON(steps.pr-info.outputs.result).headSha }}';
+
+            const state = success ? 'success' : 'failure';
+            const description = success ? 'All CI checks passed' : `CI ${conclusion}`;
+
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: headSha,
+                state: state,
+                target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.event.workflow_run.id }}`,
+                description: description,
+                context: 'CI / Tests'
+              });
+              console.log(`Status check created: ${state} - ${description}`);
+            } catch (error) {
+              console.error('Failed to create status check:', error);
+            }
