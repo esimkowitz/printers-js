@@ -79,7 +79,9 @@ tasks:
 
   prepublish:
     desc: Prepare package for publishing
-    cmd: npx napi prepublish -t npm --no-gh-release
+    cmds:
+      - node scripts/fix-platform-packages.js
+      - npx napi prepublish -t npm --no-gh-release
 
   prepublish:dry:
     desc: Prepare package for publishing (dry run)

@@ -159,6 +159,19 @@ function main() {
     } catch (error) {
       console.warn("Post-build script failed (non-fatal):", error.message);
     }
+
+    // Fix platform package.json files for ESM
+    try {
+      const fixPackagesCommand = `node scripts/fix-platform-packages.js`;
+      console.log(`Fixing platform package.json files for ESM...`);
+      execSync(fixPackagesCommand, {
+        stdio: "inherit",
+        env: process.env,
+        shell: platform === "win32" ? true : false,
+      });
+    } catch (error) {
+      console.warn("Failed to fix platform packages (non-fatal):", error.message);
+    }
   } else {
     console.error(
       `ERROR: Output directory ${outputDir} not found after build!`
