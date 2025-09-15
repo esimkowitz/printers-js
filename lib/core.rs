@@ -104,8 +104,8 @@ impl PrinterCore {
                     // No real printers available - create a mock printer struct
                     Some(Printer {
                         name: name.to_string(),
-                        system_name: name.to_string(),
-                        driver_name: "Mock Driver".to_string(),
+                        system_name: "Brother_MFC_J6955DW".to_string(),
+                        driver_name: "Brother MFC-J6955DW-AirPrint".to_string(),
                         uri: "mock://printer".to_string(),
                         location: "Test Location".to_string(),
                         description: "Mock printer for testing".to_string(),
@@ -113,7 +113,7 @@ impl PrinterCore {
                         processor: "Mock Processor".to_string(),
                         data_type: "RAW".to_string(),
                         is_shared: false,
-                        is_default: false,
+                        is_default: true,
                         state: printers::common::base::printer::PrinterState::READY,
                         state_reasons: Vec::new(),
                     })
