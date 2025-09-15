@@ -12,15 +12,15 @@ import { test } from "@cross/test";
 
 // Runtime detection and simulation mode setup - MUST happen before importing the module
 let runtimeName: string;
-//@ts-expect-error: Deno may not be defined in Node.js or Bun
+// @ts-ignore - Deno may not be defined in Node.js or Bun
 if (typeof Deno !== "undefined") {
-  //@ts-expect-error: Deno may not be defined in Node.js or Bun
+  // @ts-ignore - Deno may not be defined in Node.js or Bun
   if (Deno.env.get("FORCE_NODE_RUNTIME") === "true") {
     runtimeName = "Node.js"; // Force Node.js testing when running in Deno with this env var
   } else {
     runtimeName = "Deno";
     // Ensure simulation mode is enabled for safe testing in Deno
-    //@ts-expect-error: Deno may not be defined in Node.js or Bun
+    // @ts-ignore - Deno may not be defined in Node.js or Bun
     Deno.env.set("PRINTERS_JS_SIMULATE", "true");
   }
   // @ts-ignore - Bun provides Bun global
@@ -82,9 +82,9 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
   // @ts-ignore: process may not be defined in all runtimes
   console.log(
     `Debug: PRINTERS_JS_SIMULATE environment variable:`,
-    //@ts-expect-error: Deno may not be defined in Node.js or Bun
+    // @ts-ignore - Deno may not be defined in Node.js or Bun
     typeof Deno !== "undefined"
-      ? //@ts-expect-error: Deno may not be defined in Node.js or Bun
+      ? // @ts-ignore - Deno may not be defined in Node.js or Bun
         Deno.env.get("PRINTERS_JS_SIMULATE")
       : // @ts-ignore: process may not be defined in all runtimes
         typeof process !== "undefined"
@@ -258,9 +258,9 @@ test(`${runtimeName}: should reflect environment in isSimulationMode`, () => {
 
   // Check if PRINTERS_JS_SIMULATE environment variable matches
   let envSimulate = false;
-  //@ts-expect-error: Deno may not be defined in Node.js or Bun
+  // @ts-ignore - Deno may not be defined in Node.js or Bun
   if (typeof Deno !== "undefined") {
-    //@ts-expect-error: Deno may not be defined in Node.js or Bun
+    // @ts-ignore - Deno may not be defined in Node.js or Bun
     envSimulate = Deno.env.get("PRINTERS_JS_SIMULATE") === "true";
   } else {
     // @ts-ignore - process may not be defined in all runtimes

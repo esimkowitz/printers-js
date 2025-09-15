@@ -38,7 +38,7 @@
       "src/index.ts"
     ],
     "rules": {
-      "exclude": ["ban-unused-ignore"]
+      "exclude": ["ban-unused-ignore", "ban-ts-comment"]
     }
   },
   "exclude": [

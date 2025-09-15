@@ -2,13 +2,8 @@
   "lsp": {
     "eslint": {
       "settings": {
-        "workingDirectories": [
-          "."
-        ],
-        "validate": [
-          "javascript",
-          "typescript"
-        ]
+        "workingDirectories": ["."],
+        "validate": ["javascript", "typescript"]
       }
     },
     "typescript-language-server": {
