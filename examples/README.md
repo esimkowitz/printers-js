@@ -19,7 +19,7 @@ examples/
 ```bash
 cd examples/deno
 deno task start
-# or: deno run --allow-env --allow-read --allow-net main.ts
+# or: deno run --allow-env --allow-read --allow-net --allow-ffi main.ts
 ```
 
 ### Node.js Example

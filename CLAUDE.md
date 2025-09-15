@@ -18,7 +18,7 @@ runtime and loads the appropriate implementation:
 
 ```bash
 # Universal entrypoint (RECOMMENDED - works in all runtimes)
-deno run --allow-env src/index.ts
+deno run --allow-env --allow-ffi src/index.ts  # --allow-ffi required for N-API
 npx tsx src/index.ts
 bun src/index.ts
 ```
@@ -51,9 +51,9 @@ task test:node                    # Node.js tests with c8 coverage
 task test:bun                     # Bun tests
 
 # Runtime-specific entrypoints (use only for debugging)
-deno run --allow-env src/index.ts          # Deno with N-API
-bun src/index.ts                            # Bun with N-API
-npx tsx src/index.ts                        # Node.js with N-API
+deno run --allow-env --allow-ffi src/index.ts  # Deno with N-API (--allow-ffi required)
+bun src/index.ts                                # Bun with N-API
+npx tsx src/index.ts                            # Node.js with N-API
 ```
 
 ### Development Workflow

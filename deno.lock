@@ -6,6 +6,7 @@
     "npm:@jsr/cross__test@^0.0.10": "0.0.10",
     "npm:@jsr/std__assert@^1.0.14": "1.0.14",
     "npm:@napi-rs/cli@^3.1.5": "3.1.5_@types+node@24.3.1_typanion@3.14.0",
+    "npm:@printers/printers-darwin-arm64@*": "0.5.4",
     "npm:@types/bun@^1.2.21": "1.2.21",
     "npm:@types/node@^24.3.1": "24.3.1",
     "npm:@types/prettier@^2.7.3": "2.7.3",
@@ -917,6 +918,11 @@
     },
     "@pkgjs/parseargs@0.11.0": {
       "integrity": "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="
+    },
+    "@printers/printers-darwin-arm64@0.5.4": {
+      "integrity": "sha512-SzRw1DBQIbjAAY5Xuacxs6O2zBbJddtWSsNg8YCK5OZh2GW51gM1wnesSWSoYlbGVazPUbTav989hq7BvIeKKg==",
+      "os": ["darwin"],
+      "cpu": ["arm64"]
     },
     "@tybys/wasm-util@0.10.0": {
       "integrity": "sha512-VyyPYFlOMNylG45GoAe0xDoLwWuowvf92F9kySqzYh8vmYm7D2u4iUJKa1tOUpS70Ku13ASrOkS4ScXFsTaCNQ==",
