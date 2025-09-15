@@ -10,7 +10,7 @@ import {
   getPrinterByName,
   isSimulationMode,
   runtimeInfo,
-} from "npm:@printers/printers";
+} from "@printers/printers";
 
 async function main() {
   console.log("🦕 Deno Printers Example (NPM Import)");
@@ -32,7 +32,7 @@ async function main() {
       return;
     }
 
-    printerNames.forEach((name, index) => {
+    printerNames.forEach((name: string, index: number) => {
       console.log(`   ${index + 1}. ${name}`);
     });
 
