@@ -170,7 +170,10 @@ function main() {
         shell: platform === "win32" ? true : false,
       });
     } catch (error) {
-      console.warn("Failed to fix platform packages (non-fatal):", error.message);
+      console.warn(
+        "Failed to fix platform packages (non-fatal):",
+        error.message
+      );
     }
   } else {
     console.error(

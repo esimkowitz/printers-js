@@ -51,9 +51,9 @@ for (const platform of platforms) {
 
   // Update files array to include all necessary files
   pkg.files = [
-    nodeFile,  // The native binary
-    "index.js",  // ESM wrapper
-    "index.d.ts"  // TypeScript definitions
+    nodeFile, // The native binary
+    "index.js", // ESM wrapper
+    "index.d.ts", // TypeScript definitions
   ];
 
   // Write updated package.json
