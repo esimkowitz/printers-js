@@ -184,7 +184,7 @@ impl Printer {
         file_path: String,
         job_properties: Option<HashMap<String, String>>,
     ) -> AsyncTask<PrintTask> {
-        let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
+        let job_options = job_properties.map(PrinterJobOptions::from_map);
         AsyncTask::new(PrintTask {
             printer_name: self.name.clone(),
             file_path,
@@ -199,7 +199,7 @@ impl Printer {
         data: Buffer,
         job_properties: Option<HashMap<String, String>>,
     ) -> AsyncTask<PrintBytesTask> {
-        let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
+        let job_options = job_properties.map(PrinterJobOptions::from_map);
         AsyncTask::new(PrintBytesTask {
             printer_name: self.name.clone(),
             data: data.to_vec(),
@@ -267,7 +267,7 @@ pub fn print_file(
     file_path: String,
     job_properties: Option<HashMap<String, String>>,
 ) -> AsyncTask<PrintTask> {
-    let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
+    let job_options = job_properties.map(PrinterJobOptions::from_map);
     AsyncTask::new(PrintTask {
         printer_name,
         file_path,
@@ -282,7 +282,7 @@ pub fn print_bytes(
     data: Buffer,
     job_properties: Option<HashMap<String, String>>,
 ) -> AsyncTask<PrintBytesTask> {
-    let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
+    let job_options = job_properties.map(PrinterJobOptions::from_map);
     AsyncTask::new(PrintBytesTask {
         printer_name,
         data: data.to_vec(),
