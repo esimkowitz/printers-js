@@ -119,16 +119,16 @@ impl Printer {
                 name: printer.name.clone(),
                 system_name: printer.system_name.clone(),
                 driver_name: printer.driver_name.clone(),
-                uri: String::new(),         // Field may not exist
-                port_name: String::new(),   // Platform-specific
-                processor: String::new(),   // Platform-specific
-                data_type: String::new(),   // Platform-specific
+                uri: printer.uri.clone(),
+                port_name: printer.port_name.clone(),
+                processor: printer.processor.clone(),
+                data_type: printer.data_type.clone(),
                 description: String::new(), // Field may not exist
                 location: String::new(),    // Field may not exist
                 is_default: printer.is_default,
                 is_shared: printer.is_shared,
                 state: PrinterCore::get_printer_state(&printer),
-                state_reasons: vec![], // Simplified for now
+                state_reasons: printer.state_reasons.clone(),
             })
         } else {
             Err(Error::new(
@@ -183,10 +183,31 @@ pub fn get_all_printer_names() -> Vec<String> {
 
 /// Get all available printers
 #[napi]
-pub fn get_all_printers() -> Vec<Printer> {
+pub fn get_all_printers() -> Vec<PrinterInfo> {
     PrinterCore::get_all_printer_names()
         .into_iter()
-        .map(|name| Printer { name })
+        .filter_map(|name| {
+            // Find the actual printer from the core
+            if let Some(printer) = PrinterCore::find_printer_by_name(&name) {
+                Some(PrinterInfo {
+                    name: printer.name.clone(),
+                    system_name: printer.system_name.clone(),
+                    driver_name: printer.driver_name.clone(),
+                    uri: printer.uri.clone(),
+                    port_name: printer.port_name.clone(),
+                    processor: printer.processor.clone(),
+                    data_type: printer.data_type.clone(),
+                    description: String::new(), // Field may not exist
+                    location: String::new(),    // Field may not exist
+                    is_default: printer.is_default,
+                    is_shared: printer.is_shared,
+                    state: PrinterCore::get_printer_state(&printer),
+                    state_reasons: printer.state_reasons.clone(),
+                })
+            } else {
+                None
+            }
+        })
         .collect()
 }
 

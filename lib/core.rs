@@ -157,13 +157,32 @@ impl PrinterCore {
     }
 
     /// Get printer state as string
-    pub fn get_printer_state(_printer: &Printer) -> String {
-        "idle".to_string()
+    pub fn get_printer_state(printer: &Printer) -> String {
+        // Convert the PrinterState enum to a string representation
+        use printers::common::base::printer::PrinterState;
+
+        match printer.state {
+            PrinterState::READY => "idle".to_string(),
+            PrinterState::PRINTING => "printing".to_string(),
+            PrinterState::PAUSED => "paused".to_string(),
+            _ => "unknown".to_string(),
+        }
     }
 
     /// Get printer state reasons as JSON array
-    pub fn get_printer_state_reasons(_printer: &Printer) -> String {
-        "[]".to_string()
+    pub fn get_printer_state_reasons(printer: &Printer) -> String {
+        // Convert state_reasons Vec to JSON array string
+        if printer.state_reasons.is_empty() {
+            "[]".to_string()
+        } else {
+            // Convert each reason to a JSON string array
+            let reasons: Vec<String> = printer
+                .state_reasons
+                .iter()
+                .map(|r| format!("\"{}\"", r))
+                .collect();
+            format!("[{}]", reasons.join(","))
+        }
     }
 
     /// Print a file with optional job properties (simplified for now)

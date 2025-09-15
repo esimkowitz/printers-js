@@ -312,3 +312,59 @@ test(`${runtimeName}: should have runtimeInfo with name and version`, () => {
     );
   }
 });
+
+test(`${runtimeName}: simulated printer should have correct field values`, () => {
+  // This test only runs in simulation mode
+  if (!isSimulationMode) {
+    console.log("Skipping simulated printer test - not in simulation mode");
+    return;
+  }
+
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    throw new Error("Should have at least one simulated printer");
+  }
+
+  const simulatedPrinter = printers.find(p => p.name === "Simulated Printer");
+  if (!simulatedPrinter) {
+    throw new Error("Should have a printer named 'Simulated Printer'");
+  }
+
+  // Test expected field values for simulated printer
+  if (simulatedPrinter.state !== "idle") {
+    throw new Error(
+      `Simulated printer state should be 'idle', got '${simulatedPrinter.state}'`
+    );
+  }
+
+  if (simulatedPrinter.isDefault !== true) {
+    throw new Error("Simulated printer should be marked as default");
+  }
+
+  if (simulatedPrinter.isShared !== false) {
+    throw new Error("Simulated printer should not be shared");
+  }
+
+  // Check that other fields exist and have reasonable values
+  if (
+    typeof simulatedPrinter.systemName !== "string" ||
+    !simulatedPrinter.systemName
+  ) {
+    throw new Error("Simulated printer should have a system name");
+  }
+
+  if (
+    typeof simulatedPrinter.driverName !== "string" ||
+    !simulatedPrinter.driverName
+  ) {
+    throw new Error("Simulated printer should have a driver name");
+  }
+
+  console.log("Simulated printer fields validated successfully:");
+  console.log(`  - name: ${simulatedPrinter.name}`);
+  console.log(`  - state: ${simulatedPrinter.state}`);
+  console.log(`  - isDefault: ${simulatedPrinter.isDefault}`);
+  console.log(`  - isShared: ${simulatedPrinter.isShared}`);
+  console.log(`  - systemName: ${simulatedPrinter.systemName}`);
+  console.log(`  - driverName: ${simulatedPrinter.driverName}`);
+});

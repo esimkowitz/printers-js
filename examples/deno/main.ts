@@ -5,6 +5,7 @@
  */
 
 import {
+  cleanupOldJobs,
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
@@ -23,6 +24,10 @@ async function main() {
   );
 
   try {
+    // Clean up old jobs
+    const cleaned = cleanupOldJobs(3600); // 1 hour
+    console.log(`🧹 Cleaned up ${cleaned} old print jobs\n`);
+
     // Get all printer names
     console.log("📋 Available Printers:");
     const printerNames = getAllPrinterNames();
@@ -35,6 +40,18 @@ async function main() {
     printerNames.forEach((name: string, index: number) => {
       console.log(`   ${index + 1}. ${name}`);
     });
+    console.log("");
+
+    // Get detailed printer information
+    console.log("🖨️  Printer Details:");
+    const printers = getAllPrinters();
+
+    for (const printer of printers) {
+      console.log(`   Name: ${printer.name}`);
+      console.log(`   Default: ${printer.isDefault ? "Yes" : "No"}`);
+      console.log(`   State: ${printer.state || "Unknown"}`);
+      console.log("   ---");
+    }
 
     // Test printer comparison
     console.log("\n🔄 Testing printer comparison:");
