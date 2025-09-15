@@ -54,7 +54,7 @@ export interface Printer {
   getName(): string;
   printFile(
     filePath: string,
-    jobProperties?: Record<string, string>,
+    jobProperties?: Record<string, string>
   ): Promise<void>;
 }
 
@@ -95,14 +95,14 @@ const isDeno = typeof (globalThis as any).Deno !== "undefined";
 // Simulation mode detection
 const simValue = isDeno
   ? typeof (globalThis as any).Deno !== "undefined" &&
-      (globalThis as any).Deno.env &&
-      typeof (globalThis as any).Deno.env.get === "function"
+    (globalThis as any).Deno.env &&
+    typeof (globalThis as any).Deno.env.get === "function"
     ? (globalThis as any).Deno.env.get("PRINTERS_JS_SIMULATE")
     : undefined
   : (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE;
 
-export const isSimulationMode: boolean = simValue === "true" ||
-  simValue === "1";
+export const isSimulationMode: boolean =
+  simValue === "true" || simValue === "1";
 
 // Runtime information
 export const runtimeInfo: RuntimeInfo = {
@@ -112,14 +112,14 @@ export const runtimeInfo: RuntimeInfo = {
   isBun,
   version: isDeno
     ? typeof (globalThis as any).Deno !== "undefined" &&
-        (globalThis as any).Deno.version
+      (globalThis as any).Deno.version
       ? (globalThis as any).Deno.version.deno
       : "unknown"
     : isBun
-    ? ((globalThis as GlobalWithBun).Bun?.version ?? "unknown")
-    : isNode
-    ? ((globalThis as GlobalWithProcess).process?.version ?? "unknown")
-    : "unknown",
+      ? ((globalThis as GlobalWithBun).Bun?.version ?? "unknown")
+      : isNode
+        ? ((globalThis as GlobalWithProcess).process?.version ?? "unknown")
+        : "unknown",
 };
 
 // N-API module interfaces
@@ -140,7 +140,7 @@ interface NativePrinter {
   exists?: () => boolean;
   printFile?: (
     filePath: string,
-    jobProperties?: Record<string, string>,
+    jobProperties?: Record<string, string>
   ) => Promise<void>;
   toString?: () => string;
   dispose?: () => void;
@@ -157,7 +157,7 @@ interface NativeModule {
   printFile(
     printerName: string,
     filePath: string,
-    jobProperties?: Record<string, string>,
+    jobProperties?: Record<string, string>
   ): Promise<void>;
   Printer: {
     fromName(name: string): NativePrinter | null;
@@ -170,7 +170,7 @@ let nativeModule: NativeModule;
 // Log simulation mode if enabled
 if (isSimulationMode) {
   console.log(
-    `[SIMULATION] ${runtimeInfo.name} running in simulation mode - no actual printing will occur`,
+    `[SIMULATION] ${runtimeInfo.name} running in simulation mode - no actual printing will occur`
   );
 }
 
@@ -240,7 +240,7 @@ try {
       throw new Error(
         `Failed to load N-API module for platform ${platformString}. ` +
           `Make sure the platform-specific package is installed or built locally. ` +
-          `Local error: ${localError}. NPM error: ${npmError}`,
+          `Local error: ${localError}. NPM error: ${npmError}`
       );
     }
   }
@@ -248,7 +248,7 @@ try {
   throw new Error(
     `Failed to initialize printer library: ${
       error instanceof Error ? error.message : String(error)
-    }`,
+    }`
   );
 }
 
@@ -366,7 +366,7 @@ class PrinterWrapper implements Printer {
    */
   async printFile(
     filePath: string,
-    jobProperties?: Record<string, string>,
+    jobProperties?: Record<string, string>
   ): Promise<void> {
     if (this.nativePrinter.printFile) {
       await this.nativePrinter.printFile(filePath, jobProperties);
@@ -387,7 +387,7 @@ export function getAllPrinters(): Printer[] {
     const printers = nativeModule.getAllPrinters
       ? nativeModule.getAllPrinters()
       : [];
-    return printers.map((p) => new PrinterWrapper(p));
+    return printers.map(p => new PrinterWrapper(p));
   } catch (error) {
     console.error("Failed to get all printers:", error);
     return [];
@@ -507,7 +507,7 @@ export const findPrinter = getPrinterByName;
  * @returns Default printer if found, null otherwise
  */
 export const getDefaultPrinter = () =>
-  getAllPrinters().find((p) => p.isDefault) || null;
+  getAllPrinters().find(p => p.isDefault) || null;
 
 /**
  * Create and execute a print job.
@@ -519,7 +519,7 @@ export const getDefaultPrinter = () =>
 export const createPrintJob = async (
   printerName: string,
   filePath: string,
-  options?: Record<string, string>,
+  options?: Record<string, string>
 ): Promise<void> => {
   const printer = getPrinterByName(printerName);
   if (!printer) {

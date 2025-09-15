@@ -144,6 +144,7 @@ ALWAYS run these after changes through the taskfile:
 - `task check:all` - Type check all entry points
 
 **DO NOT run formatters/linters directly** - always use the taskfile to ensure consistency:
+
 - ❌ Never run `prettier` directly
 - ❌ Never run `eslint` directly
 - ❌ Never run `deno fmt` or `deno lint`
@@ -151,6 +152,7 @@ ALWAYS run these after changes through the taskfile:
 - ✅ Always use `task lint` for linting
 
 **Formatting and Linting Tools:**
+
 - **Prettier** - Primary formatter for all TypeScript/JavaScript code
 - **ESLint** - Primary linter for all TypeScript/JavaScript code
 - **cargo fmt** - Formatter for Rust code
@@ -243,6 +245,7 @@ contribution guidelines, see:
 ---
 
 **Key Principles**:
+
 1. **Node.js is the primary runtime** - While we maintain cross-runtime compatibility,
    Node.js is the primary target and should be prioritized for tooling and workflows.
 2. **Cross-runtime compatibility** - Maintain **identical APIs** across Node.js, Deno, and Bun.
