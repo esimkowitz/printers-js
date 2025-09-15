@@ -12,8 +12,7 @@
     "skipLibCheck": true,
     "preserveWatchOutput": true,
     "removeComments": false,
-    "noEmit": false,
-    "lib": ["ES2022", "DOM"]
+    "noEmit": false
   },
   "include": ["src/**/*.ts"],
   "exclude": [
