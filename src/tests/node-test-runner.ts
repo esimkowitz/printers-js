@@ -134,9 +134,9 @@ async function runTests() {
         testCases,
       });
 
-      writeFileSync("test-results/node-test-results.xml", junitXML);
+      writeFileSync("test-results/node.xml", junitXML);
       console.log(
-        "📊 Generated Node.js JUnit XML report: test-results/node-test-results.xml"
+        "📊 Generated Node.js JUnit XML report: test-results/node.xml"
       );
 
       console.log("\nNode.js Test Results:");
@@ -167,7 +167,7 @@ async function runTests() {
         ],
       });
 
-      writeFileSync("test-results/node-test-results.xml", junitXML);
+      writeFileSync("test-results/node.xml", junitXML);
       process.exit(1);
     }
   } catch (error) {
