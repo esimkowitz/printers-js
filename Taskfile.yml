@@ -78,10 +78,12 @@ tasks:
     cmd: node scripts/remove-env-check.js
 
   prepublish:
-    desc: Prepare package for publishing
+    desc: Prepare and publish packages
     cmds:
-      - node scripts/fix-platform-packages.js
-      - npx napi prepublish -t npm --no-gh-release
+      # Update main package.json with optionalDependencies but don't publish platform packages
+      - npx napi prepublish -t npm --no-gh-release --skip-optional-publish
+      # Now publish platform packages with our custom script that preserves ESM files
+      - node scripts/publish-platform-packages.js
 
   prepublish:dry:
     desc: Prepare package for publishing (dry run)

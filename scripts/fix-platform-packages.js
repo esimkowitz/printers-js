@@ -42,19 +42,33 @@ for (const platform of platforms) {
   // Read and parse package.json
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
 
-  // Extract the .node filename from current main field
-  const nodeFile = pkg.main;
+  // Find the .node file in the directory
+  const files = readdirSync(join(npmDir, platform));
+  const nodeFile = files.find(f => f.endsWith('.node'));
+
+  if (!nodeFile) {
+    console.log(`⚠️  Warning: No .node file found in ${platform}`);
+  }
 
   // Update package.json for ESM
   pkg.main = "index.js";
   pkg.types = "index.d.ts";
 
-  // Update files array to include all necessary files
-  pkg.files = [
-    nodeFile, // The native binary
-    "index.js", // ESM wrapper
+  // Set files array to include all necessary files
+  // napi prepublish might expect a specific format
+  const filesToInclude = [
+    nodeFile,     // The native binary (if it exists)
+    "index.js",   // ESM wrapper
     "index.d.ts", // TypeScript definitions
-  ];
+    "README.md"   // Include README if it exists
+  ].filter(file => {
+    // Only include files that actually exist
+    if (!file) return false;
+    const filePath = join(npmDir, platform, file);
+    return existsSync(filePath);
+  });
+
+  pkg.files = filesToInclude;
 
   // Write updated package.json
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
