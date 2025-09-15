@@ -137,7 +137,10 @@ interface NativePrinter {
   stateReasons?: string[];
   exists?: () => boolean;
   dispose?: () => void;
-  printFile?: (filePath: string, jobProperties?: Record<string, string>) => Promise<unknown>;
+  printFile?: (
+    filePath: string,
+    jobProperties?: Record<string, string>
+  ) => Promise<unknown>;
   getInfo?: () => unknown;
 }
 
@@ -149,7 +152,11 @@ interface NativeModule {
   getJobStatus: (jobId: number) => JobStatus | null;
   cleanupOldJobs: (maxAgeSeconds: number) => number;
   shutdown: () => void;
-  printFile: (printerName: string, filePath: string, jobProperties?: Record<string, string>) => Promise<unknown>;
+  printFile: (
+    printerName: string,
+    filePath: string,
+    jobProperties?: Record<string, string>
+  ) => Promise<unknown>;
   Printer?: {
     fromName: (name: string) => NativePrinter | null;
   };
@@ -209,13 +216,15 @@ if (isSimulationMode) {
         : null,
     printerExists: (name: string) => name === "Simulated Printer",
     getJobStatus: (jobId: number) =>
-      jobId === 1 ? { 
-        id: jobId, 
-        printer_name: "Simulated Printer",
-        file_path: "test.pdf",
-        status: "completed",
-        age_seconds: 0
-      } : null,
+      jobId === 1
+        ? {
+            id: jobId,
+            printer_name: "Simulated Printer",
+            file_path: "test.pdf",
+            status: "completed",
+            age_seconds: 0,
+          }
+        : null,
     cleanupOldJobs: () => 0,
     shutdown: () => {},
     printFile: (
@@ -267,7 +276,7 @@ if (isSimulationMode) {
     // Map to NAPI-RS standard target names that match build output
     const platform = (globalThis as GlobalWithProcess).process?.platform;
     const arch = (globalThis as GlobalWithProcess).process?.arch;
-    
+
     if (platform === "darwin") {
       if (arch === "x64") {
         platformString = "x86_64-apple-darwin";
@@ -282,9 +291,7 @@ if (isSimulationMode) {
       } else if (arch === "arm64") {
         platformString = "aarch64-pc-windows-msvc";
       } else {
-        throw new Error(
-          `Unsupported architecture for Windows: ${arch}`
-        );
+        throw new Error(`Unsupported architecture for Windows: ${arch}`);
       }
     } else if (platform === "linux") {
       if (arch === "x64") {
@@ -432,7 +439,7 @@ export function getAllPrinters(): Printer[] {
     const printers = nativeModule.getAllPrinters
       ? nativeModule.getAllPrinters()
       : [];
-    return printers.map((p) => new PrinterWrapper(p));
+    return printers.map(p => new PrinterWrapper(p));
   } catch (error) {
     console.error("Failed to get all printers:", error);
     return [];

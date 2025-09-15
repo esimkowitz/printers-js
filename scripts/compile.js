@@ -126,22 +126,21 @@ for (const file of filesToProcess) {
       // TypeScript generates "export var PrintError;" which is invalid for const enums
       // This is a known issue when using enums with "module": "ESNext"
       // See: https://github.com/microsoft/TypeScript/issues/45995
-      
+
       // Fix enum declarations - TypeScript uses 'var' for enums
-      const enumMatches = content.match(/export var (\w+);(\s*\n\(function\s*\(\1\))/g);
+      const enumMatches = content.match(
+        /export var (\w+);(\s*\n\(function\s*\(\1\))/g
+      );
       if (enumMatches) {
         console.log(`🔧 Fixing ${enumMatches.length} enum declaration(s)`);
         content = content.replace(
           /export var (\w+);(\s*\n\(function\s*\(\1\))/g,
-          'export const $1 = {};$2'
+          "export const $1 = {};$2"
         );
       }
-      
+
       // Also fix any export var to export const for ESLint compliance
-      content = content.replace(
-        /export var (\w+);/g,
-        'export const $1 = {};'
-      );
+      content = content.replace(/export var (\w+);/g, "export const $1 = {};");
 
       // Fix import.meta.url for createRequire in ESM
       // TypeScript compiles it incorrectly, we need to preserve import.meta.url
