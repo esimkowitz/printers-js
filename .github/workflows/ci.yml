@@ -277,6 +277,27 @@ jobs:
         run: task test
         continue-on-error: true
 
+      # Check test results and fail if tests failed
+      - name: Check test results
+        if: always()
+        shell: bash
+        run: |
+          echo "Checking test results..."
+          
+          # Check if the cross-runtime tests failed
+          if [ "${{ steps.cross-runtime-tests.outcome }}" == "failure" ]; then
+            echo "❌ Cross-runtime tests failed"
+            exit 1
+          fi
+          
+          # Also check cargo tests if they ran
+          if [ "${{ steps.cargo-tests.outcome }}" == "failure" ]; then
+            echo "❌ Cargo tests failed"
+            exit 1
+          fi
+          
+          echo "✅ All tests passed"
+
       - name: Upload Test Reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
