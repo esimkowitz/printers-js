@@ -133,13 +133,14 @@ for (const file of filesToProcess) {
       );
       if (enumMatches) {
         console.log(`🔧 Fixing ${enumMatches.length} enum declaration(s)`);
+        // Replace the entire enum pattern including the IIFE reassignment
         content = content.replace(
-          /export var (\w+);(\s*\n\(function\s*\(\1\))/g,
-          "export const $1 = {};$2"
+          /export var (\w+);\s*\n\(function\s*\(\1\)\s*{([^}]+)}\)\(\1 \|\| \(\1 = {}\)\);/g,
+          "export const $1 = {};\n(function ($1) {$2})($1);"
         );
       }
 
-      // Also fix any export var to export const for ESLint compliance
+      // Also fix any remaining export var to export const for ESLint compliance
       content = content.replace(/export var (\w+);/g, "export const $1 = {};");
 
       // Fix import.meta.url for createRequire in ESM

@@ -211,43 +211,24 @@ try {
     throw new Error(`Unsupported platform: ${platform}`);
   }
 
-  // Try to load the platform-specific N-API module
-  // Check if we're in ESM or CommonJS context
-  if (typeof require !== "undefined") {
-    // CommonJS context - use require directly
+  // Try to load the platform-specific N-API module using dynamic imports
+  // Always use ESM for consistency across all runtimes
+  try {
+    // For Deno, use npm: prefix for npm packages
+    const packageSpecifier = isDeno
+      ? `npm:@printers/printers-${platformString}`
+      : `@printers/printers-${platformString}`;
+    nativeModule = await import(packageSpecifier);
+  } catch (importError) {
+    // Fallback: try to load from npm directory structure (for local development)
     try {
-      nativeModule = require(`@printers/printers-${platformString}`);
-    } catch (requireError) {
-      // Fallback: try to load from npm directory structure
-      try {
-        nativeModule = require(`../npm/${platformString}`);
-      } catch (fallbackError) {
-        throw new Error(
-          `Failed to load N-API module for platform ${platformString}. ` +
-            `Make sure the platform-specific package is installed. ` +
-            `Primary error: ${requireError}. Fallback error: ${fallbackError}`
-        );
-      }
-    }
-  } else {
-    // ESM context - use createRequire
-    const { createRequire } = await import("module");
-    const requireFunc = createRequire(
-      typeof __filename !== "undefined" ? __filename : import.meta.url
-    );
-    try {
-      nativeModule = requireFunc(`@printers/printers-${platformString}`);
-    } catch (requireError) {
-      // Fallback: try to load from npm directory structure
-      try {
-        nativeModule = requireFunc(`../npm/${platformString}`);
-      } catch (fallbackError) {
-        throw new Error(
-          `Failed to load N-API module for platform ${platformString}. ` +
-            `Make sure the platform-specific package is installed. ` +
-            `Primary error: ${requireError}. Fallback error: ${fallbackError}`
-        );
-      }
+      nativeModule = await import(`../npm/${platformString}/index.mjs`);
+    } catch (fallbackError) {
+      throw new Error(
+        `Failed to load N-API module for platform ${platformString}. ` +
+          `Make sure the platform-specific package is installed. ` +
+          `Primary error: ${importError}. Fallback error: ${fallbackError}`
+      );
     }
   }
 } catch (error) {

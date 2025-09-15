@@ -95,7 +95,7 @@ impl PrinterCore {
     pub fn find_printer_by_name(name: &str) -> Option<Printer> {
         if should_simulate_printing() {
             // In simulation mode, only return printer if name matches simulated printers
-            let simulated_names = ["Mock Printer", "Test Printer"];
+            let simulated_names = ["Simulated Printer", "Mock Printer", "Test Printer"];
             if simulated_names.contains(&name) {
                 // Try to use a real printer as template, but with the requested name
                 if let Some(mut printer) = printers::get_printers().first().cloned() {
