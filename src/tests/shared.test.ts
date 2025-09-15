@@ -607,3 +607,460 @@ test(`${runtimeName}: should handle edge cases in SimplePrintOptions conversion`
     }
   }
 });
+
+// New Job Tracking Tests
+test(`${runtimeName}: should have new job tracking API functions available`, () => {
+  const {
+    getPrinterJob,
+    getActiveJobs,
+    getActiveJobsForPrinter,
+    getJobHistory,
+    getJobHistoryForPrinter,
+    getAllJobsForPrinter,
+  } = printerAPI;
+
+  if (typeof getPrinterJob !== "function") {
+    throw new Error("getPrinterJob function should be available");
+  }
+  if (typeof getActiveJobs !== "function") {
+    throw new Error("getActiveJobs function should be available");
+  }
+  if (typeof getActiveJobsForPrinter !== "function") {
+    throw new Error("getActiveJobsForPrinter function should be available");
+  }
+  if (typeof getJobHistory !== "function") {
+    throw new Error("getJobHistory function should be available");
+  }
+  if (typeof getJobHistoryForPrinter !== "function") {
+    throw new Error("getJobHistoryForPrinter function should be available");
+  }
+  if (typeof getAllJobsForPrinter !== "function") {
+    throw new Error("getAllJobsForPrinter function should be available");
+  }
+});
+
+test(`${runtimeName}: should return null for invalid job ID in getPrinterJob`, () => {
+  const { getPrinterJob } = printerAPI;
+
+  const job = getPrinterJob(99999999);
+  if (job !== null) {
+    throw new Error("getPrinterJob should return null for invalid job ID");
+  }
+});
+
+test(`${runtimeName}: should return empty arrays for job tracking functions when no jobs exist`, () => {
+  const {
+    getActiveJobs,
+    getActiveJobsForPrinter,
+    getJobHistory,
+    getJobHistoryForPrinter,
+    getAllJobsForPrinter,
+  } = printerAPI;
+
+  // These should return arrays (empty or not, but arrays)
+  const activeJobs = getActiveJobs();
+  if (!Array.isArray(activeJobs)) {
+    throw new Error("getActiveJobs should return an array");
+  }
+
+  const activeJobsForPrinter = getActiveJobsForPrinter("NonExistentPrinter");
+  if (!Array.isArray(activeJobsForPrinter)) {
+    throw new Error("getActiveJobsForPrinter should return an array");
+  }
+
+  const jobHistory = getJobHistory();
+  if (!Array.isArray(jobHistory)) {
+    throw new Error("getJobHistory should return an array");
+  }
+
+  const jobHistoryForPrinter = getJobHistoryForPrinter("NonExistentPrinter");
+  if (!Array.isArray(jobHistoryForPrinter)) {
+    throw new Error("getJobHistoryForPrinter should return an array");
+  }
+
+  const allJobsForPrinter = getAllJobsForPrinter("NonExistentPrinter");
+  if (!Array.isArray(allJobsForPrinter)) {
+    throw new Error("getAllJobsForPrinter should return an array");
+  }
+});
+
+test(`${runtimeName}: should create and track print jobs with new job format`, async () => {
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    console.log("Skipping job tracking test - no printers available");
+    return;
+  }
+
+  const { getPrinterJob, getActiveJobs } = printerAPI;
+  const printer = printers[0];
+
+  try {
+    // Create a test file path (in simulation mode this won't actually print)
+    const testFile = "/tmp/test-document.pdf";
+    const jobOptions = {
+      jobName: "Test Job Tracking",
+      raw: { "test-property": "test-value" },
+    };
+
+    // Print a file and get job ID
+    const jobId = await printer.printFile(testFile, jobOptions);
+
+    if (typeof jobId !== "number" || jobId <= 0) {
+      throw new Error("printFile should return a valid positive job ID");
+    }
+
+    // Give the job a moment to be processed
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Get the job details using new format
+    const job = getPrinterJob(jobId);
+    if (!job) {
+      throw new Error(`Job ${jobId} should be found in tracker`);
+    }
+
+    // Validate PrinterJob structure
+    if (typeof job.id !== "number" || job.id !== jobId) {
+      throw new Error(`Job ID should match: expected ${jobId}, got ${job.id}`);
+    }
+
+    if (typeof job.name !== "string" || job.name !== "Test Job Tracking") {
+      throw new Error(
+        `Job name should be "Test Job Tracking", got "${job.name}"`
+      );
+    }
+
+    if (typeof job.state !== "string") {
+      throw new Error("Job state should be a string");
+    }
+
+    const validStates = [
+      "pending",
+      "paused",
+      "processing",
+      "cancelled",
+      "completed",
+      "unknown",
+    ];
+    if (!validStates.includes(job.state)) {
+      throw new Error(
+        `Job state should be one of ${validStates.join(", ")}, got "${job.state}"`
+      );
+    }
+
+    if (typeof job.mediaType !== "string") {
+      console.log(
+        "Debug: job.mediaType =",
+        JSON.stringify(job.mediaType),
+        typeof job.mediaType
+      );
+      console.log("Debug: full job object =", JSON.stringify(job, null, 2));
+      throw new Error("Job media_type should be a string");
+    }
+
+    if (typeof job.createdAt !== "number" || job.createdAt <= 0) {
+      throw new Error("Job created_at should be a positive timestamp");
+    }
+
+    if (
+      typeof job.printerName !== "string" ||
+      job.printerName !== printer.name
+    ) {
+      throw new Error(
+        `Job printer_name should match printer name: expected "${printer.name}", got "${job.printerName}"`
+      );
+    }
+
+    if (typeof job.ageSeconds !== "number" || job.ageSeconds < 0) {
+      throw new Error("Job age_seconds should be a non-negative number");
+    }
+
+    // Optional fields should be properly typed when present
+    if (job.processedAt !== undefined && typeof job.processedAt !== "number") {
+      throw new Error("Job processed_at should be a number when present");
+    }
+
+    if (job.completedAt !== undefined && typeof job.completedAt !== "number") {
+      throw new Error("Job completed_at should be a number when present");
+    }
+
+    if (
+      job.errorMessage !== undefined &&
+      typeof job.errorMessage !== "string"
+    ) {
+      throw new Error("Job error_message should be a string when present");
+    }
+
+    console.log(`Job tracking validation passed for job ${jobId}:`);
+    console.log(`  - name: ${job.name}`);
+    console.log(`  - state: ${job.state}`);
+    console.log(`  - media_type: ${job.mediaType}`);
+    console.log(`  - printer_name: ${job.printerName}`);
+    console.log(`  - age_seconds: ${job.ageSeconds}`);
+  } catch (error) {
+    // In simulation mode, we might get expected errors
+    if (
+      isSimulationMode &&
+      error.message &&
+      error.message.includes("not found")
+    ) {
+      console.log("Expected simulation mode error:", error.message);
+      return;
+    }
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should track jobs in active jobs list`, async () => {
+  if (!isSimulationMode) {
+    console.log("Skipping active jobs test - only safe in simulation mode");
+    return;
+  }
+
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    return;
+  }
+
+  const { getActiveJobs, getActiveJobsForPrinter } = printerAPI;
+  const printer = printers[0];
+
+  try {
+    // Get initial active job count
+    const initialActiveJobs = getActiveJobs();
+    const initialActiveForPrinter = getActiveJobsForPrinter(printer.name);
+
+    // Submit a job
+    const jobOptions = { jobName: "Active Job Test" };
+    const jobId = await printer.printFile("/test/active-job.pdf", jobOptions);
+
+    // Give job a moment to be queued
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Check if job appears in active jobs
+    const activeJobs = getActiveJobs();
+    const activeForPrinter = getActiveJobsForPrinter(printer.name);
+
+    // Should have at least one more active job
+    if (activeJobs.length <= initialActiveJobs.length) {
+      console.log(
+        "Note: Job may have completed too quickly to be seen as active"
+      );
+    }
+
+    // Validate structure of active jobs
+    for (const job of activeJobs) {
+      if (typeof job.id !== "number") {
+        throw new Error("Active job should have numeric ID");
+      }
+      if (typeof job.name !== "string") {
+        throw new Error("Active job should have string name");
+      }
+      if (typeof job.state !== "string") {
+        throw new Error("Active job should have string state");
+      }
+
+      // Active jobs should be in active states
+      const activeStates = ["pending", "processing", "paused"];
+      if (!activeStates.includes(job.state)) {
+        throw new Error(
+          `Active job should be in active state, got "${job.state}"`
+        );
+      }
+    }
+
+    console.log(
+      `Active jobs validation passed. Found ${activeJobs.length} active jobs`
+    );
+  } catch (error) {
+    if (error.message && error.message.includes("not found")) {
+      console.log("Expected simulation mode error:", error.message);
+      return;
+    }
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should track completed jobs in job history`, async () => {
+  if (!isSimulationMode) {
+    console.log("Skipping job history test - only safe in simulation mode");
+    return;
+  }
+
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    return;
+  }
+
+  const { getJobHistory, getJobHistoryForPrinter } = printerAPI;
+  const printer = printers[0];
+
+  try {
+    // Get initial job history count
+    const initialHistory = getJobHistory();
+    const initialHistoryForPrinter = getJobHistoryForPrinter(printer.name);
+
+    // Submit a job and wait for completion
+    const jobOptions = { jobName: "History Job Test" };
+    const jobId = await printer.printFile("/test/history-job.pdf", jobOptions);
+
+    // Wait for job to complete (simulation jobs complete quickly)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Check if job appears in history
+    const jobHistory = getJobHistory();
+    const historyForPrinter = getJobHistoryForPrinter(printer.name);
+
+    // Should have at least one more completed job
+    if (jobHistory.length <= initialHistory.length) {
+      console.log("Note: Job may not have completed yet or was cleaned up");
+    } else {
+      console.log(
+        `Job history increased from ${initialHistory.length} to ${jobHistory.length}`
+      );
+    }
+
+    // Validate structure of history jobs
+    for (const job of jobHistory) {
+      if (typeof job.id !== "number") {
+        throw new Error("History job should have numeric ID");
+      }
+      if (typeof job.name !== "string") {
+        throw new Error("History job should have string name");
+      }
+      if (typeof job.state !== "string") {
+        throw new Error("History job should have string state");
+      }
+
+      // History jobs should be in completed states
+      const completedStates = ["completed", "cancelled"];
+      if (!completedStates.includes(job.state)) {
+        throw new Error(
+          `History job should be in completed state, got "${job.state}"`
+        );
+      }
+
+      // Completed jobs should have completed_at timestamp
+      if (job.state === "completed" && typeof job.completedAt !== "number") {
+        console.log("Note: completed job missing completed_at timestamp");
+      }
+    }
+
+    console.log(
+      `Job history validation passed. Found ${jobHistory.length} historical jobs`
+    );
+  } catch (error) {
+    if (error.message && error.message.includes("not found")) {
+      console.log("Expected simulation mode error:", error.message);
+      return;
+    }
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should handle media type detection correctly`, async () => {
+  if (!isSimulationMode) {
+    console.log("Skipping media type test - only safe in simulation mode");
+    return;
+  }
+
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    return;
+  }
+
+  const { getPrinterJob } = printerAPI;
+  const printer = printers[0];
+
+  const testCases = [
+    { file: "/test/document.pdf", expectedType: "application/pdf" },
+    { file: "/test/document.txt", expectedType: "text/plain" },
+    { file: "/test/image.jpg", expectedType: "image/jpeg" },
+    { file: "/test/image.png", expectedType: "image/png" },
+    { file: "/test/script.ps", expectedType: "application/postscript" },
+  ];
+
+  for (const testCase of testCases) {
+    try {
+      const jobId = await printer.printFile(testCase.file, {
+        jobName: `Media Type Test: ${testCase.file}`,
+      });
+
+      // Give job a moment to be processed
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const job = getPrinterJob(jobId);
+      if (job && job.mediaType !== testCase.expectedType) {
+        throw new Error(
+          `File ${testCase.file} should have media type "${testCase.expectedType}", got "${job.mediaType}"`
+        );
+      }
+
+      if (job) {
+        console.log(
+          `Media type detection: ${testCase.file} -> ${job.mediaType} ✓`
+        );
+      }
+    } catch (error) {
+      if (error.message && error.message.includes("not found")) {
+        continue; // Expected in simulation mode
+      }
+      throw error;
+    }
+  }
+});
+
+test(`${runtimeName}: should handle raw bytes printing with correct media type`, async () => {
+  if (!isSimulationMode) {
+    console.log("Skipping bytes printing test - only safe in simulation mode");
+    return;
+  }
+
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    return;
+  }
+
+  const { getPrinterJob } = printerAPI;
+  const printer = printers[0];
+
+  try {
+    // Test printing raw bytes
+    const testData = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // PDF header
+    const jobOptions = { jobName: "Raw Bytes Test" };
+
+    if (typeof printer.printBytes !== "function") {
+      console.log(
+        "Skipping bytes test - printBytes not available on this printer instance"
+      );
+      return;
+    }
+
+    const jobId = await printer.printBytes(testData, jobOptions);
+
+    // Give job a moment to be processed
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const job = getPrinterJob(jobId);
+    if (!job) {
+      throw new Error("Raw bytes job should be tracked");
+    }
+
+    if (job.mediaType !== "application/vnd.cups-raw") {
+      throw new Error(
+        `Raw bytes should have media type "application/vnd.cups-raw", got "${job.mediaType}"`
+      );
+    }
+
+    if (job.name !== "Raw Bytes Test") {
+      throw new Error(`Job name should be "Raw Bytes Test", got "${job.name}"`);
+    }
+
+    console.log(`Raw bytes printing validation passed for job ${jobId}`);
+  } catch (error) {
+    if (error.message && error.message.includes("not found")) {
+      console.log("Expected simulation mode error:", error.message);
+      return;
+    }
+    throw error;
+  }
+});

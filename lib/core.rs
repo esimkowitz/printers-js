@@ -7,7 +7,7 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 /// Print job options for configuring print jobs
 #[derive(Clone, Debug)]
@@ -28,9 +28,12 @@ impl PrinterJobOptions {
     }
 
     /// Create job options from raw properties map
-    pub fn from_map(raw_properties: HashMap<String, String>) -> Self {
+    pub fn from_map(mut raw_properties: HashMap<String, String>) -> Self {
+        // Extract job name if present in raw properties
+        let name = raw_properties.remove("job-name");
+
         PrinterJobOptions {
-            name: None,
+            name,
             raw_properties,
         }
     }
@@ -69,8 +72,8 @@ const SIMULATION_BASE_TIME_MS: u64 = 1000;
 const SIMULATION_VARIABLE_TIME_MS: u64 = 2000;
 
 // Type aliases for better readability
-pub type JobId = u32;
-type JobTracker = Arc<Mutex<HashMap<JobId, JobStatus>>>;
+pub type JobId = u64;
+type JobTracker = Arc<Mutex<HashMap<JobId, PrinterJob>>>;
 type JobIdGenerator = Arc<Mutex<JobId>>;
 
 /// Check if we should use simulated printing (for testing)
@@ -99,26 +102,85 @@ lazy_static::lazy_static! {
     static ref THREAD_HANDLES: Arc<Mutex<Vec<JoinHandle<()>>>> = Arc::new(Mutex::new(Vec::new()));
 }
 
+/// Job status enum matching upstream printers crate
+#[derive(Clone, Debug, PartialEq)]
+pub enum PrinterJobState {
+    PENDING,    // Job queued, waiting to be processed
+    PAUSED,     // Job temporarily halted
+    PROCESSING, // Job currently being printed
+    CANCELLED,  // Job cancelled by user or system
+    COMPLETED,  // Job finished successfully
+    UNKNOWN,    // Undetermined state
+}
+
+impl PrinterJobState {
+    pub fn as_string(&self) -> String {
+        match self {
+            PrinterJobState::PENDING => "pending".to_string(),
+            PrinterJobState::PAUSED => "paused".to_string(),
+            PrinterJobState::PROCESSING => "processing".to_string(),
+            PrinterJobState::CANCELLED => "cancelled".to_string(),
+            PrinterJobState::COMPLETED => "completed".to_string(),
+            PrinterJobState::UNKNOWN => "unknown".to_string(),
+        }
+    }
+}
+
+/// Print job structure matching upstream printers crate
 #[derive(Clone, Debug)]
-pub struct JobStatus {
-    pub printer_name: String,
-    pub file_path: String,
-    pub job_name: Option<String>,
-    pub status: String, // "queued", "printing", "completed", "failed"
-    pub error_message: Option<String>,
-    pub created_at: Instant,
+pub struct PrinterJob {
+    pub id: JobId,                        // Unique job identifier
+    pub name: String,                     // Job title/description
+    pub state: PrinterJobState,           // Current job status
+    pub media_type: String,               // File type (e.g., "application/pdf")
+    pub created_at: SystemTime,           // Job creation timestamp
+    pub processed_at: Option<SystemTime>, // Processing start time (optional)
+    pub completed_at: Option<SystemTime>, // Job completion time (optional)
+    pub printer_name: String,             // Associated printer name
+    pub error_message: Option<String>,    // Error details if failed
+}
+
+/// Detect media type from file extension
+fn detect_media_type(file_path: &str) -> String {
+    if file_path.starts_with("<bytes:") {
+        return "application/vnd.cups-raw".to_string();
+    }
+
+    let path = std::path::Path::new(file_path);
+    if let Some(extension) = path.extension() {
+        match extension.to_str().unwrap_or("").to_lowercase().as_str() {
+            "pdf" => "application/pdf".to_string(),
+            "ps" => "application/postscript".to_string(),
+            "txt" | "text" => "text/plain".to_string(),
+            "jpg" | "jpeg" => "image/jpeg".to_string(),
+            "png" => "image/png".to_string(),
+            "gif" => "image/gif".to_string(),
+            _ => "application/octet-stream".to_string(),
+        }
+    } else {
+        "application/octet-stream".to_string()
+    }
 }
 
 /// Create a JSON status object for a job
-pub fn create_status_json(job_id: JobId, job: &JobStatus) -> Option<String> {
+pub fn create_status_json(_job_id: JobId, job: &PrinterJob) -> Option<String> {
+    let age_seconds = job
+        .created_at
+        .elapsed()
+        .unwrap_or(Duration::from_secs(0))
+        .as_secs();
+
     let status_obj = serde_json::json!({
-        "id": job_id,
+        "id": job.id,
         "printer_name": job.printer_name,
-        "file_path": job.file_path,
-        "job_name": job.job_name,
-        "status": job.status,
+        "name": job.name,
+        "state": job.state.as_string(),
+        "media_type": job.media_type,
+        "created_at": job.created_at.duration_since(SystemTime::UNIX_EPOCH).unwrap_or(Duration::from_secs(0)).as_secs(),
+        "processed_at": job.processed_at.map(|t| t.duration_since(SystemTime::UNIX_EPOCH).unwrap_or(Duration::from_secs(0)).as_secs()),
+        "completed_at": job.completed_at.map(|t| t.duration_since(SystemTime::UNIX_EPOCH).unwrap_or(Duration::from_secs(0)).as_secs()),
         "error_message": job.error_message,
-        "age_seconds": job.created_at.elapsed().as_secs()
+        "age_seconds": age_seconds
     });
 
     serde_json::to_string(&status_obj).ok()
@@ -250,14 +312,29 @@ impl PrinterCore {
         // Extract job options
         let job_options = job_options.unwrap_or_else(PrinterJobOptions::none);
 
+        // Detect media type from file extension
+        let media_type = detect_media_type(file_path);
+
+        // Create job name from options or default to filename
+        let job_name = job_options.name.clone().unwrap_or_else(|| {
+            std::path::Path::new(file_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Print Job")
+                .to_string()
+        });
+
         // Create job status
-        let job_status = JobStatus {
+        let job_status = PrinterJob {
+            id: job_id,
+            name: job_name,
+            state: PrinterJobState::PENDING,
+            media_type,
+            created_at: SystemTime::now(),
+            processed_at: None,
+            completed_at: None,
             printer_name: printer_name.to_string(),
-            file_path: file_path.to_string(),
-            job_name: job_options.name.clone(),
-            status: "queued".to_string(),
             error_message: None,
-            created_at: Instant::now(),
         };
 
         // Store job in tracker
@@ -310,14 +387,26 @@ impl PrinterCore {
         // Create a temporary file path for tracking (since we're printing bytes)
         let temp_file_path = format!("<bytes:{} bytes>", data.len());
 
+        // Detect media type (raw bytes)
+        let media_type = detect_media_type(&temp_file_path);
+
+        // Create job name from options or default
+        let job_name = job_options
+            .name
+            .clone()
+            .unwrap_or_else(|| "Raw Bytes Print Job".to_string());
+
         // Create job status
-        let job_status = JobStatus {
+        let job_status = PrinterJob {
+            id: job_id,
+            name: job_name,
+            state: PrinterJobState::PENDING,
+            media_type,
+            created_at: SystemTime::now(),
+            processed_at: None,
+            completed_at: None,
             printer_name: printer_name.to_string(),
-            file_path: temp_file_path,
-            job_name: job_options.name.clone(),
-            status: "queued".to_string(),
             error_message: None,
-            created_at: Instant::now(),
         };
 
         // Store job in tracker
@@ -359,11 +448,12 @@ impl PrinterCore {
         shutdown_flag: Arc<AtomicBool>,
         job_tracker: JobTracker,
     ) {
-        // Update status to printing
+        // Update status to processing
         {
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
-                job.status = "printing".to_string();
+                job.state = PrinterJobState::PROCESSING;
+                job.processed_at = Some(SystemTime::now());
             }
         }
 
@@ -386,18 +476,20 @@ impl PrinterCore {
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
                 if success {
-                    job.status = "completed".to_string();
+                    job.state = PrinterJobState::COMPLETED;
                 } else {
-                    job.status = "failed".to_string();
+                    job.state = PrinterJobState::CANCELLED;
                     job.error_message = Some("Simulated print failure".to_string());
                 }
+                job.completed_at = Some(SystemTime::now());
             }
         } else {
             // For now, just mark as completed in real mode
             // TODO: Implement actual printing logic
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
-                job.status = "completed".to_string();
+                job.state = PrinterJobState::COMPLETED;
+                job.completed_at = Some(SystemTime::now());
             }
         }
     }
@@ -410,11 +502,12 @@ impl PrinterCore {
         shutdown_flag: Arc<AtomicBool>,
         job_tracker: JobTracker,
     ) {
-        // Update status to printing
+        // Update status to processing
         {
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
-                job.status = "printing".to_string();
+                job.state = PrinterJobState::PROCESSING;
+                job.processed_at = Some(SystemTime::now());
             }
         }
 
@@ -437,26 +530,104 @@ impl PrinterCore {
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
                 if success {
-                    job.status = "completed".to_string();
+                    job.state = PrinterJobState::COMPLETED;
                 } else {
-                    job.status = "failed".to_string();
+                    job.state = PrinterJobState::CANCELLED;
                     job.error_message = Some("Simulated print failure".to_string());
                 }
+                job.completed_at = Some(SystemTime::now());
             }
         } else {
             // For now, just mark as completed in real mode
             // TODO: Implement actual byte printing logic using the upstream printers crate
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
-                job.status = "completed".to_string();
+                job.state = PrinterJobState::COMPLETED;
+                job.completed_at = Some(SystemTime::now());
             }
         }
     }
 
     /// Get job status
-    pub fn get_job_status(job_id: JobId) -> Option<JobStatus> {
+    pub fn get_job_status(job_id: JobId) -> Option<PrinterJob> {
         let tracker = JOB_TRACKER.lock().unwrap();
         tracker.get(&job_id).cloned()
+    }
+
+    /// Get all active jobs (pending or processing)
+    pub fn get_active_jobs() -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .values()
+            .filter(|job| {
+                matches!(
+                    job.state,
+                    PrinterJobState::PENDING
+                        | PrinterJobState::PROCESSING
+                        | PrinterJobState::PAUSED
+                )
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Get active jobs for a specific printer
+    pub fn get_active_jobs_for_printer(printer_name: &str) -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .values()
+            .filter(|job| {
+                job.printer_name == printer_name
+                    && matches!(
+                        job.state,
+                        PrinterJobState::PENDING
+                            | PrinterJobState::PROCESSING
+                            | PrinterJobState::PAUSED
+                    )
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Get job history (completed or cancelled jobs)
+    pub fn get_job_history() -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .values()
+            .filter(|job| {
+                matches!(
+                    job.state,
+                    PrinterJobState::COMPLETED | PrinterJobState::CANCELLED
+                )
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Get job history for a specific printer
+    pub fn get_job_history_for_printer(printer_name: &str) -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .values()
+            .filter(|job| {
+                job.printer_name == printer_name
+                    && matches!(
+                        job.state,
+                        PrinterJobState::COMPLETED | PrinterJobState::CANCELLED
+                    )
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Get all jobs for a specific printer
+    pub fn get_all_jobs_for_printer(printer_name: &str) -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .values()
+            .filter(|job| job.printer_name == printer_name)
+            .cloned()
+            .collect()
     }
 
     /// Clean up old completed/failed jobs
@@ -466,8 +637,9 @@ impl PrinterCore {
         let mut removed_count = 0;
 
         tracker.retain(|_, job| {
-            let should_keep = job.created_at.elapsed() < max_age
-                || (job.status != "completed" && job.status != "failed");
+            let should_keep = job.created_at.elapsed().unwrap_or(Duration::from_secs(0)) < max_age
+                || (job.state != PrinterJobState::COMPLETED
+                    && job.state != PrinterJobState::CANCELLED);
             if !should_keep {
                 removed_count += 1;
             }

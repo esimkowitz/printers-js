@@ -273,6 +273,30 @@ export interface SimplePrintOptions {
   landscape?: boolean;
 }
 
+/** Job state enum matching upstream printers crate */
+export type PrinterJobState =
+  | "pending" // Job queued, waiting to be processed
+  | "paused" // Job temporarily halted
+  | "processing" // Job currently being printed
+  | "cancelled" // Job cancelled by user or system
+  | "completed" // Job finished successfully
+  | "unknown"; // Undetermined state
+
+/** Print job structure matching upstream printers crate */
+export interface PrinterJob {
+  id: number; // Unique job identifier (u64 in Rust)
+  name: string; // Job title/description
+  state: PrinterJobState; // Current job status
+  mediaType: string; // File type (e.g., "application/pdf")
+  createdAt: number; // Job creation timestamp (Unix timestamp)
+  processedAt?: number; // Processing start time (Unix timestamp, optional)
+  completedAt?: number; // Job completion time (Unix timestamp, optional)
+  printerName: string; // Associated printer name
+  errorMessage?: string; // Error details if failed
+  ageSeconds: number; // Age in seconds for convenience
+}
+
+/** Legacy interface for backward compatibility */
 export interface JobStatus {
   id: number;
   printer_name: string;
@@ -307,11 +331,11 @@ export interface Printer {
   printFile(
     filePath: string,
     options?: PrintJobOptions | Record<string, string>
-  ): Promise<void>;
+  ): Promise<number>;
   printBytes(
     data: Uint8Array | Buffer,
     options?: PrintJobOptions | Record<string, string>
-  ): Promise<void>;
+  ): Promise<number>;
 }
 
 export interface PrinterClass {
@@ -397,11 +421,11 @@ interface NativePrinter {
   printFile?: (
     filePath: string,
     jobProperties?: Record<string, string>
-  ) => Promise<void>;
+  ) => Promise<number>;
   printBytes?: (
     data: Uint8Array | Buffer,
     jobProperties?: Record<string, string>
-  ) => Promise<void>;
+  ) => Promise<number>;
   toString?: () => string;
   dispose?: () => void;
 }
@@ -418,12 +442,19 @@ interface NativeModule {
     printerName: string,
     filePath: string,
     jobProperties?: Record<string, string>
-  ): Promise<void>;
+  ): Promise<number>;
   printBytes(
     printerName: string,
     data: Uint8Array | Buffer,
     jobProperties?: Record<string, string>
-  ): Promise<void>;
+  ): Promise<number>;
+  // New job tracking functions
+  getPrinterJob?(jobId: number): PrinterJob | null;
+  getActiveJobs?(): PrinterJob[];
+  getActiveJobsForPrinter?(printerName: string): PrinterJob[];
+  getJobHistory?(): PrinterJob[];
+  getJobHistoryForPrinter?(printerName: string): PrinterJob[];
+  getAllJobsForPrinter?(printerName: string): PrinterJob[];
   Printer: {
     fromName(name: string): NativePrinter | null;
   };
@@ -919,11 +950,10 @@ class PrinterWrapper implements Printer {
   async printFile(
     filePath: string,
     options?: PrintJobOptions | Record<string, string>
-  ): Promise<void> {
+  ): Promise<number> {
     if (this.nativePrinter.printFile) {
       const rawOptions = this.convertOptions(options);
-      await this.nativePrinter.printFile(filePath, rawOptions);
-      return;
+      return await this.nativePrinter.printFile(filePath, rawOptions);
     }
     throw new Error("Print functionality not available");
   }
@@ -937,11 +967,10 @@ class PrinterWrapper implements Printer {
   async printBytes(
     data: Uint8Array | Buffer,
     options?: PrintJobOptions | Record<string, string>
-  ): Promise<void> {
+  ): Promise<number> {
     if (this.nativePrinter.printBytes) {
       const rawOptions = this.convertOptions(options);
-      await this.nativePrinter.printBytes(data, rawOptions);
-      return;
+      return await this.nativePrinter.printBytes(data, rawOptions);
     }
     throw new Error("Print bytes functionality not available");
   }
@@ -1081,6 +1110,102 @@ export function cleanupOldJobs(maxAgeMs: number = 30000): number {
 }
 
 /**
+ * Get printer job details using new format.
+ * @param jobId - Job ID to retrieve
+ * @returns PrinterJob object or null if not found
+ */
+export function getPrinterJob(jobId: number): PrinterJob | null {
+  try {
+    return nativeModule.getPrinterJob
+      ? nativeModule.getPrinterJob(jobId)
+      : null;
+  } catch (error) {
+    console.error(`Failed to get printer job ${jobId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get all active jobs (pending, processing, or paused).
+ * @returns Array of active PrinterJob objects
+ */
+export function getActiveJobs(): PrinterJob[] {
+  try {
+    return nativeModule.getActiveJobs ? nativeModule.getActiveJobs() : [];
+  } catch (error) {
+    console.error("Failed to get active jobs:", error);
+    return [];
+  }
+}
+
+/**
+ * Get active jobs for a specific printer.
+ * @param printerName - Name of the printer
+ * @returns Array of active PrinterJob objects for the printer
+ */
+export function getActiveJobsForPrinter(printerName: string): PrinterJob[] {
+  try {
+    return nativeModule.getActiveJobsForPrinter
+      ? nativeModule.getActiveJobsForPrinter(printerName)
+      : [];
+  } catch (error) {
+    console.error(
+      `Failed to get active jobs for printer ${printerName}:`,
+      error
+    );
+    return [];
+  }
+}
+
+/**
+ * Get job history (completed or cancelled jobs).
+ * @returns Array of completed/cancelled PrinterJob objects
+ */
+export function getJobHistory(): PrinterJob[] {
+  try {
+    return nativeModule.getJobHistory ? nativeModule.getJobHistory() : [];
+  } catch (error) {
+    console.error("Failed to get job history:", error);
+    return [];
+  }
+}
+
+/**
+ * Get job history for a specific printer.
+ * @param printerName - Name of the printer
+ * @returns Array of completed/cancelled PrinterJob objects for the printer
+ */
+export function getJobHistoryForPrinter(printerName: string): PrinterJob[] {
+  try {
+    return nativeModule.getJobHistoryForPrinter
+      ? nativeModule.getJobHistoryForPrinter(printerName)
+      : [];
+  } catch (error) {
+    console.error(
+      `Failed to get job history for printer ${printerName}:`,
+      error
+    );
+    return [];
+  }
+}
+
+/**
+ * Get all jobs (active and completed) for a specific printer.
+ * @param printerName - Name of the printer
+ * @returns Array of all PrinterJob objects for the printer
+ */
+export function getAllJobsForPrinter(printerName: string): PrinterJob[] {
+  try {
+    return nativeModule.getAllJobsForPrinter
+      ? nativeModule.getAllJobsForPrinter(printerName)
+      : [];
+  } catch (error) {
+    console.error(`Failed to get all jobs for printer ${printerName}:`, error);
+    return [];
+  }
+}
+
+/**
  * Clean up resources and shutdown the printer module.
  */
 export function shutdown(): void {
@@ -1121,13 +1246,14 @@ export const getDefaultPrinter = () =>
  * @param printerName - Name of the printer
  * @param filePath - Path to file to print
  * @param options - Typed print options or raw properties
+ * @returns Promise<number> - Job ID
  * @throws Error if printer not found
  */
 export const createPrintJob = async (
   printerName: string,
   filePath: string,
   options?: PrintJobOptions | Record<string, string>
-): Promise<void> => {
+): Promise<number> => {
   const printer = getPrinterByName(printerName);
   if (!printer) {
     throw new Error(`Printer not found: ${printerName}`);
@@ -1140,18 +1266,18 @@ export const createPrintJob = async (
  * @param printerName - Name of the printer
  * @param data - Byte data to print
  * @param options - Typed print options or raw properties
+ * @returns Promise<number> - Job ID
  * @throws Error if printer not found
  */
 export const printBytes = async (
   printerName: string,
   data: Uint8Array | Buffer,
   options?: PrintJobOptions | Record<string, string>
-): Promise<void> => {
+): Promise<number> => {
   try {
     if (nativeModule.printBytes) {
       const rawOptions = convertGlobalOptions(options);
-      await nativeModule.printBytes(printerName, data, rawOptions);
-      return;
+      return await nativeModule.printBytes(printerName, data, rawOptions);
     }
   } catch (error) {
     console.error(`Failed to print bytes to ${printerName}:`, error);
