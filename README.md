@@ -36,7 +36,7 @@ deno add npm:@printers/printers
 
 **Important:** Deno requires special configuration for N-API modules:
 
-1. Add `"nodeModulesDir": "auto"` to your `deno.json`:
+- Add `"nodeModulesDir": "auto"` to your `deno.json`:
 
 ```json
 {
@@ -44,10 +44,10 @@ deno add npm:@printers/printers
 }
 ```
 
-2. Run with the `--allow-ffi` flag:
+- Run with the `--allow-ffi` and `--allow-env` flags:
 
 ```bash
-deno run --allow-ffi your-script.ts
+deno run --allow-ffi --allow-env your-script.ts
 ```
 
 ### Bun
@@ -105,14 +105,31 @@ Check if a printer exists on the system.
 
 Get the status of a print job by ID.
 
-#### `cleanupOldJobs(maxAgeSeconds: number): number`
+#### `cleanupOldJobs(maxAgeMs: number = 30000): number`
 
-Remove old completed/failed jobs and return the count removed.
+Remove old completed/failed jobs and return the count removed. The maxAgeMs
+parameter is in milliseconds (default: 30000ms = 30 seconds).
 
 #### `shutdown(): void`
 
 Shutdown the library and cleanup all background threads. Called automatically on
 process exit.
+
+### Additional Exports
+
+#### Legacy/Convenience Functions
+
+- `findPrinter(name: string): Printer | null` - Alias for `getPrinterByName`
+- `getDefaultPrinter(): Printer | null` - Returns the default system printer
+- `createPrintJob(printerName: string, filePath: string, options?: Record<string, string>): Promise<void>` -
+  Create and execute a print job
+
+#### Constants
+
+- `isSimulationMode: boolean` - Whether simulation mode is active
+- `runtimeInfo: RuntimeInfo` - Information about the current runtime
+- `PrinterConstructor: PrinterClass` - Class with static factory method for
+  creating printer instances
 
 ### Classes
 
@@ -123,32 +140,36 @@ Represents a system printer with metadata and printing capabilities.
 **Properties:**
 
 - `name: string` - Printer display name
-- `systemName: string` - System-level printer name
-- `driverName: string` - Printer driver name
-- `uri: string` - Printer URI (if available)
-- `portName: string` - Port name (e.g., "USB001", "LPT1:")
-- `processor: string` - Print processor (e.g., "winprint")
-- `dataType: string` - Default data type (e.g., "RAW")
-- `description: string` - Printer description
-- `location: string` - Physical location description
-- `isDefault: boolean` - Whether this is the default printer
-- `isShared: boolean` - Whether the printer is shared on network
-- `state: PrinterState` - Current printer state ("READY", "OFFLINE", etc.)
-- `stateReasons: string[]` - Array of state reason strings
+- `systemName?: string` - System-level printer name
+- `driverName?: string` - Printer driver name
+- `uri?: string` - Printer URI (if available)
+- `portName?: string` - Port name (e.g., "USB001", "LPT1:")
+- `processor?: string` - Print processor (e.g., "winprint")
+- `dataType?: string` - Default data type (e.g., "RAW")
+- `description?: string` - Printer description
+- `location?: string` - Physical location description
+- `isDefault?: boolean` - Whether this is the default printer
+- `isShared?: boolean` - Whether the printer is shared on network
+- `state?: PrinterState` - Current printer state
+- `stateReasons?: string[]` - Array of state reason strings
 
 **Methods:**
 
-- `static fromName(name: string): Printer | null` - Create printer instance from
-  name
 - `exists(): boolean` - Check if printer is available
 - `toString(): string` - Get string representation with all fields
 - `equals(other: Printer): boolean` - Compare with another printer by name
-- `dispose(): void` - Manually release printer resources (automatic cleanup
+- `dispose?(): void` - Manually release printer resources (automatic cleanup
   available)
+- `getName(): string` - Get the printer name
 - `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` -
   Print a file
 
-### Interfaces
+**Static Methods (via PrinterConstructor):**
+
+- `PrinterConstructor.fromName(name: string): Printer | null` - Create printer
+  instance from name
+
+### Types and Interfaces
 
 #### `JobStatus`
 
@@ -169,22 +190,46 @@ interface JobStatus {
 type PrinterState = "idle" | "processing" | "stopped" | "unknown";
 ```
 
-Note: The actual printer state comes from the native printer system and may
-include values like "READY", "OFFLINE", "PAUSED", etc.
+#### `PrintError`
 
-## Permissions
+```typescript
+enum PrintError {
+  InvalidParams = 1,
+  InvalidPrinterName = 2,
+  InvalidFilePath = 3,
+  InvalidJson = 4,
+  InvalidJsonEncoding = 5,
+  PrinterNotFound = 6,
+  FileNotFound = 7,
+  SimulatedFailure = 8,
+}
+```
 
-### Deno
+#### `RuntimeInfo`
+
+```typescript
+interface RuntimeInfo {
+  name: "deno" | "node" | "bun" | "unknown";
+  isDeno: boolean;
+  isNode: boolean;
+  isBun: boolean;
+  version: string;
+}
+```
+
+## Runtime Permissions
+
+### Deno Permissions
 
 ```bash
 deno run --allow-ffi --allow-env your-script.ts
 ```
 
-- `--allow-ffi` - Required for loading the native library
-- `--allow-env` - Optional, for reading `PRINTERS_JS_SIMULATE` environment
-  variable
+- `--allow-ffi` - Required for loading the N-API native module
+- `--allow-env` - Required for reading `PRINTERS_JS_SIMULATE` environment
+  variable and runtime detection
 
-### Node.js / Bun
+### Node.js / Bun Permissions
 
 No special permissions required.
 
@@ -278,7 +323,7 @@ if (printerExists("My Printer")) {
 }
 
 // Clean up old print jobs (older than 1 hour)
-const cleaned = cleanupOldJobs(3600);
+const cleaned = cleanupOldJobs(3600000); // 3600000ms = 1 hour
 console.log(`Cleaned up ${cleaned} old print jobs`);
 ```
 
@@ -294,7 +339,9 @@ const defaultPrinter = printers.find(p => p.isDefault);
 console.log(`Default printer: ${defaultPrinter?.name || "None"}`);
 
 // Find printers by state
-const readyPrinters = printers.filter(p => p.state === "READY");
+const readyPrinters = printers.filter(
+  p => p.state === "idle" || p.state === "processing"
+);
 console.log(`Ready printers: ${readyPrinters.map(p => p.name).join(", ")}`);
 
 // Find network printers
