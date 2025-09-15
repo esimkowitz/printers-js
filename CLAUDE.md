@@ -175,6 +175,8 @@ ALWAYS run these after changes:
 9. **Universal entrypoint**: Always import from `src/index.ts` for consistent
    runtime detection and behavior
 10. **Android support**: Intentionally excluded from N-API builds
+11. **Deno N-API support**: Deno requires `"nodeModulesDir": "auto"` in deno.json
+    and `--allow-ffi` flag for N-API modules to work
 
 ## NAPI-RS Publishing and Release Workflow
 
@@ -186,7 +188,7 @@ distribution:
 - **Main package** (`@printers/printers`) contains JavaScript code and
   optionalDependencies
 - **Platform packages** (e.g., `@printers/printers-darwin-arm64`) contain native
-  binaries
+  binaries and ESM wrapper files (index.js, index.d.ts) generated with `--esm` flag
 - **Automatic installation** - npm selects correct platform package based on
   OS/CPU
 
