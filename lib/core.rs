@@ -39,9 +39,13 @@ type JobTracker = Arc<Mutex<HashMap<JobId, JobStatus>>>;
 type JobIdGenerator = Arc<Mutex<JobId>>;
 
 /// Check if we should use simulated printing (for testing)
+/// Only simulates when PRINTERS_JS_SIMULATE is explicitly set to "true" or "1"
+/// If unset or any other value, uses real printers
 pub fn should_simulate_printing() -> bool {
-    let env_var = env::var("PRINTERS_JS_SIMULATE").unwrap_or_default();
-    env_var == "true"
+    match env::var("PRINTERS_JS_SIMULATE") {
+        Ok(val) => val == "true" || val == "1",
+        Err(_) => false, // If unset, use real printers
+    }
 }
 
 /// Generate the next job ID
@@ -131,7 +135,7 @@ impl PrinterCore {
     /// Get all printer names
     pub fn get_all_printer_names() -> Vec<String> {
         if should_simulate_printing() {
-            vec!["Mock Printer".to_string(), "Test Printer".to_string()]
+            vec!["Simulated Printer".to_string()]
         } else {
             printers::get_printers()
                 .into_iter()

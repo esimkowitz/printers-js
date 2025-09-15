@@ -34,7 +34,8 @@
       "tests/node-test-runner.ts",
       "scripts/*.js",
       "src/node.ts",
-      "src/bun.ts"
+      "src/bun.ts",
+      "src/index.ts"
     ],
     "rules": {
       "exclude": ["ban-unused-ignore"]

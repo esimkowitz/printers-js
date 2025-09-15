@@ -4,9 +4,6 @@
  * Run with: bun install && bun run main.ts
  */
 
-// Set simulation mode for safety
-process.env.PRINTERS_JS_SIMULATE = "true";
-
 import {
   getAllPrinterNames,
   getAllPrinters,

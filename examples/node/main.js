@@ -4,9 +4,6 @@
  * Run with: npm install && npm start
  */
 
-// Set simulation mode for safety
-process.env.PRINTERS_JS_SIMULATE = "true";
-
 import {
   cleanupOldJobs,
   getAllPrinterNames,
