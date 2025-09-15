@@ -1,5 +1,5 @@
 /**
- * Bun example using NPM package
+ * Bun example showcasing @printers/printers features
  *
  * Run with: bun install && bun run main.ts
  */
@@ -9,14 +9,18 @@ import {
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
+  getActiveJobs,
+  getJobHistory,
+  getPrinterJob,
   isSimulationMode,
   runtimeInfo,
   shutdown,
+  type PrinterJob,
 } from "@printers/printers";
 
 async function main() {
-  console.log("🚀 Bun Printers Example (NPM Import)");
-  console.log("===================================");
+  console.log("🥟 Bun Printers Example");
+  console.log("=======================");
   console.log(`Runtime: ${runtimeInfo.name} ${runtimeInfo.version}`);
   console.log(
     `Simulation Mode: ${
@@ -25,11 +29,7 @@ async function main() {
   );
 
   try {
-    // Clean up old jobs
-    const cleaned = cleanupOldJobs(3600); // 1 hour
-    console.log(`🧹 Cleaned up ${cleaned} old print jobs\n`);
-
-    // Get all printer names
+    // Feature 1: Printer Discovery
     console.log("📋 Available Printers:");
     const printerNames = getAllPrinterNames();
 
@@ -43,72 +43,109 @@ async function main() {
     });
     console.log("");
 
-    // Get detailed printer information
+    // Feature 2: Detailed Printer Information
     console.log("🖨️  Printer Details:");
     const printers = getAllPrinters();
 
     for (const printer of printers) {
       console.log(`   Name: ${printer.name}`);
-      console.log(`   Driver: ${printer.driverName || "Unknown"}`);
       console.log(`   Default: ${printer.isDefault ? "Yes" : "No"}`);
       console.log(`   State: ${printer.state || "Unknown"}`);
       console.log("   ---");
     }
 
-    // Test concurrent printing
+    // Feature 3: Job Tracking & Management
     if (printers.length > 0) {
-      console.log(`\n🧪 Testing concurrent print jobs...`);
       const printer = printers[0];
+      console.log(`\n🎯 Job Tracking Demo with: ${printer.name}`);
 
       try {
-        // Start multiple print jobs
-        const startTime = Date.now();
+        // Submit multiple print jobs with different options
+        console.log("📄 Submitting print jobs...");
 
-        const jobs = await Promise.allSettled([
-          printer.printFile("doc1.pdf", { copies: "1" }),
-          printer.printFile("doc2.pdf", { copies: "1" }),
-          printer.printFile("doc3.pdf", { copies: "1" }),
-        ]);
+        const jobId1 = await printer.printFile("document.pdf", {
+          "job-name": "PDF Document",
+          copies: "2",
+          "paper-size": "A4",
+        });
 
-        const duration = Date.now() - startTime;
-        const successful = jobs.filter(
-          job => job.status === "fulfilled"
-        ).length;
-        const failed = jobs.filter(job => job.status === "rejected").length;
+        const jobId2 = await printer.printBytes(
+          new Uint8Array([72, 101, 108, 108, 111]), // "Hello"
+          {
+            "job-name": "Raw Text Job",
+            copies: "1",
+          }
+        );
 
-        console.log(`✅ Print jobs completed in ${duration}ms`);
-        console.log(`   Successful: ${successful}, Failed: ${failed}`);
+        console.log(`   Job 1 ID: ${jobId1}`);
+        console.log(`   Job 2 ID: ${jobId2}`);
+
+        // Feature 4: Individual Job Inspection
+        console.log("\n🔍 Job Details:");
+        const job1 = getPrinterJob(jobId1);
+        const job2 = getPrinterJob(jobId2);
+
+        if (job1) {
+          displayJobInfo(job1, "Job 1");
+        }
+        if (job2) {
+          displayJobInfo(job2, "Job 2");
+        }
+
+        // Feature 5: Active Jobs Monitoring
+        console.log("\n📊 Active Jobs:");
+        const activeJobs = getActiveJobs();
+        console.log(`   Found ${activeJobs.length} active job(s)`);
+
+        activeJobs.forEach((job, index) => {
+          console.log(
+            `   ${index + 1}. ${job.name} (${job.state}) - ${job.mediaType}`
+          );
+        });
+
+        // Feature 6: Job History
+        console.log("\n📚 Job History:");
+        const jobHistory = getJobHistory();
+        console.log(`   Found ${jobHistory.length} job(s) in history`);
+
+        jobHistory.slice(0, 3).forEach((job, index) => {
+          const age = Math.round(job.ageSeconds);
+          console.log(
+            `   ${index + 1}. ${job.name} (${job.state}) - ${age}s ago`
+          );
+        });
 
         if (isSimulationMode) {
           console.log(
-            "   (These were simulations - no actual printing occurred)"
+            "\n   ℹ️  All jobs were simulated - no actual printing occurred"
           );
         }
       } catch (error) {
-        console.log(`❌ Print jobs failed: ${error.message}`);
+        console.log(`❌ Print job failed: ${error.message}`);
       }
     }
 
-    // Test printer disposal (Bun-specific cleanup)
-    if (printers.length > 0) {
-      console.log(`\n🧹 Testing printer disposal...`);
-      const printer = getPrinterByName(printers[0].name);
+    // Feature 7: Job Cleanup
+    console.log("\n🧹 Cleanup:");
+    const cleaned = cleanupOldJobs(3600); // 1 hour
+    console.log(`   Cleaned up ${cleaned} old print job(s)`);
 
-      if (printer && printer.dispose) {
-        console.log(`   Disposing printer: ${printer.name}`);
-        printer.dispose();
+    // Feature 8: Printer Comparison
+    if (printers.length >= 2) {
+      console.log("\n🔄 Printer Comparison:");
+      const printer1 = printers[0];
+      const printer2 = printers[1];
+      const samePrinter = getPrinterByName(printer1.name);
 
-        try {
-          // This should throw after disposal
-          printer.name;
-          console.log("❌ Expected disposal to prevent property access");
-        } catch (error) {
-          console.log("✅ Printer properly disposed");
-        }
-      }
+      console.log(
+        `   ${printer1.name} equals ${printer2.name}: ${printer1.equals(printer2)}`
+      );
+      console.log(
+        `   ${printer1.name} equals itself: ${samePrinter?.equals(printer1) ?? false}`
+      );
     }
 
-    // Clean shutdown
+    // Feature 9: Bun-specific cleanup (with shutdown)
     console.log("\n🛑 Shutting down printer system...");
     shutdown();
   } catch (error) {
@@ -116,7 +153,29 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\n🎉 Bun NPM example completed!");
+  console.log("\n🎉 Bun example completed!");
+}
+
+function displayJobInfo(job: PrinterJob, label: string) {
+  console.log(`   ${label}:`);
+  console.log(`     Name: ${job.name}`);
+  console.log(`     State: ${job.state}`);
+  console.log(`     Media Type: ${job.mediaType}`);
+  console.log(`     Printer: ${job.printerName}`);
+  console.log(
+    `     Created: ${new Date(job.createdAt * 1000).toLocaleTimeString()}`
+  );
+  if (job.processedAt) {
+    console.log(
+      `     Processed: ${new Date(job.processedAt * 1000).toLocaleTimeString()}`
+    );
+  }
+  if (job.completedAt) {
+    console.log(
+      `     Completed: ${new Date(job.completedAt * 1000).toLocaleTimeString()}`
+    );
+  }
+  console.log(`     Age: ${Math.round(job.ageSeconds)}s`);
 }
 
 // Run the example
