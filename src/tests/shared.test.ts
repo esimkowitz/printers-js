@@ -61,6 +61,10 @@ const {
   PrintError,
   isSimulationMode,
   runtimeInfo,
+  simpleToCUPS,
+  cupsToRaw,
+  printJobOptionsToRaw,
+  createCustomPageSize,
 } = printerAPI;
 
 console.log("Debug: Available API functions:", Object.keys(printerAPI));
@@ -128,6 +132,67 @@ test(`${runtimeName}: should return an array of Printer objects from getAllPrint
     }
     if (typeof printer.exists !== "function") {
       throw new Error("Each printer should have an exists method");
+    }
+  }
+});
+
+test(`${runtimeName}: should generate custom page sizes correctly`, () => {
+  if (typeof createCustomPageSize !== "function") {
+    throw new Error("createCustomPageSize function should be available");
+  }
+
+  // Test points (default unit)
+  const pointsSize = createCustomPageSize(612, 792);
+  if (pointsSize !== "Custom.612x792") {
+    throw new Error(
+      `Points size should be "Custom.612x792", got "${pointsSize}"`
+    );
+  }
+
+  // Test inches
+  const inchSize = createCustomPageSize(8.5, 11, "in");
+  if (inchSize !== "Custom.8.5x11in") {
+    throw new Error(`Inch size should be "Custom.8.5x11in", got "${inchSize}"`);
+  }
+
+  // Test centimeters
+  const cmSize = createCustomPageSize(21, 29.7, "cm");
+  if (cmSize !== "Custom.21x29.7cm") {
+    throw new Error(`CM size should be "Custom.21x29.7cm", got "${cmSize}"`);
+  }
+
+  // Test millimeters
+  const mmSize = createCustomPageSize(210, 297, "mm");
+  if (mmSize !== "Custom.210x297mm") {
+    throw new Error(`MM size should be "Custom.210x297mm", got "${mmSize}"`);
+  }
+
+  // Test error cases
+  try {
+    createCustomPageSize(0, 100, "in");
+    throw new Error("Should have thrown error for zero width");
+  } catch (error) {
+    if (!error.message.includes("positive numbers")) {
+      throw new Error("Should throw error about positive numbers");
+    }
+  }
+
+  try {
+    createCustomPageSize(100, -5, "cm");
+    throw new Error("Should have thrown error for negative length");
+  } catch (error) {
+    if (!error.message.includes("positive numbers")) {
+      throw new Error("Should throw error about positive numbers");
+    }
+  }
+
+  try {
+    // @ts-ignore - Testing invalid unit
+    createCustomPageSize(100, 200, "invalid");
+    throw new Error("Should have thrown error for invalid unit");
+  } catch (error) {
+    if (!error.message.includes("pt, in, cm, mm")) {
+      throw new Error("Should throw error about valid units");
     }
   }
 });
@@ -374,4 +439,171 @@ test(`${runtimeName}: simulated printer should have correct field values`, () =>
   console.log(`  - isShared: ${simulatedPrinter.isShared}`);
   console.log(`  - systemName: ${simulatedPrinter.systemName}`);
   console.log(`  - driverName: ${simulatedPrinter.driverName}`);
+});
+
+// CUPS Options Conversion Tests
+test(`${runtimeName}: should convert SimplePrintOptions to CUPS correctly`, () => {
+  if (typeof simpleToCUPS !== "function") {
+    throw new Error("simpleToCUPS function should be available");
+  }
+
+  const simpleOptions = {
+    copies: 3,
+    duplex: true,
+    paperSize: "A4" as const,
+    quality: "high" as const,
+    color: false,
+    pageRange: "1-5,8",
+    jobName: "Test Job",
+    pagesPerSheet: 2 as const,
+    landscape: true,
+  };
+
+  const result = simpleToCUPS(simpleOptions);
+
+  // Verify all conversions
+  if (result.copies !== "3") throw new Error("copies conversion failed");
+  if (result.sides !== "two-sided-long-edge")
+    throw new Error("duplex conversion failed");
+  if (result["media-size"] !== "A4")
+    throw new Error("paperSize conversion failed");
+  if (result["print-quality"] !== "5")
+    throw new Error("quality conversion failed");
+  if (result["print-color-mode"] !== "monochrome")
+    throw new Error("color conversion failed");
+  if (result["page-ranges"] !== "1-5,8")
+    throw new Error("pageRange conversion failed");
+  if (result["job-name"] !== "Test Job")
+    throw new Error("jobName conversion failed");
+  if (result["number-up"] !== "2")
+    throw new Error("pagesPerSheet conversion failed");
+  if (result.landscape !== "true")
+    throw new Error("landscape conversion failed");
+});
+
+test(`${runtimeName}: should convert CUPSOptions to raw properties correctly`, () => {
+  if (typeof cupsToRaw !== "function") {
+    throw new Error("cupsToRaw function should be available");
+  }
+
+  const cupsOptions = {
+    "job-name": "CUPS Test",
+    "job-priority": 50,
+    copies: 2,
+    collate: true,
+    "media-size": "Letter",
+    "print-quality": 4,
+    "fit-to-page": false,
+    "custom-option": "test-value",
+  };
+
+  const result = cupsToRaw(cupsOptions);
+
+  // Verify type conversions
+  if (result["job-name"] !== "CUPS Test")
+    throw new Error("string conversion failed");
+  if (result["job-priority"] !== "50")
+    throw new Error("number conversion failed");
+  if (result.copies !== "2") throw new Error("number to string failed");
+  if (result.collate !== "true")
+    throw new Error("boolean true conversion failed");
+  if (result["fit-to-page"] !== "false")
+    throw new Error("boolean false conversion failed");
+  if (result["custom-option"] !== "test-value")
+    throw new Error("custom option failed");
+});
+
+test(`${runtimeName}: should convert PrintJobOptions with precedence correctly`, () => {
+  if (typeof printJobOptionsToRaw !== "function") {
+    throw new Error("printJobOptionsToRaw function should be available");
+  }
+
+  const options = {
+    jobName: "Top Level Job",
+    raw: {
+      "custom-raw": "raw-value",
+      copies: "1", // This should be overridden
+    },
+    simple: {
+      copies: 2, // This should override raw
+      quality: "normal" as const,
+    },
+    cups: {
+      "job-priority": 75,
+      "job-name": "CUPS Job Name", // This should override others
+    },
+  };
+
+  const result = printJobOptionsToRaw(options);
+
+  // Test precedence: raw < simple < cups < jobName
+  if (result["custom-raw"] !== "raw-value")
+    throw new Error("raw option not preserved");
+  if (result.copies !== "2")
+    throw new Error("simple should override raw copies");
+  if (result["print-quality"] !== "4")
+    throw new Error("simple quality conversion failed");
+  if (result["job-priority"] !== "75") throw new Error("cups option not added");
+  if (result["job-name"] !== "Top Level Job")
+    throw new Error("top-level jobName should override all");
+});
+
+test(`${runtimeName}: should handle empty and undefined options correctly`, () => {
+  if (typeof printJobOptionsToRaw !== "function") {
+    throw new Error("printJobOptionsToRaw function should be available");
+  }
+
+  // Test undefined
+  const undefinedResult = printJobOptionsToRaw(undefined);
+  if (Object.keys(undefinedResult).length !== 0) {
+    throw new Error("undefined options should return empty object");
+  }
+
+  // Test empty object
+  const emptyResult = printJobOptionsToRaw({});
+  if (Object.keys(emptyResult).length !== 0) {
+    throw new Error("empty options should return empty object");
+  }
+
+  // Test partial options
+  const partialResult = printJobOptionsToRaw({ jobName: "Only Job Name" });
+  if (partialResult["job-name"] !== "Only Job Name") {
+    throw new Error("partial options should work");
+  }
+  if (Object.keys(partialResult).length !== 1) {
+    throw new Error("partial options should only have specified keys");
+  }
+});
+
+test(`${runtimeName}: should handle edge cases in SimplePrintOptions conversion`, () => {
+  if (typeof simpleToCUPS !== "function") {
+    throw new Error("simpleToCUPS function should be available");
+  }
+
+  // Test with minimal options
+  const minimal = { copies: 1 };
+  const minimalResult = simpleToCUPS(minimal);
+  if (minimalResult.copies !== "1") throw new Error("minimal options failed");
+  if (Object.keys(minimalResult).length !== 1)
+    throw new Error("minimal should only have copies");
+
+  // Test with duplex false
+  const noDuplex = { duplex: false };
+  const noDuplexResult = simpleToCUPS(noDuplex);
+  if (noDuplexResult.sides !== "one-sided")
+    throw new Error("duplex false conversion failed");
+
+  // Test quality mappings
+  const qualityTests = [
+    { quality: "draft" as const, expected: "3" },
+    { quality: "normal" as const, expected: "4" },
+    { quality: "high" as const, expected: "5" },
+  ];
+
+  for (const test of qualityTests) {
+    const result = simpleToCUPS({ quality: test.quality });
+    if (result["print-quality"] !== test.expected) {
+      throw new Error(`quality ${test.quality} should map to ${test.expected}`);
+    }
+  }
 });

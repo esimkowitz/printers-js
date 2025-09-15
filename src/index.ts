@@ -22,10 +22,262 @@ export enum PrintError {
   SimulatedFailure = 8,
 }
 
+// CUPS Printing Options Types
+export type MediaSize =
+  | "Letter"
+  | "Legal"
+  | "A4"
+  | "A3"
+  | "A5"
+  | "B4"
+  | "B5"
+  | "Executive"
+  | "Tabloid"
+  | "COM10"
+  | "DL"
+  | "C5"
+  | "B5-envelope"
+  | "Monarch"
+  | "Invoice"
+  | "Folio"
+  | "QuartoUs"
+  | "a0"
+  | "a1"
+  | "a2"
+  | string; // Allow custom sizes
+
+export type MediaType =
+  | "auto"
+  | "plain"
+  | "bond"
+  | "letterhead"
+  | "transparency"
+  | "envelope"
+  | "envelope-manual"
+  | "continuous"
+  | "continuous-long"
+  | "continuous-short"
+  | "tab-stock"
+  | "pre-printed"
+  | "labels"
+  | "multi-layer"
+  | "screen"
+  | "stationery"
+  | "stationery-coated"
+  | "stationery-inkjet"
+  | "stationery-preprinted"
+  | "stationery-letterhead"
+  | "stationery-fine"
+  | "multi-part-form"
+  | "other"
+  | string; // Allow custom types
+
+export type MediaSource =
+  | "auto"
+  | "main"
+  | "alternate"
+  | "large-capacity"
+  | "manual"
+  | "envelope"
+  | "envelope-manual"
+  | "auto-select"
+  | "tray-1"
+  | "tray-2"
+  | "tray-3"
+  | "tray-4"
+  | "left"
+  | "middle"
+  | "right"
+  | "rear"
+  | "side"
+  | "top"
+  | "bottom"
+  | "center"
+  | "photo"
+  | "disc"
+  | string; // Allow custom sources
+
+export type OrientationRequested = 3 | 4 | 5 | 6; // Portrait, Landscape, Reverse landscape, Reverse portrait
+
+export type PrintQuality = 3 | 4 | 5; // Draft, Normal, High
+
+export type Sides =
+  | "one-sided"
+  | "two-sided-long-edge"
+  | "two-sided-short-edge";
+
+export type NumberUp = 1 | 2 | 4 | 6 | 9 | 16;
+
+export type NumberUpLayout =
+  | "lrtb"
+  | "lrbt"
+  | "rltb"
+  | "rlbt"
+  | "tblr"
+  | "tbrl"
+  | "btlr"
+  | "btrl";
+
+export type PageBorder =
+  | "none"
+  | "single"
+  | "single-thick"
+  | "double"
+  | "double-thick";
+
+export type OutputOrder = "normal" | "reverse";
+
+export type JobHoldUntil =
+  | "no-hold"
+  | "indefinite"
+  | "day-time"
+  | "evening"
+  | "night"
+  | "second-shift"
+  | "third-shift"
+  | "weekend"
+  | string; // Allow specific times like "HH:MM"
+
+export type ColorMode = "monochrome" | "color" | "auto";
+
+export type DocumentFormat =
+  | "application/pdf"
+  | "application/postscript"
+  | "application/vnd.cups-raw"
+  | "text/plain"
+  | "image/jpeg"
+  | "image/png"
+  | "image/gif"
+  | "application/vnd.cups-raster"
+  | "image/urf"
+  | string; // Allow other formats
+
+/**
+ * Comprehensive CUPS printing options interface
+ * Based on CUPS documentation: https://www.cups.org/doc/options.html
+ *
+ * @example
+ * ```typescript
+ * const options: CUPSOptions = {
+ *   "job-name": "My Document",
+ *   copies: 2,
+ *   sides: "two-sided-long-edge",
+ *   "media-size": "A4",
+ *   "print-quality": 5, // High quality
+ *   "print-color-mode": "color"
+ * };
+ * await printer.printFile("document.pdf", { cups: options });
+ * ```
+ */
+export interface CUPSOptions {
+  // Job identification and control
+  "job-name"?: string;
+  "job-priority"?: number; // 1-100
+  "job-hold-until"?: JobHoldUntil;
+  "job-billing"?: string;
+  "job-sheets"?: string; // Banner pages
+
+  // Copies and collation
+  copies?: number;
+  collate?: boolean;
+
+  // Media selection
+  media?: string; // Can be size, type, or source
+  "media-size"?: MediaSize;
+  "media-type"?: MediaType;
+  "media-source"?: MediaSource;
+
+  // Page orientation and layout
+  landscape?: boolean;
+  "orientation-requested"?: OrientationRequested;
+
+  // Duplex printing
+  sides?: Sides;
+
+  // Page selection and arrangement
+  "page-ranges"?: string; // e.g., "1-4,7,9-12"
+  "number-up"?: NumberUp;
+  "number-up-layout"?: NumberUpLayout;
+  "page-border"?: PageBorder;
+  "page-bottom"?: number;
+  "page-left"?: number;
+  "page-right"?: number;
+  "page-top"?: number;
+
+  // Print quality and appearance
+  "print-quality"?: PrintQuality;
+  "print-color-mode"?: ColorMode;
+  resolution?: string; // e.g., "300dpi", "600x300dpi"
+
+  // Output control
+  "output-order"?: OutputOrder;
+  outputbin?: string;
+
+  // Image and document options
+  "fit-to-page"?: boolean;
+  mirror?: boolean;
+  "natural-scaling"?: number; // Percentage
+  ppi?: number; // Pixels per inch
+  scaling?: number; // Percentage
+
+  // Document format
+  "document-format"?: DocumentFormat;
+
+  // Finishing options
+  finishings?: string; // Stapling, hole punching, etc.
+  "finishings-col"?: string;
+
+  // Color management
+  "color-management"?: string;
+  gamma?: number;
+  brightness?: number;
+
+  // Custom options (catch-all for printer-specific options)
+  [key: string]: string | number | boolean | undefined;
+}
+
+/**
+ * Simplified print options interface for common use cases
+ *
+ * @example
+ * ```typescript
+ * const options: SimplePrintOptions = {
+ *   copies: 3,
+ *   duplex: true,
+ *   paperSize: "Letter",
+ *   quality: "high",
+ *   color: false,
+ *   jobName: "My Print Job"
+ * };
+ * await printer.printFile("document.pdf", { simple: options });
+ * ```
+ */
+export interface SimplePrintOptions {
+  /** Number of copies to print */
+  copies?: number;
+  /** Print on both sides of paper */
+  duplex?: boolean;
+  /** Paper size */
+  paperSize?: MediaSize;
+  /** Print quality */
+  quality?: "draft" | "normal" | "high";
+  /** Color or black and white */
+  color?: boolean;
+  /** Page range to print (e.g., "1-5,8,10-12") */
+  pageRange?: string;
+  /** Job name for identification */
+  jobName?: string;
+  /** Pages per sheet */
+  pagesPerSheet?: NumberUp;
+  /** Print in landscape orientation */
+  landscape?: boolean;
+}
+
 export interface JobStatus {
   id: number;
   printer_name: string;
   file_path: string;
+  job_name?: string;
   status: "queued" | "printing" | "completed" | "failed";
   error_message?: string;
   age_seconds: number;
@@ -54,7 +306,11 @@ export interface Printer {
   getName(): string;
   printFile(
     filePath: string,
-    jobProperties?: Record<string, string>
+    options?: PrintJobOptions | Record<string, string>
+  ): Promise<void>;
+  printBytes(
+    data: Uint8Array | Buffer,
+    options?: PrintJobOptions | Record<string, string>
   ): Promise<void>;
 }
 
@@ -142,6 +398,10 @@ interface NativePrinter {
     filePath: string,
     jobProperties?: Record<string, string>
   ) => Promise<void>;
+  printBytes?: (
+    data: Uint8Array | Buffer,
+    jobProperties?: Record<string, string>
+  ) => Promise<void>;
   toString?: () => string;
   dispose?: () => void;
 }
@@ -159,9 +419,201 @@ interface NativeModule {
     filePath: string,
     jobProperties?: Record<string, string>
   ): Promise<void>;
+  printBytes(
+    printerName: string,
+    data: Uint8Array | Buffer,
+    jobProperties?: Record<string, string>
+  ): Promise<void>;
   Printer: {
     fromName(name: string): NativePrinter | null;
   };
+}
+
+// Helper functions for CUPS options conversion
+
+/**
+ * Convert SimplePrintOptions to CUPS raw properties
+ */
+export function simpleToCUPS(
+  options: SimplePrintOptions
+): Record<string, string> {
+  const cupsOptions: Record<string, string> = {};
+
+  if (options.copies !== undefined) {
+    cupsOptions.copies = options.copies.toString();
+  }
+
+  if (options.duplex !== undefined) {
+    cupsOptions.sides = options.duplex ? "two-sided-long-edge" : "one-sided";
+  }
+
+  if (options.paperSize !== undefined) {
+    cupsOptions["media-size"] = options.paperSize;
+  }
+
+  if (options.quality !== undefined) {
+    const qualityMap = { draft: "3", normal: "4", high: "5" };
+    cupsOptions["print-quality"] = qualityMap[options.quality];
+  }
+
+  if (options.color !== undefined) {
+    cupsOptions["print-color-mode"] = options.color ? "color" : "monochrome";
+  }
+
+  if (options.pageRange !== undefined) {
+    cupsOptions["page-ranges"] = options.pageRange;
+  }
+
+  if (options.jobName !== undefined) {
+    cupsOptions["job-name"] = options.jobName;
+  }
+
+  if (options.pagesPerSheet !== undefined) {
+    cupsOptions["number-up"] = options.pagesPerSheet.toString();
+  }
+
+  if (options.landscape !== undefined && options.landscape) {
+    cupsOptions.landscape = "true";
+  }
+
+  return cupsOptions;
+}
+
+/**
+ * Convert CUPSOptions to raw properties for backend
+ */
+export function cupsToRaw(options: CUPSOptions): Record<string, string> {
+  const rawOptions: Record<string, string> = {};
+
+  // Convert all options to string values
+  for (const [key, value] of Object.entries(options)) {
+    if (value !== undefined) {
+      if (typeof value === "boolean") {
+        rawOptions[key] = value ? "true" : "false";
+      } else {
+        rawOptions[key] = value.toString();
+      }
+    }
+  }
+
+  return rawOptions;
+}
+
+/**
+ * Print job options that can accept either raw properties or typed options
+ *
+ * @example
+ * ```typescript
+ * // Using simple options
+ * await printer.printFile("doc.pdf", {
+ *   simple: { copies: 2, duplex: true, quality: "high" }
+ * });
+ *
+ * // Using full CUPS options
+ * await printer.printFile("doc.pdf", {
+ *   cups: { "job-name": "Important", "print-quality": 5 }
+ * });
+ *
+ * // Mixing different option types
+ * await printer.printFile("doc.pdf", {
+ *   jobName: "Mixed Options",
+ *   raw: { "custom-setting": "value" },
+ *   simple: { copies: 3, color: true }
+ * });
+ * ```
+ */
+export interface PrintJobOptions {
+  /** Job name for identification */
+  jobName?: string;
+  /** Raw CUPS properties (key-value pairs) */
+  raw?: Record<string, string>;
+  /** Simple typed options for common use cases */
+  simple?: SimplePrintOptions;
+  /** Full CUPS options with complete type safety */
+  cups?: CUPSOptions;
+}
+
+/**
+ * Convert PrintJobOptions to raw properties for the backend
+ */
+export function printJobOptionsToRaw(
+  options?: PrintJobOptions
+): Record<string, string> {
+  if (!options) return {};
+
+  let rawOptions: Record<string, string> = {};
+
+  // Start with raw options if provided
+  if (options.raw) {
+    rawOptions = { ...options.raw };
+  }
+
+  // Add simple options (converted to CUPS)
+  if (options.simple) {
+    rawOptions = { ...rawOptions, ...simpleToCUPS(options.simple) };
+  }
+
+  // Add CUPS options (converted to raw)
+  if (options.cups) {
+    rawOptions = { ...rawOptions, ...cupsToRaw(options.cups) };
+  }
+
+  // Add job name if specified at top level
+  if (options.jobName) {
+    rawOptions["job-name"] = options.jobName;
+  }
+
+  return rawOptions;
+}
+
+/**
+ * Unit for custom page size measurements
+ */
+export type CustomPageSizeUnit = "pt" | "in" | "cm" | "mm";
+
+/**
+ * Generate a custom page size string for CUPS media option
+ *
+ * @param width - Width of the media
+ * @param length - Length of the media
+ * @param unit - Unit of measurement ("pt" for points, "in" for inches, "cm" for centimeters, "mm" for millimeters)
+ * @returns Formatted custom media size string
+ *
+ * @example
+ * ```typescript
+ * // Create a custom 4x6 inch photo size
+ * const photoSize = createCustomPageSize(4, 6, "in");
+ * // Returns: "Custom.4x6in"
+ *
+ * // Create a custom A3+ size in millimeters
+ * const a3Plus = createCustomPageSize(329, 483, "mm");
+ * // Returns: "Custom.329x483mm"
+ *
+ * // Use in print options
+ * await printer.printFile("document.pdf", {
+ *   cups: {
+ *     media: createCustomPageSize(210, 297, "mm") // A4 equivalent
+ *   }
+ * });
+ * ```
+ */
+export function createCustomPageSize(
+  width: number,
+  length: number,
+  unit: CustomPageSizeUnit = "pt"
+): string {
+  // Validate inputs
+  if (width <= 0 || length <= 0) {
+    throw new Error("Width and length must be positive numbers");
+  }
+
+  if (!["pt", "in", "cm", "mm"].includes(unit)) {
+    throw new Error("Unit must be one of: pt, in, cm, mm");
+  }
+
+  // Format the custom size string
+  const unitSuffix = unit === "pt" ? "" : unit; // Points don't need a suffix
+  return `Custom.${width}x${length}${unitSuffix}`;
 }
 
 // N-API module loading
@@ -262,56 +714,156 @@ class PrinterWrapper implements Printer {
     this.nativePrinter = nativePrinter;
   }
 
+  private getInfoProperty(propertyName: string): any {
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info[propertyName];
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return undefined;
+  }
+
   get name(): string {
     return this.nativePrinter.name || "";
   }
 
   get systemName(): string | undefined {
-    return this.nativePrinter.systemName;
+    if (this.nativePrinter.systemName) {
+      return this.nativePrinter.systemName;
+    }
+    return this.getInfoProperty("systemName");
   }
 
   get driverName(): string | undefined {
-    return this.nativePrinter.driverName;
+    if (this.nativePrinter.driverName) {
+      return this.nativePrinter.driverName;
+    }
+    return this.getInfoProperty("driverName");
   }
 
   get uri(): string | undefined {
-    return this.nativePrinter.uri;
+    if (this.nativePrinter.uri) {
+      return this.nativePrinter.uri;
+    }
+    return this.getInfoProperty("uri");
   }
 
   get portName(): string | undefined {
-    return this.nativePrinter.portName;
+    if (this.nativePrinter.portName) {
+      return this.nativePrinter.portName;
+    }
+    return this.getInfoProperty("portName");
   }
 
   get processor(): string | undefined {
-    return this.nativePrinter.processor;
+    if (this.nativePrinter.processor) {
+      return this.nativePrinter.processor;
+    }
+    return this.getInfoProperty("processor");
   }
 
   get dataType(): string | undefined {
-    return this.nativePrinter.dataType;
+    if (this.nativePrinter.dataType) {
+      return this.nativePrinter.dataType;
+    }
+    return this.getInfoProperty("dataType");
   }
 
   get description(): string | undefined {
-    return this.nativePrinter.description;
+    if (this.nativePrinter.description) {
+      return this.nativePrinter.description;
+    }
+    return this.getInfoProperty("description");
   }
 
   get location(): string | undefined {
-    return this.nativePrinter.location;
+    if (this.nativePrinter.location) {
+      return this.nativePrinter.location;
+    }
+    return this.getInfoProperty("location");
   }
 
   get isDefault(): boolean | undefined {
-    return this.nativePrinter.isDefault;
+    if (this.nativePrinter.isDefault !== undefined) {
+      return this.nativePrinter.isDefault;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info.isDefault;
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return undefined;
   }
 
   get isShared(): boolean | undefined {
-    return this.nativePrinter.isShared;
+    if (this.nativePrinter.isShared !== undefined) {
+      return this.nativePrinter.isShared;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info.isShared;
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return undefined;
   }
 
   get state(): PrinterState | undefined {
-    return (this.nativePrinter.state as PrinterState) || "unknown";
+    if (this.nativePrinter.state) {
+      return this.nativePrinter.state as PrinterState;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return (info.state as PrinterState) || "unknown";
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return "unknown";
   }
 
   get stateReasons(): string[] | undefined {
-    return this.nativePrinter.stateReasons;
+    if (this.nativePrinter.stateReasons) {
+      return this.nativePrinter.stateReasons;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info.stateReasons;
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return [];
   }
 
   /**
@@ -361,18 +913,69 @@ class PrinterWrapper implements Printer {
   /**
    * Print a file using this printer.
    * @param filePath - Path to file to print
-   * @param jobProperties - Optional job properties
+   * @param options - Typed print options or raw properties
    * @throws Error if print functionality unavailable
    */
   async printFile(
     filePath: string,
-    jobProperties?: Record<string, string>
+    options?: PrintJobOptions | Record<string, string>
   ): Promise<void> {
     if (this.nativePrinter.printFile) {
-      await this.nativePrinter.printFile(filePath, jobProperties);
+      const rawOptions = this.convertOptions(options);
+      await this.nativePrinter.printFile(filePath, rawOptions);
       return;
     }
     throw new Error("Print functionality not available");
+  }
+
+  /**
+   * Print raw bytes using this printer.
+   * @param data - Byte data to print
+   * @param options - Typed print options or raw properties
+   * @throws Error if print functionality unavailable
+   */
+  async printBytes(
+    data: Uint8Array | Buffer,
+    options?: PrintJobOptions | Record<string, string>
+  ): Promise<void> {
+    if (this.nativePrinter.printBytes) {
+      const rawOptions = this.convertOptions(options);
+      await this.nativePrinter.printBytes(data, rawOptions);
+      return;
+    }
+    throw new Error("Print bytes functionality not available");
+  }
+
+  /**
+   * Convert options to raw properties for the backend
+   */
+  private convertOptions(
+    options?: PrintJobOptions | Record<string, string>
+  ): Record<string, string> | undefined {
+    if (!options) return undefined;
+
+    // If it's already raw properties (has string keys and values)
+    if (this.isRawOptions(options)) {
+      return options;
+    }
+
+    // Convert typed options to raw
+    return printJobOptionsToRaw(options as PrintJobOptions);
+  }
+
+  /**
+   * Check if options are raw properties
+   */
+  private isRawOptions(
+    options: PrintJobOptions | Record<string, string>
+  ): options is Record<string, string> {
+    // If it has any of the PrintJobOptions specific keys, it's typed options
+    return !(
+      "jobName" in options ||
+      "raw" in options ||
+      "simple" in options ||
+      "cups" in options
+    );
   }
 }
 
@@ -384,10 +987,14 @@ class PrinterWrapper implements Printer {
  */
 export function getAllPrinters(): Printer[] {
   try {
-    const printers = nativeModule.getAllPrinters
-      ? nativeModule.getAllPrinters()
+    // Get printer names and then get actual Printer instances
+    const printerNames = nativeModule.getAllPrinterNames
+      ? nativeModule.getAllPrinterNames()
       : [];
-    return printers.map(p => new PrinterWrapper(p));
+
+    return printerNames
+      .map(name => getPrinterByName(name))
+      .filter((printer): printer is Printer => printer !== null);
   } catch (error) {
     console.error("Failed to get all printers:", error);
     return [];
@@ -513,13 +1120,13 @@ export const getDefaultPrinter = () =>
  * Create and execute a print job.
  * @param printerName - Name of the printer
  * @param filePath - Path to file to print
- * @param options - Optional job properties
+ * @param options - Typed print options or raw properties
  * @throws Error if printer not found
  */
 export const createPrintJob = async (
   printerName: string,
   filePath: string,
-  options?: Record<string, string>
+  options?: PrintJobOptions | Record<string, string>
 ): Promise<void> => {
   const printer = getPrinterByName(printerName);
   if (!printer) {
@@ -527,3 +1134,60 @@ export const createPrintJob = async (
   }
   return await printer.printFile(filePath, options);
 };
+
+/**
+ * Print raw bytes to a printer.
+ * @param printerName - Name of the printer
+ * @param data - Byte data to print
+ * @param options - Typed print options or raw properties
+ * @throws Error if printer not found
+ */
+export const printBytes = async (
+  printerName: string,
+  data: Uint8Array | Buffer,
+  options?: PrintJobOptions | Record<string, string>
+): Promise<void> => {
+  try {
+    if (nativeModule.printBytes) {
+      const rawOptions = convertGlobalOptions(options);
+      await nativeModule.printBytes(printerName, data, rawOptions);
+      return;
+    }
+  } catch (error) {
+    console.error(`Failed to print bytes to ${printerName}:`, error);
+    throw error;
+  }
+  throw new Error("Print bytes functionality not available");
+};
+
+/**
+ * Helper function to convert options for global functions
+ */
+function convertGlobalOptions(
+  options?: PrintJobOptions | Record<string, string>
+): Record<string, string> | undefined {
+  if (!options) return undefined;
+
+  // If it's already raw properties (has string keys and values)
+  if (isGlobalRawOptions(options)) {
+    return options;
+  }
+
+  // Convert typed options to raw
+  return printJobOptionsToRaw(options as PrintJobOptions);
+}
+
+/**
+ * Check if options are raw properties for global functions
+ */
+function isGlobalRawOptions(
+  options: PrintJobOptions | Record<string, string>
+): options is Record<string, string> {
+  // If it has any of the PrintJobOptions specific keys, it's typed options
+  return !(
+    "jobName" in options ||
+    "raw" in options ||
+    "simple" in options ||
+    "cups" in options
+  );
+}
