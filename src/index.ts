@@ -273,31 +273,31 @@ if (isSimulationMode) {
     // Platform detection for N-API module loading using NAPI-RS target names
     let platformString: string;
 
-    // Map to NAPI-RS standard target names that match build output
+    // Map to npm package names (not NAPI-RS target names)
     const platform = (globalThis as GlobalWithProcess).process?.platform;
     const arch = (globalThis as GlobalWithProcess).process?.arch;
 
     if (platform === "darwin") {
       if (arch === "x64") {
-        platformString = "x86_64-apple-darwin";
+        platformString = "darwin-x64";
       } else if (arch === "arm64") {
-        platformString = "aarch64-apple-darwin";
+        platformString = "darwin-arm64";
       } else {
         throw new Error(`Unsupported architecture for Darwin: ${arch}`);
       }
     } else if (platform === "win32") {
       if (arch === "x64") {
-        platformString = "x86_64-pc-windows-msvc";
+        platformString = "win32-x64-msvc";
       } else if (arch === "arm64") {
-        platformString = "aarch64-pc-windows-msvc";
+        platformString = "win32-arm64-msvc";
       } else {
         throw new Error(`Unsupported architecture for Windows: ${arch}`);
       }
     } else if (platform === "linux") {
       if (arch === "x64") {
-        platformString = "x86_64-unknown-linux-gnu";
+        platformString = "linux-x64-gnu";
       } else if (arch === "arm64") {
-        platformString = "aarch64-unknown-linux-gnu";
+        platformString = "linux-arm64-gnu";
       } else {
         throw new Error(`Unsupported architecture for Linux: ${arch}`);
       }
