@@ -123,8 +123,8 @@ impl Printer {
                 port_name: printer.port_name.clone(),
                 processor: printer.processor.clone(),
                 data_type: printer.data_type.clone(),
-                description: String::new(), // Field may not exist
-                location: String::new(),    // Field may not exist
+                description: printer.description.clone(),
+                location: printer.location.clone(),
                 is_default: printer.is_default,
                 is_shared: printer.is_shared,
                 state: PrinterCore::get_printer_state(&printer),
@@ -197,8 +197,8 @@ pub fn get_all_printers() -> Vec<PrinterInfo> {
                     port_name: printer.port_name.clone(),
                     processor: printer.processor.clone(),
                     data_type: printer.data_type.clone(),
-                    description: String::new(), // Field may not exist
-                    location: String::new(),    // Field may not exist
+                    description: printer.description.clone(),
+                    location: printer.location.clone(),
                     is_default: printer.is_default,
                     is_shared: printer.is_shared,
                     state: PrinterCore::get_printer_state(&printer),
