@@ -28,9 +28,12 @@ impl PrinterJobOptions {
     }
 
     /// Create job options from raw properties map
-    pub fn from_map(raw_properties: HashMap<String, String>) -> Self {
+    pub fn from_map(mut raw_properties: HashMap<String, String>) -> Self {
+        // Extract job name if present in raw properties
+        let name = raw_properties.remove("job-name");
+
         PrinterJobOptions {
-            name: None,
+            name,
             raw_properties,
         }
     }
@@ -160,7 +163,7 @@ fn detect_media_type(file_path: &str) -> String {
 }
 
 /// Create a JSON status object for a job
-pub fn create_status_json(job_id: JobId, job: &PrinterJob) -> Option<String> {
+pub fn create_status_json(_job_id: JobId, job: &PrinterJob) -> Option<String> {
     let age_seconds = job
         .created_at
         .elapsed()

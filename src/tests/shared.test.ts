@@ -747,45 +747,45 @@ test(`${runtimeName}: should create and track print jobs with new job format`, a
       );
     }
 
-    if (typeof job.media_type !== "string") {
+    if (typeof job.mediaType !== "string") {
+      console.log(
+        "Debug: job.mediaType =",
+        JSON.stringify(job.mediaType),
+        typeof job.mediaType
+      );
+      console.log("Debug: full job object =", JSON.stringify(job, null, 2));
       throw new Error("Job media_type should be a string");
     }
 
-    if (typeof job.created_at !== "number" || job.created_at <= 0) {
+    if (typeof job.createdAt !== "number" || job.createdAt <= 0) {
       throw new Error("Job created_at should be a positive timestamp");
     }
 
     if (
-      typeof job.printer_name !== "string" ||
-      job.printer_name !== printer.name
+      typeof job.printerName !== "string" ||
+      job.printerName !== printer.name
     ) {
       throw new Error(
-        `Job printer_name should match printer name: expected "${printer.name}", got "${job.printer_name}"`
+        `Job printer_name should match printer name: expected "${printer.name}", got "${job.printerName}"`
       );
     }
 
-    if (typeof job.age_seconds !== "number" || job.age_seconds < 0) {
+    if (typeof job.ageSeconds !== "number" || job.ageSeconds < 0) {
       throw new Error("Job age_seconds should be a non-negative number");
     }
 
     // Optional fields should be properly typed when present
-    if (
-      job.processed_at !== undefined &&
-      typeof job.processed_at !== "number"
-    ) {
+    if (job.processedAt !== undefined && typeof job.processedAt !== "number") {
       throw new Error("Job processed_at should be a number when present");
     }
 
-    if (
-      job.completed_at !== undefined &&
-      typeof job.completed_at !== "number"
-    ) {
+    if (job.completedAt !== undefined && typeof job.completedAt !== "number") {
       throw new Error("Job completed_at should be a number when present");
     }
 
     if (
-      job.error_message !== undefined &&
-      typeof job.error_message !== "string"
+      job.errorMessage !== undefined &&
+      typeof job.errorMessage !== "string"
     ) {
       throw new Error("Job error_message should be a string when present");
     }
@@ -793,9 +793,9 @@ test(`${runtimeName}: should create and track print jobs with new job format`, a
     console.log(`Job tracking validation passed for job ${jobId}:`);
     console.log(`  - name: ${job.name}`);
     console.log(`  - state: ${job.state}`);
-    console.log(`  - media_type: ${job.media_type}`);
-    console.log(`  - printer_name: ${job.printer_name}`);
-    console.log(`  - age_seconds: ${job.age_seconds}`);
+    console.log(`  - media_type: ${job.mediaType}`);
+    console.log(`  - printer_name: ${job.printerName}`);
+    console.log(`  - age_seconds: ${job.ageSeconds}`);
   } catch (error) {
     // In simulation mode, we might get expected errors
     if (
@@ -940,7 +940,7 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
       }
 
       // Completed jobs should have completed_at timestamp
-      if (job.state === "completed" && typeof job.completed_at !== "number") {
+      if (job.state === "completed" && typeof job.completedAt !== "number") {
         console.log("Note: completed job missing completed_at timestamp");
       }
     }
@@ -989,15 +989,15 @@ test(`${runtimeName}: should handle media type detection correctly`, async () =>
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const job = getPrinterJob(jobId);
-      if (job && job.media_type !== testCase.expectedType) {
+      if (job && job.mediaType !== testCase.expectedType) {
         throw new Error(
-          `File ${testCase.file} should have media type "${testCase.expectedType}", got "${job.media_type}"`
+          `File ${testCase.file} should have media type "${testCase.expectedType}", got "${job.mediaType}"`
         );
       }
 
       if (job) {
         console.log(
-          `Media type detection: ${testCase.file} -> ${job.media_type} ✓`
+          `Media type detection: ${testCase.file} -> ${job.mediaType} ✓`
         );
       }
     } catch (error) {
@@ -1045,9 +1045,9 @@ test(`${runtimeName}: should handle raw bytes printing with correct media type`,
       throw new Error("Raw bytes job should be tracked");
     }
 
-    if (job.media_type !== "application/vnd.cups-raw") {
+    if (job.mediaType !== "application/vnd.cups-raw") {
       throw new Error(
-        `Raw bytes should have media type "application/vnd.cups-raw", got "${job.media_type}"`
+        `Raw bytes should have media type "application/vnd.cups-raw", got "${job.mediaType}"`
       );
     }
 

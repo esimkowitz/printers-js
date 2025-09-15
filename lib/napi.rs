@@ -20,7 +20,7 @@ pub struct PrintBytesTask {
 
 impl Task for PrintTask {
     type Output = u64;
-    type JsValue = u64;
+    type JsValue = f64;
 
     fn compute(&mut self) -> Result<Self::Output> {
         match PrinterCore::print_file(
@@ -46,13 +46,13 @@ impl Task for PrintTask {
     }
 
     fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
-        Ok(output)
+        Ok(output as f64)
     }
 }
 
 impl Task for PrintBytesTask {
     type Output = u64;
-    type JsValue = u64;
+    type JsValue = f64;
 
     fn compute(&mut self) -> Result<Self::Output> {
         match PrinterCore::print_bytes(&self.printer_name, &self.data, self.job_options.clone()) {
@@ -71,7 +71,7 @@ impl Task for PrintBytesTask {
     }
 
     fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
-        Ok(output)
+        Ok(output as f64)
     }
 }
 
@@ -90,16 +90,23 @@ pub enum PrintErrorCode {
 /// Print job interface matching upstream printers crate
 #[napi(object)]
 pub struct PrinterJob {
-    pub id: u64,
+    pub id: f64,
     pub name: String,
     pub state: String,
+    #[napi(js_name = "mediaType")]
     pub media_type: String,
-    pub created_at: u64,
-    pub processed_at: Option<u64>,
-    pub completed_at: Option<u64>,
+    #[napi(js_name = "createdAt")]
+    pub created_at: f64,
+    #[napi(js_name = "processedAt")]
+    pub processed_at: Option<f64>,
+    #[napi(js_name = "completedAt")]
+    pub completed_at: Option<f64>,
+    #[napi(js_name = "printerName")]
     pub printer_name: String,
+    #[napi(js_name = "errorMessage")]
     pub error_message: Option<String>,
-    pub age_seconds: u64,
+    #[napi(js_name = "ageSeconds")]
+    pub age_seconds: f64,
 }
 
 /// Legacy job status interface for backward compatibility
@@ -307,39 +314,8 @@ pub fn print_bytes(
 
 /// Get the status of a print job (new format)
 #[napi]
-pub fn get_printer_job(job_id: u64) -> Option<PrinterJob> {
-    if let Some(job) = PrinterCore::get_job_status(job_id) {
-        Some(PrinterJob {
-            id: job.id,
-            name: job.name,
-            state: job.state.as_string(),
-            media_type: job.media_type,
-            created_at: job
-                .created_at
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-            processed_at: job.processed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            completed_at: job.completed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            printer_name: job.printer_name,
-            error_message: job.error_message,
-            age_seconds: job
-                .created_at
-                .elapsed()
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-        })
-    } else {
-        None
-    }
+pub fn get_printer_job(job_id: f64) -> Option<PrinterJob> {
+    PrinterCore::get_job_status(job_id as u64).map(convert_printer_job)
 }
 
 /// Get the status of a print job (legacy format for backward compatibility)
@@ -373,39 +349,44 @@ pub fn get_job_status(job_id: u32) -> Option<JobStatus> {
     }
 }
 
+/// Convert core PrinterJob to N-API PrinterJob
+fn convert_printer_job(job: crate::core::PrinterJob) -> PrinterJob {
+    PrinterJob {
+        id: job.id as f64,
+        name: job.name,
+        state: job.state.as_string(),
+        media_type: job.media_type,
+        created_at: job
+            .created_at
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap_or(std::time::Duration::from_secs(0))
+            .as_secs() as f64,
+        processed_at: job.processed_at.map(|t| {
+            t.duration_since(std::time::SystemTime::UNIX_EPOCH)
+                .unwrap_or(std::time::Duration::from_secs(0))
+                .as_secs() as f64
+        }),
+        completed_at: job.completed_at.map(|t| {
+            t.duration_since(std::time::SystemTime::UNIX_EPOCH)
+                .unwrap_or(std::time::Duration::from_secs(0))
+                .as_secs() as f64
+        }),
+        printer_name: job.printer_name,
+        error_message: job.error_message,
+        age_seconds: job
+            .created_at
+            .elapsed()
+            .unwrap_or(std::time::Duration::from_secs(0))
+            .as_secs() as f64,
+    }
+}
+
 /// Get all active jobs (pending or processing)
 #[napi]
 pub fn get_active_jobs() -> Vec<PrinterJob> {
     PrinterCore::get_active_jobs()
         .into_iter()
-        .map(|job| PrinterJob {
-            id: job.id,
-            name: job.name,
-            state: job.state.as_string(),
-            media_type: job.media_type,
-            created_at: job
-                .created_at
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-            processed_at: job.processed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            completed_at: job.completed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            printer_name: job.printer_name,
-            error_message: job.error_message,
-            age_seconds: job
-                .created_at
-                .elapsed()
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-        })
+        .map(convert_printer_job)
         .collect()
 }
 
@@ -414,34 +395,7 @@ pub fn get_active_jobs() -> Vec<PrinterJob> {
 pub fn get_active_jobs_for_printer(printer_name: String) -> Vec<PrinterJob> {
     PrinterCore::get_active_jobs_for_printer(&printer_name)
         .into_iter()
-        .map(|job| PrinterJob {
-            id: job.id,
-            name: job.name,
-            state: job.state.as_string(),
-            media_type: job.media_type,
-            created_at: job
-                .created_at
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-            processed_at: job.processed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            completed_at: job.completed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            printer_name: job.printer_name,
-            error_message: job.error_message,
-            age_seconds: job
-                .created_at
-                .elapsed()
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-        })
+        .map(convert_printer_job)
         .collect()
 }
 
@@ -450,34 +404,7 @@ pub fn get_active_jobs_for_printer(printer_name: String) -> Vec<PrinterJob> {
 pub fn get_job_history() -> Vec<PrinterJob> {
     PrinterCore::get_job_history()
         .into_iter()
-        .map(|job| PrinterJob {
-            id: job.id,
-            name: job.name,
-            state: job.state.as_string(),
-            media_type: job.media_type,
-            created_at: job
-                .created_at
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-            processed_at: job.processed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            completed_at: job.completed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            printer_name: job.printer_name,
-            error_message: job.error_message,
-            age_seconds: job
-                .created_at
-                .elapsed()
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-        })
+        .map(convert_printer_job)
         .collect()
 }
 
@@ -486,34 +413,7 @@ pub fn get_job_history() -> Vec<PrinterJob> {
 pub fn get_job_history_for_printer(printer_name: String) -> Vec<PrinterJob> {
     PrinterCore::get_job_history_for_printer(&printer_name)
         .into_iter()
-        .map(|job| PrinterJob {
-            id: job.id,
-            name: job.name,
-            state: job.state.as_string(),
-            media_type: job.media_type,
-            created_at: job
-                .created_at
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-            processed_at: job.processed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            completed_at: job.completed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            printer_name: job.printer_name,
-            error_message: job.error_message,
-            age_seconds: job
-                .created_at
-                .elapsed()
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-        })
+        .map(convert_printer_job)
         .collect()
 }
 
@@ -522,34 +422,7 @@ pub fn get_job_history_for_printer(printer_name: String) -> Vec<PrinterJob> {
 pub fn get_all_jobs_for_printer(printer_name: String) -> Vec<PrinterJob> {
     PrinterCore::get_all_jobs_for_printer(&printer_name)
         .into_iter()
-        .map(|job| PrinterJob {
-            id: job.id,
-            name: job.name,
-            state: job.state.as_string(),
-            media_type: job.media_type,
-            created_at: job
-                .created_at
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-            processed_at: job.processed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            completed_at: job.completed_at.map(|t| {
-                t.duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap_or(std::time::Duration::from_secs(0))
-                    .as_secs()
-            }),
-            printer_name: job.printer_name,
-            error_message: job.error_message,
-            age_seconds: job
-                .created_at
-                .elapsed()
-                .unwrap_or(std::time::Duration::from_secs(0))
-                .as_secs(),
-        })
+        .map(convert_printer_job)
         .collect()
 }
 
