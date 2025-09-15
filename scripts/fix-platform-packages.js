@@ -44,7 +44,7 @@ for (const platform of platforms) {
 
   // Find the .node file in the directory
   const files = readdirSync(join(npmDir, platform));
-  const nodeFile = files.find(f => f.endsWith('.node'));
+  const nodeFile = files.find(f => f.endsWith(".node"));
 
   if (!nodeFile) {
     console.log(`⚠️  Warning: No .node file found in ${platform}`);
@@ -57,10 +57,10 @@ for (const platform of platforms) {
   // Set files array to include all necessary files
   // napi prepublish might expect a specific format
   const filesToInclude = [
-    nodeFile,     // The native binary (if it exists)
-    "index.js",   // ESM wrapper
+    nodeFile, // The native binary (if it exists)
+    "index.js", // ESM wrapper
     "index.d.ts", // TypeScript definitions
-    "README.md"   // Include README if it exists
+    "README.md", // Include README if it exists
   ].filter(file => {
     // Only include files that actually exist
     if (!file) return false;

@@ -6,7 +6,13 @@
  * have the correct structure for ESM modules.
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, copyFileSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+  copyFileSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,7 +25,9 @@ const platforms = readdirSync(npmDir).filter(dir => {
   return existsSync(pkgPath);
 });
 
-console.log(`Fixing ${platforms.length} platform packages after napi prepublish...`);
+console.log(
+  `Fixing ${platforms.length} platform packages after napi prepublish...`
+);
 
 for (const platform of platforms) {
   const platformDir = join(npmDir, platform);
@@ -36,7 +44,7 @@ for (const platform of platforms) {
 
   // Find the .node file
   const files = readdirSync(platformDir);
-  const nodeFile = files.find(f => f.endsWith('.node'));
+  const nodeFile = files.find(f => f.endsWith(".node"));
 
   if (!nodeFile) {
     console.log(`⚠️  Warning: No .node file found in ${platform}`);
@@ -56,7 +64,7 @@ for (const platform of platforms) {
       nodeFile,
       "index.js",
       hasIndexDts ? "index.d.ts" : null,
-      "README.md"
+      "README.md",
     ].filter(Boolean);
 
     // Write updated package.json
@@ -64,7 +72,7 @@ for (const platform of platforms) {
 
     console.log(`✅ Fixed ${platform}:`);
     console.log(`   - main: "${pkg.main}"`);
-    console.log(`   - types: "${pkg.types || 'not set'}"`);
+    console.log(`   - types: "${pkg.types || "not set"}"`);
     console.log(`   - files: ${JSON.stringify(pkg.files)}`);
     console.log(`   - .node file: ${nodeFile}`);
   } else {
