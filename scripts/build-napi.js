@@ -71,34 +71,6 @@ function main() {
     }
   }
 
-  // Try the direct cargo build approach first on Windows
-  if (platform === "win32") {
-    console.log("Windows detected - trying direct cargo build...");
-    try {
-      const cargoArgs = ["cargo", "build"];
-      if (isRelease) cargoArgs.push("--release");
-      cargoArgs.push("--features", "napi");
-
-      const cargoCommand = cargoArgs.join(" ");
-      console.log(`Executing: ${cargoCommand}`);
-
-      execSync(cargoCommand, {
-        stdio: "inherit",
-        env: process.env,
-        shell: true,
-      });
-
-      console.log(`✅ Cargo build completed for Windows`);
-      return; // Skip the rest if cargo build succeeds
-    } catch (cargoError) {
-      console.error(
-        "Direct cargo build failed on Windows:",
-        cargoError.message
-      );
-      console.log("Falling back to NAPI build...");
-    }
-  }
-
   // Try NAPI build approach
   console.log("Building with NAPI CLI...");
 
