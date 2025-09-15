@@ -1,9 +1,22 @@
 {
   "lsp": {
-    "deno": {
+    "eslint": {
       "settings": {
-        "deno": {
-          "enable": true
+        "workingDirectories": [
+          "."
+        ],
+        "validate": [
+          "javascript",
+          "typescript"
+        ]
+      }
+    },
+    "typescript-language-server": {
+      "settings": {
+        "suggest": {
+          "autoImports": true,
+          "completeFunctionCalls": false,
+          "paths": true
         }
       }
     }
@@ -11,23 +24,62 @@
   "languages": {
     "TypeScript": {
       "language_servers": [
-        "deno",
-        "!typescript-language-server",
-        "!vtsls",
-        "!eslint"
+        "typescript-language-server",
+        "eslint",
+        "!deno",
+        "!vtsls"
       ],
-      "formatter": "language_server"
+      "formatter": "prettier",
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
     },
     "TSX": {
       "language_servers": [
-        "deno",
-        "!typescript-language-server",
-        "!vtsls",
-        "!eslint"
+        "typescript-language-server",
+        "eslint",
+        "!deno",
+        "!vtsls"
       ],
-      "formatter": "language_server"
+      "formatter": "prettier",
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    },
+    "JavaScript": {
+      "language_servers": [
+        "typescript-language-server",
+        "eslint",
+        "!deno",
+        "!vtsls"
+      ],
+      "formatter": "prettier",
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    },
+    "JSON": {
+      "formatter": "prettier"
+    },
+    "JSONC": {
+      "formatter": "prettier"
+    },
+    "Markdown": {
+      "formatter": "prettier"
+    },
+    "YAML": {
+      "formatter": "prettier"
     }
   },
   "auto_indent_on_paste": true,
-  "format_on_save": "language_server"
+  "format_on_save": "on",
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.DS_Store",
+    "**/.vscode/extensions",
+    "**/npm",
+    "**/target",
+    "**/dist",
+    "**/coverage"
+  ]
 }

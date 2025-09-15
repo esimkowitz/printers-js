@@ -116,6 +116,7 @@ async function runTests() {
     // Generate individual test case entries based on parsed counts
     for (let i = 1; i <= testResults.total; i++) {
       const isPassed = i <= testResults.passed;
+      //@ts-expect-error
       testCases.push({
         name: `Node.js: Test ${i}`,
         duration: 0.001,
