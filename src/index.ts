@@ -26,6 +26,7 @@ export interface JobStatus {
   id: number;
   printer_name: string;
   file_path: string;
+  job_name?: string;
   status: "queued" | "printing" | "completed" | "failed";
   error_message?: string;
   age_seconds: number;
@@ -54,6 +55,10 @@ export interface Printer {
   getName(): string;
   printFile(
     filePath: string,
+    jobProperties?: Record<string, string>
+  ): Promise<void>;
+  printBytes(
+    data: Uint8Array | Buffer,
     jobProperties?: Record<string, string>
   ): Promise<void>;
 }
@@ -142,6 +147,10 @@ interface NativePrinter {
     filePath: string,
     jobProperties?: Record<string, string>
   ) => Promise<void>;
+  printBytes?: (
+    data: Uint8Array | Buffer,
+    jobProperties?: Record<string, string>
+  ) => Promise<void>;
   toString?: () => string;
   dispose?: () => void;
 }
@@ -157,6 +166,11 @@ interface NativeModule {
   printFile(
     printerName: string,
     filePath: string,
+    jobProperties?: Record<string, string>
+  ): Promise<void>;
+  printBytes(
+    printerName: string,
+    data: Uint8Array | Buffer,
     jobProperties?: Record<string, string>
   ): Promise<void>;
   Printer: {
@@ -262,56 +276,156 @@ class PrinterWrapper implements Printer {
     this.nativePrinter = nativePrinter;
   }
 
+  private getInfoProperty(propertyName: string): any {
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info[propertyName];
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return undefined;
+  }
+
   get name(): string {
     return this.nativePrinter.name || "";
   }
 
   get systemName(): string | undefined {
-    return this.nativePrinter.systemName;
+    if (this.nativePrinter.systemName) {
+      return this.nativePrinter.systemName;
+    }
+    return this.getInfoProperty("systemName");
   }
 
   get driverName(): string | undefined {
-    return this.nativePrinter.driverName;
+    if (this.nativePrinter.driverName) {
+      return this.nativePrinter.driverName;
+    }
+    return this.getInfoProperty("driverName");
   }
 
   get uri(): string | undefined {
-    return this.nativePrinter.uri;
+    if (this.nativePrinter.uri) {
+      return this.nativePrinter.uri;
+    }
+    return this.getInfoProperty("uri");
   }
 
   get portName(): string | undefined {
-    return this.nativePrinter.portName;
+    if (this.nativePrinter.portName) {
+      return this.nativePrinter.portName;
+    }
+    return this.getInfoProperty("portName");
   }
 
   get processor(): string | undefined {
-    return this.nativePrinter.processor;
+    if (this.nativePrinter.processor) {
+      return this.nativePrinter.processor;
+    }
+    return this.getInfoProperty("processor");
   }
 
   get dataType(): string | undefined {
-    return this.nativePrinter.dataType;
+    if (this.nativePrinter.dataType) {
+      return this.nativePrinter.dataType;
+    }
+    return this.getInfoProperty("dataType");
   }
 
   get description(): string | undefined {
-    return this.nativePrinter.description;
+    if (this.nativePrinter.description) {
+      return this.nativePrinter.description;
+    }
+    return this.getInfoProperty("description");
   }
 
   get location(): string | undefined {
-    return this.nativePrinter.location;
+    if (this.nativePrinter.location) {
+      return this.nativePrinter.location;
+    }
+    return this.getInfoProperty("location");
   }
 
   get isDefault(): boolean | undefined {
-    return this.nativePrinter.isDefault;
+    if (this.nativePrinter.isDefault !== undefined) {
+      return this.nativePrinter.isDefault;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info.isDefault;
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return undefined;
   }
 
   get isShared(): boolean | undefined {
-    return this.nativePrinter.isShared;
+    if (this.nativePrinter.isShared !== undefined) {
+      return this.nativePrinter.isShared;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info.isShared;
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return undefined;
   }
 
   get state(): PrinterState | undefined {
-    return (this.nativePrinter.state as PrinterState) || "unknown";
+    if (this.nativePrinter.state) {
+      return this.nativePrinter.state as PrinterState;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return (info.state as PrinterState) || "unknown";
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return "unknown";
   }
 
   get stateReasons(): string[] | undefined {
-    return this.nativePrinter.stateReasons;
+    if (this.nativePrinter.stateReasons) {
+      return this.nativePrinter.stateReasons;
+    }
+    // For native Printer class instances, we need to get the info
+    if (
+      "getInfo" in this.nativePrinter &&
+      typeof this.nativePrinter.getInfo === "function"
+    ) {
+      try {
+        const info = (this.nativePrinter as any).getInfo();
+        return info.stateReasons;
+      } catch (error) {
+        console.warn("Failed to get printer info:", error);
+      }
+    }
+    return [];
   }
 
   /**
@@ -374,6 +488,23 @@ class PrinterWrapper implements Printer {
     }
     throw new Error("Print functionality not available");
   }
+
+  /**
+   * Print raw bytes using this printer.
+   * @param data - Byte data to print
+   * @param jobProperties - Optional job properties
+   * @throws Error if print functionality unavailable
+   */
+  async printBytes(
+    data: Uint8Array | Buffer,
+    jobProperties?: Record<string, string>
+  ): Promise<void> {
+    if (this.nativePrinter.printBytes) {
+      await this.nativePrinter.printBytes(data, jobProperties);
+      return;
+    }
+    throw new Error("Print bytes functionality not available");
+  }
 }
 
 // Public API functions
@@ -384,10 +515,14 @@ class PrinterWrapper implements Printer {
  */
 export function getAllPrinters(): Printer[] {
   try {
-    const printers = nativeModule.getAllPrinters
-      ? nativeModule.getAllPrinters()
+    // Get printer names and then get actual Printer instances
+    const printerNames = nativeModule.getAllPrinterNames
+      ? nativeModule.getAllPrinterNames()
       : [];
-    return printers.map(p => new PrinterWrapper(p));
+
+    return printerNames
+      .map(name => getPrinterByName(name))
+      .filter((printer): printer is Printer => printer !== null);
   } catch (error) {
     console.error("Failed to get all printers:", error);
     return [];
@@ -526,4 +661,28 @@ export const createPrintJob = async (
     throw new Error(`Printer not found: ${printerName}`);
   }
   return await printer.printFile(filePath, options);
+};
+
+/**
+ * Print raw bytes to a printer.
+ * @param printerName - Name of the printer
+ * @param data - Byte data to print
+ * @param options - Optional job properties
+ * @throws Error if printer not found
+ */
+export const printBytes = async (
+  printerName: string,
+  data: Uint8Array | Buffer,
+  options?: Record<string, string>
+): Promise<void> => {
+  try {
+    if (nativeModule.printBytes) {
+      await nativeModule.printBytes(printerName, data, options);
+      return;
+    }
+  } catch (error) {
+    console.error(`Failed to print bytes to ${printerName}:`, error);
+    throw error;
+  }
+  throw new Error("Print bytes functionality not available");
 };

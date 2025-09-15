@@ -1,14 +1,21 @@
 //! N-API bindings for Node.js
-use crate::core::{PrintError, PrinterCore};
+use crate::core::{PrintError, PrinterCore, PrinterJobOptions};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use std::collections::HashMap;
 
-/// Async task for printing
+/// Async task for printing files
 pub struct PrintTask {
     pub printer_name: String,
     pub file_path: String,
-    pub job_properties: Option<HashMap<String, String>>,
+    pub job_options: Option<PrinterJobOptions>,
+}
+
+/// Async task for printing bytes
+pub struct PrintBytesTask {
+    pub printer_name: String,
+    pub data: Vec<u8>,
+    pub job_options: Option<PrinterJobOptions>,
 }
 
 impl Task for PrintTask {
@@ -19,7 +26,7 @@ impl Task for PrintTask {
         match PrinterCore::print_file(
             &self.printer_name,
             &self.file_path,
-            self.job_properties.clone(),
+            self.job_options.clone(),
         ) {
             Ok(job_id) => Ok(job_id),
             Err(e) => match e {
@@ -30,6 +37,31 @@ impl Task for PrintTask {
                 PrintError::InvalidFilePath => {
                     Err(Error::new(Status::InvalidArg, "Invalid file path"))
                 }
+                _ => Err(Error::new(
+                    Status::GenericFailure,
+                    format!("Print failed with error code: {}", e.as_i32()),
+                )),
+            },
+        }
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output)
+    }
+}
+
+impl Task for PrintBytesTask {
+    type Output = u32;
+    type JsValue = u32;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        match PrinterCore::print_bytes(&self.printer_name, &self.data, self.job_options.clone()) {
+            Ok(job_id) => Ok(job_id),
+            Err(e) => match e {
+                PrintError::PrinterNotFound => {
+                    Err(Error::new(Status::InvalidArg, "Printer not found"))
+                }
+                PrintError::InvalidFilePath => Err(Error::new(Status::InvalidArg, "Invalid data")),
                 _ => Err(Error::new(
                     Status::GenericFailure,
                     format!("Print failed with error code: {}", e.as_i32()),
@@ -61,6 +93,7 @@ pub struct JobStatus {
     pub id: u32,
     pub printer_name: String,
     pub file_path: String,
+    pub job_name: Option<String>,
     pub status: String,
     pub error_message: Option<String>,
     pub age_seconds: u32,
@@ -151,10 +184,26 @@ impl Printer {
         file_path: String,
         job_properties: Option<HashMap<String, String>>,
     ) -> AsyncTask<PrintTask> {
+        let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
         AsyncTask::new(PrintTask {
             printer_name: self.name.clone(),
             file_path,
-            job_properties,
+            job_options,
+        })
+    }
+
+    /// Print raw bytes (async)
+    #[napi]
+    pub fn print_bytes(
+        &self,
+        data: Buffer,
+        job_properties: Option<HashMap<String, String>>,
+    ) -> AsyncTask<PrintBytesTask> {
+        let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
+        AsyncTask::new(PrintBytesTask {
+            printer_name: self.name.clone(),
+            data: data.to_vec(),
+            job_options,
         })
     }
 }
@@ -218,10 +267,26 @@ pub fn print_file(
     file_path: String,
     job_properties: Option<HashMap<String, String>>,
 ) -> AsyncTask<PrintTask> {
+    let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
     AsyncTask::new(PrintTask {
         printer_name,
         file_path,
-        job_properties,
+        job_options,
+    })
+}
+
+/// Print raw bytes using printer name (async)
+#[napi]
+pub fn print_bytes(
+    printer_name: String,
+    data: Buffer,
+    job_properties: Option<HashMap<String, String>>,
+) -> AsyncTask<PrintBytesTask> {
+    let job_options = job_properties.map(|props| PrinterJobOptions::from_map(props));
+    AsyncTask::new(PrintBytesTask {
+        printer_name,
+        data: data.to_vec(),
+        job_options,
     })
 }
 
@@ -233,6 +298,7 @@ pub fn get_job_status(job_id: u32) -> Option<JobStatus> {
             id: job_id,
             printer_name: job.printer_name,
             file_path: job.file_path,
+            job_name: job.job_name,
             status: job.status,
             error_message: job.error_message,
             age_seconds: job.created_at.elapsed().as_secs() as u32,

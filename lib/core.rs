@@ -9,6 +9,41 @@ use std::sync::{
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+/// Print job options for configuring print jobs
+#[derive(Clone, Debug)]
+pub struct PrinterJobOptions {
+    /// Optional job name
+    pub name: Option<String>,
+    /// Raw properties for CUPS/system-specific options
+    pub raw_properties: HashMap<String, String>,
+}
+
+impl PrinterJobOptions {
+    /// Create empty job options
+    pub fn none() -> Self {
+        PrinterJobOptions {
+            name: None,
+            raw_properties: HashMap::new(),
+        }
+    }
+
+    /// Create job options from raw properties map
+    pub fn from_map(raw_properties: HashMap<String, String>) -> Self {
+        PrinterJobOptions {
+            name: None,
+            raw_properties,
+        }
+    }
+
+    /// Create job options with name and properties
+    pub fn with_name_and_properties(name: String, raw_properties: HashMap<String, String>) -> Self {
+        PrinterJobOptions {
+            name: Some(name),
+            raw_properties,
+        }
+    }
+}
+
 /// Error codes for the printing operations
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -68,6 +103,7 @@ lazy_static::lazy_static! {
 pub struct JobStatus {
     pub printer_name: String,
     pub file_path: String,
+    pub job_name: Option<String>,
     pub status: String, // "queued", "printing", "completed", "failed"
     pub error_message: Option<String>,
     pub created_at: Instant,
@@ -79,6 +115,7 @@ pub fn create_status_json(job_id: JobId, job: &JobStatus) -> Option<String> {
         "id": job_id,
         "printer_name": job.printer_name,
         "file_path": job.file_path,
+        "job_name": job.job_name,
         "status": job.status,
         "error_message": job.error_message,
         "age_seconds": job.created_at.elapsed().as_secs()
@@ -185,11 +222,11 @@ impl PrinterCore {
         }
     }
 
-    /// Print a file with optional job properties (simplified for now)
+    /// Print a file with optional job properties
     pub fn print_file(
         printer_name: &str,
         file_path: &str,
-        _job_properties: Option<HashMap<String, String>>,
+        job_options: Option<PrinterJobOptions>,
     ) -> Result<JobId, PrintError> {
         // Check if printer exists
         let _printer =
@@ -210,10 +247,14 @@ impl PrinterCore {
         // Generate job ID
         let job_id = generate_job_id();
 
+        // Extract job options
+        let job_options = job_options.unwrap_or_else(PrinterJobOptions::none);
+
         // Create job status
         let job_status = JobStatus {
             printer_name: printer_name.to_string(),
             file_path: file_path.to_string(),
+            job_name: job_options.name.clone(),
             status: "queued".to_string(),
             error_message: None,
             created_at: Instant::now(),
@@ -236,6 +277,66 @@ impl PrinterCore {
                 job_id,
                 printer_name_owned,
                 file_path_owned,
+                shutdown_flag,
+                job_tracker,
+            );
+        });
+
+        // Store thread handle for cleanup
+        {
+            let mut handles = THREAD_HANDLES.lock().unwrap();
+            handles.push(handle);
+        }
+
+        Ok(job_id)
+    }
+
+    /// Print raw bytes with optional job properties
+    pub fn print_bytes(
+        printer_name: &str,
+        data: &[u8],
+        job_options: Option<PrinterJobOptions>,
+    ) -> Result<JobId, PrintError> {
+        // Check if printer exists
+        let _printer =
+            Self::find_printer_by_name(printer_name).ok_or(PrintError::PrinterNotFound)?;
+
+        // Generate job ID
+        let job_id = generate_job_id();
+
+        // Extract job options
+        let job_options = job_options.unwrap_or_else(PrinterJobOptions::none);
+
+        // Create a temporary file path for tracking (since we're printing bytes)
+        let temp_file_path = format!("<bytes:{} bytes>", data.len());
+
+        // Create job status
+        let job_status = JobStatus {
+            printer_name: printer_name.to_string(),
+            file_path: temp_file_path,
+            job_name: job_options.name.clone(),
+            status: "queued".to_string(),
+            error_message: None,
+            created_at: Instant::now(),
+        };
+
+        // Store job in tracker
+        {
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            tracker.insert(job_id, job_status.clone());
+        }
+
+        // Spawn background thread to handle printing
+        let printer_name_owned = printer_name.to_string();
+        let data_owned = data.to_vec();
+        let shutdown_flag = SHUTDOWN_FLAG.clone();
+        let job_tracker = JOB_TRACKER.clone();
+
+        let handle = thread::spawn(move || {
+            Self::handle_print_bytes_job(
+                job_id,
+                printer_name_owned,
+                data_owned,
                 shutdown_flag,
                 job_tracker,
             );
@@ -294,6 +395,57 @@ impl PrinterCore {
         } else {
             // For now, just mark as completed in real mode
             // TODO: Implement actual printing logic
+            let mut tracker = job_tracker.lock().unwrap();
+            if let Some(job) = tracker.get_mut(&job_id) {
+                job.status = "completed".to_string();
+            }
+        }
+    }
+
+    /// Handle print bytes job
+    fn handle_print_bytes_job(
+        job_id: JobId,
+        _printer_name: String,
+        _data: Vec<u8>,
+        shutdown_flag: Arc<AtomicBool>,
+        job_tracker: JobTracker,
+    ) {
+        // Update status to printing
+        {
+            let mut tracker = job_tracker.lock().unwrap();
+            if let Some(job) = tracker.get_mut(&job_id) {
+                job.status = "printing".to_string();
+            }
+        }
+
+        if should_simulate_printing() {
+            // Simulate printing with fixed delay
+            let duration_ms = SIMULATION_BASE_TIME_MS + SIMULATION_VARIABLE_TIME_MS / 2;
+            let duration = Duration::from_millis(duration_ms);
+            let start = Instant::now();
+
+            // Check for shutdown periodically
+            while start.elapsed() < duration {
+                if shutdown_flag.load(Ordering::Relaxed) {
+                    return;
+                }
+                thread::sleep(Duration::from_millis(100));
+            }
+
+            // Always simulate success for simplicity
+            let success = true;
+            let mut tracker = job_tracker.lock().unwrap();
+            if let Some(job) = tracker.get_mut(&job_id) {
+                if success {
+                    job.status = "completed".to_string();
+                } else {
+                    job.status = "failed".to_string();
+                    job.error_message = Some("Simulated print failure".to_string());
+                }
+            }
+        } else {
+            // For now, just mark as completed in real mode
+            // TODO: Implement actual byte printing logic using the upstream printers crate
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
                 job.status = "completed".to_string();
@@ -448,6 +600,22 @@ mod tests {
         // Test with file that should trigger simulated failure
         let result = PrinterCore::print_file("Simulated Printer", "/path/to/fail-test.pdf", None);
         assert_eq!(result, Err(PrintError::SimulatedFailure));
+
+        // Test print bytes
+        let data = b"Hello, printer!";
+        let result = PrinterCore::print_bytes("Simulated Printer", data, None);
+        assert!(result.is_ok());
+
+        // Test print with job options
+        let job_options = Some(PrinterJobOptions::with_name_and_properties(
+            "Test Job".to_string(),
+            [("copies".to_string(), "2".to_string())]
+                .iter()
+                .cloned()
+                .collect(),
+        ));
+        let result = PrinterCore::print_file("Simulated Printer", "/path/to/file.pdf", job_options);
+        assert!(result.is_ok());
     }
 
     #[test]
