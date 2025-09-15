@@ -95,8 +95,7 @@ impl PrinterCore {
     pub fn find_printer_by_name(name: &str) -> Option<Printer> {
         if should_simulate_printing() {
             // In simulation mode, only return printer if name matches simulated printers
-            let simulated_names = ["Simulated Printer", "Mock Printer", "Test Printer"];
-            if simulated_names.contains(&name) {
+            if name == "Simulated Printer" {
                 // Try to use a real printer as template, but with the requested name
                 if let Some(mut printer) = printers::get_printers().first().cloned() {
                     printer.name = name.to_string();
@@ -388,15 +387,14 @@ mod tests {
     fn test_get_all_printer_names_in_simulation_mode() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
         let names = PrinterCore::get_all_printer_names();
-        assert_eq!(names, vec!["Mock Printer", "Test Printer"]);
+        assert_eq!(names, vec!["Simulated Printer"]);
     }
 
     #[test]
     #[serial]
     fn test_printer_exists_in_simulation_mode() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
-        assert!(PrinterCore::printer_exists("Mock Printer"));
-        assert!(PrinterCore::printer_exists("Test Printer"));
+        assert!(PrinterCore::printer_exists("Simulated Printer"));
         assert!(!PrinterCore::printer_exists("NonExistent Printer"));
     }
 
@@ -404,7 +402,7 @@ mod tests {
     #[serial]
     fn test_find_printer_by_name_in_simulation_mode() {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
-        let printer = PrinterCore::find_printer_by_name("Mock Printer");
+        let printer = PrinterCore::find_printer_by_name("Simulated Printer");
         assert!(printer.is_some());
 
         let printer = PrinterCore::find_printer_by_name("NonExistent Printer");
@@ -417,16 +415,16 @@ mod tests {
         env::set_var("PRINTERS_JS_SIMULATE", "true");
 
         // Test successful print job
-        let result = PrinterCore::print_file("Mock Printer", "/path/to/file.pdf", None);
+        let result = PrinterCore::print_file("Simulated Printer", "/path/to/file.pdf", None);
         assert!(result.is_ok());
 
         // Test with file that should trigger file not found error
         let result =
-            PrinterCore::print_file("Mock Printer", "/path/that/does_not_exist/file.pdf", None);
+            PrinterCore::print_file("Simulated Printer", "/path/that/does_not_exist/file.pdf", None);
         assert_eq!(result, Err(PrintError::FileNotFound));
 
         // Test with file that should trigger simulated failure
-        let result = PrinterCore::print_file("Mock Printer", "/path/to/fail-test.pdf", None);
+        let result = PrinterCore::print_file("Simulated Printer", "/path/to/fail-test.pdf", None);
         assert_eq!(result, Err(PrintError::SimulatedFailure));
     }
 
