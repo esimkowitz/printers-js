@@ -338,11 +338,29 @@ needed.
 
 ### GitHub Actions Workflows
 
-**.github/workflows/build.yml** - PR and main branch testing:
+The CI/CD pipeline uses a secure two-workflow approach to separate code execution from privileged operations:
 
-- Cross-runtime compatibility tests (Deno, Bun, Node.js)
-- Code quality checks (linting, formatting, type checking)
-- Test coverage reporting with JUnit XML and LCOV
+**.github/workflows/ci.yml** - PR and main branch testing:
+
+- **Trigger**: `pull_request` and `push` events (secure, no elevated permissions)
+- **Cross-runtime compatibility tests**: Deno, Bun, Node.js on Linux, macOS, and Windows
+- **Code quality checks**: 
+  - Rust formatting (`task fmt:rust:check`)
+  - Prettier formatting (`task fmt:prettier:check`)
+  - Rust linting with Clippy (`task lint:rust`)
+  - ESLint for TypeScript/JavaScript (`task lint:eslint`)
+- **Test coverage**: JUnit XML and LCOV reports saved as artifacts
+- **Security**: Runs with minimal permissions, no access to secrets
+
+**.github/workflows/ci-report.yml** - PR reporting and status checks:
+
+- **Trigger**: `workflow_run` event (runs after CI completes)
+- **Security**: Never checks out PR code, only downloads artifacts
+- **PR Comments**: Posts test results and coverage summary
+- **Status Checks**:
+  - Code Quality (formatting and linting results)
+  - CI / Tests (overall test success/failure)
+- **Permissions**: Has write access for comments and status checks
 
 **.github/workflows/release.yml** - Release automation:
 
@@ -350,6 +368,27 @@ needed.
 - Cross-platform N-API module builds
 - Cross-runtime integration testing
 - npm publishing with cross-runtime support
+
+### Security Considerations
+
+The CI pipeline is designed to prevent cache poisoning and other security vulnerabilities:
+
+1. **No `pull_request_target` with checkout**: The main CI workflow uses `pull_request` trigger, preventing untrusted code from running with elevated permissions
+2. **Separated reporting**: PR comments and status checks are handled by a separate workflow that never executes PR code
+3. **Artifact-based communication**: Test results and code quality data are passed between workflows via artifacts, not direct execution
+
+### Working with PR Comments and Status Checks
+
+When you open a PR:
+
+1. The `ci.yml` workflow runs your tests and checks in a sandboxed environment
+2. Results are saved as artifacts (test reports, coverage, code quality)
+3. After CI completes, `ci-report.yml` downloads these artifacts
+4. Status checks and PR comments are posted without executing any PR code
+
+**Note**: Status checks will appear as:
+- **Code Quality**: Shows formatting and linting results
+- **CI / Tests**: Shows overall test pass/fail status
 
 ### Local CI Testing
 
@@ -361,16 +400,49 @@ task ci:local
 task test
 
 # Individual runtime testing
-task test:deno task test:node task test:bun
+task test:deno
+task test:node
+task test:bun
+
+# Code quality checks (as run in CI)
+task fmt:check     # Check all formatting
+task lint         # Run all linters
 ```
 
 ### Coverage Reports
 
 Tests generate comprehensive coverage reports:
 
-- **JUnit XML**: `test-results/{deno,node,bun}-test.xml`
-- **LCOV**: `test-results/{deno,node,bun}-lcov.info` + `test-results/rust.lcov`
-- **Text summaries**: Console output with actual percentages
+- **JUnit XML**: `test-results/{deno,node,bun,cargo}.xml`
+- **LCOV**: `test-results/coverage/{deno,node,bun}-lcov.info` + `rust.lcov`
+- **Artifacts**: All test results are uploaded as GitHub Actions artifacts
+- **PR Comments**: Coverage percentages are displayed in automated PR comments
+
+## CI Troubleshooting
+
+### PR Comments Not Appearing
+
+If PR comments aren't showing up:
+
+1. Check that the `ci.yml` workflow completed successfully
+2. Verify that `ci-report.yml` was triggered (check Actions tab)
+3. Ensure the PR is from a fork (comments work for both fork and non-fork PRs)
+
+### Status Checks Not Updating
+
+Status checks are created by `ci-report.yml`. If they're not appearing:
+
+1. Wait for both workflows to complete
+2. Check the Actions tab for any workflow failures
+3. Verify that artifacts were uploaded by the CI workflow
+
+### Windows Build Failures
+
+Common Windows CI issues:
+
+1. **TypeScript compilation**: Fixed by removing invalid `noCheck` option
+2. **NAPI build**: Uses simplified build approach with proper Windows shell handling
+3. **Path issues**: All scripts use cross-platform path handling
 
 ## Known Issues
 
