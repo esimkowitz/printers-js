@@ -6,6 +6,7 @@
   "imports": {
     "@printers/printers": "npm:@printers/printers@^0.5"
   },
+  "nodeModulesDir": "auto",
   "compilerOptions": {
     "strict": true
   }

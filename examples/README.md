@@ -22,6 +22,8 @@ deno task start
 # or: deno run --allow-env --allow-read --allow-net --allow-ffi main.ts
 ```
 
+**Note:** The Deno example requires `"nodeModulesDir": "auto"` in `deno.json` for N-API modules to work correctly.
+
 ### Node.js Example
 
 ```bash

@@ -34,7 +34,17 @@ pnpm add @printers/printers
 deno add npm:@printers/printers
 ```
 
-**Note:** Deno requires the `--allow-ffi` flag to load native N-API modules:
+**Important:** Deno requires special configuration for N-API modules:
+
+1. Add `"nodeModulesDir": "auto"` to your `deno.json`:
+
+```json
+{
+  "nodeModulesDir": "auto"
+}
+```
+
+2. Run with the `--allow-ffi` flag:
 
 ```bash
 deno run --allow-ffi your-script.ts

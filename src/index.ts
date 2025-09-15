@@ -221,11 +221,21 @@ try {
   } catch (localError) {
     // If local path fails, try the published npm package
     try {
-      // For Deno, use npm: prefix for npm packages
-      const packageSpecifier = isDeno
-        ? `npm:@printers/printers-${platformString}`
-        : `@printers/printers-${platformString}`;
-      nativeModule = await import(packageSpecifier);
+      const packageName = `@printers/printers-${platformString}`;
+
+      // For Deno, we need to use createRequire to load the module
+      // since dynamic imports of bare module specifiers don't work
+      if (isDeno) {
+        // Use Node.js-style module resolution for Deno
+        const { createRequire } = await import("node:module");
+        const require = createRequire(import.meta.url);
+
+        // Require the platform package - this should work with node_modules
+        nativeModule = require(packageName);
+      } else {
+        // For Node.js and Bun, dynamic import should work
+        nativeModule = await import(packageName);
+      }
     } catch (npmError) {
       throw new Error(
         `Failed to load N-API module for platform ${platformString}. ` +

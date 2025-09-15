@@ -47,10 +47,13 @@ function processIndexFile(indexPath) {
   try {
     const content = readFileSync(indexPath, "utf-8");
 
+    // Remove TypeScript-specific comments that cause issues with Deno
+    let modifiedContent = content.replace(/\/\/\s*@ts-nocheck\s*\n/g, "");
+
     // Remove the entire NAPI_RS_NATIVE_LIBRARY_PATH check block
     // This regex matches the if block and its else-if continuation
     // Updated to handle the current NAPI-RS structure
-    const modifiedContent = content.replace(
+    modifiedContent = modifiedContent.replace(
       /\s+if\s+\(process\.env\.NAPI_RS_NATIVE_LIBRARY_PATH\)\s+\{[\s\S]*?\n\s*\}\s*else\s+if\s+\(process\.platform\s*===\s*['"]android['"]\)/,
       "\n  if (process.platform === 'android')"
     );
