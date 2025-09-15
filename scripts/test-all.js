@@ -164,6 +164,7 @@ async function runTests() {
     "test",
     "--allow-env",
     "--allow-read",
+    "--allow-ffi",
     "--no-check",
     "--coverage=test-results/coverage/deno-temp",
     "src/tests/shared.test.ts",
