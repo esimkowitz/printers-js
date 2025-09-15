@@ -5,6 +5,7 @@
  */
 
 import {
+  cleanupOldJobs,
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
@@ -24,6 +25,10 @@ async function main() {
   );
 
   try {
+    // Clean up old jobs
+    const cleaned = cleanupOldJobs(3600); // 1 hour
+    console.log(`🧹 Cleaned up ${cleaned} old print jobs\n`);
+
     // Get all printer names
     console.log("📋 Available Printers:");
     const printerNames = getAllPrinterNames();

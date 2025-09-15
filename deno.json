@@ -38,7 +38,7 @@
       "src/index.ts"
     ],
     "rules": {
-      "exclude": ["ban-unused-ignore"]
+      "exclude": ["ban-unused-ignore", "ban-ts-comment"]
     }
   },
   "exclude": [
@@ -51,11 +51,12 @@
     "test-results/",
     "package.json",
     "tests/node-test-runner.ts",
+    "eslint.config.js",
     "scripts/*.js"
   ],
   "nodeModulesDir": "auto",
   "compilerOptions": {
-    "lib": ["deno.window", "deno.unstable"],
+    "lib": ["deno.window"],
     "strict": true
   }
 }

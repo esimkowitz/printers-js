@@ -3,26 +3,36 @@ import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
 
 export default [
-  js.configs.recommended,
+  // Global ignores must be first and in their own object
   {
     ignores: [
       // Deno-managed files (use deno lint instead)
       "**/src/deno.ts",
       "**/src/tests/shared.test.ts",
+      "src/tests/shared.test.ts",
+      "src/deno.ts",
 
       // Scripts directory (use deno lint instead)
       "scripts/**/*",
+      "scripts/**",
 
       // Example files (different environments)
       "examples/**/*",
+      "examples/**",
 
       // Build artifacts and dependencies
       "dist/**/*",
+      "dist/**",
       "target/**/*",
+      "target/**",
       "npm/**/*",
+      "npm/**",
       "node_modules/**/*",
+      "node_modules/**",
       "test-results/**/*",
+      "test-results/**",
       ".claude/**/*",
+      ".claude/**",
 
       // Config files
       "deno.json",
@@ -31,6 +41,7 @@ export default [
       "Cargo.lock",
     ],
   },
+  js.configs.recommended,
   {
     files: ["**/*.{js,ts,mjs,cjs}"],
     languageOptions: {

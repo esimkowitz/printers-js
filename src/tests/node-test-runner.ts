@@ -5,8 +5,8 @@
  */
 
 import { execSync } from "child_process";
-import { writeFileSync, mkdirSync, existsSync, cpSync } from "fs";
-import { join, dirname } from "path";
+import { cpSync, existsSync, mkdirSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 interface TestResults {
@@ -17,10 +17,10 @@ interface TestResults {
 
 // Parse Node.js test output to detect actual failures
 function parseNodeTestOutput(output: string): TestResults {
-  // Parse TAP output for basic counts
-  const tapTestsMatch = output.match(/# tests (\d+)/);
-  const tapPassMatch = output.match(/# pass (\d+)/);
-  const tapFailMatch = output.match(/# fail (\d+)/);
+  // Parse TAP output for basic counts (Node v24 uses ℹ instead of #)
+  const tapTestsMatch = output.match(/[#ℹ] tests (\d+)/);
+  const tapPassMatch = output.match(/[#ℹ] pass (\d+)/);
+  const tapFailMatch = output.match(/[#ℹ] fail (\d+)/);
 
   const total = tapTestsMatch ? parseInt(tapTestsMatch[1]) : 0;
   let passed = tapPassMatch ? parseInt(tapPassMatch[1]) : 0;
@@ -116,6 +116,7 @@ async function runTests() {
     // Generate individual test case entries based on parsed counts
     for (let i = 1; i <= testResults.total; i++) {
       const isPassed = i <= testResults.passed;
+      //@ts-expect-error
       testCases.push({
         name: `Node.js: Test ${i}`,
         duration: 0.001,
@@ -181,11 +182,17 @@ function generateJUnitXML(results) {
   const totalTime = results.testCases.reduce((sum, tc) => sum + tc.duration, 0);
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<testsuites name="node test" tests="${results.total}" assertions="0" failures="${results.failed}" skipped="0" time="${totalTime.toFixed(6)}">\n`;
-  xml += `  <testsuite name="Node.js Tests" file="src/tests/shared.test.ts" tests="${results.total}" assertions="0" failures="${results.failed}" skipped="0" time="${totalTime.toFixed(6)}" hostname="${process.platform}">\n`;
+  xml += `<testsuites name="node test" tests="${results.total}" assertions="0" failures="${results.failed}" skipped="0" time="${totalTime.toFixed(
+    6
+  )}">\n`;
+  xml += `  <testsuite name="Node.js Tests" file="src/tests/shared.test.ts" tests="${results.total}" assertions="0" failures="${results.failed}" skipped="0" time="${totalTime.toFixed(
+    6
+  )}" hostname="${process.platform}">\n`;
 
   for (const testCase of results.testCases) {
-    xml += `    <testcase name="${testCase.name}" classname="Node.js Tests" time="${testCase.duration.toFixed(6)}" file="src/tests/shared.test.ts" line="1" assertions="0"`;
+    xml += `    <testcase name="${testCase.name}" classname="Node.js Tests" time="${testCase.duration.toFixed(
+      6
+    )}" file="src/tests/shared.test.ts" line="1" assertions="0"`;
 
     if (testCase.status === "failed") {
       xml += `>\n`;
