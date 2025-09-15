@@ -252,7 +252,9 @@ try {
   );
 }
 
-// Wrapper class for consistent API
+/**
+ * Wrapper class providing consistent API across all runtimes.
+ */
 class PrinterWrapper implements Printer {
   private nativePrinter: NativePrinter;
 
@@ -312,30 +314,56 @@ class PrinterWrapper implements Printer {
     return this.nativePrinter.stateReasons;
   }
 
+  /**
+   * Check if the printer exists on the system.
+   * @returns True if printer exists
+   */
   exists(): boolean {
     return this.nativePrinter.exists ? this.nativePrinter.exists() : true;
   }
 
+  /**
+   * Get string representation of the printer.
+   * @returns Printer name or custom string representation
+   */
   toString(): string {
     return this.nativePrinter.toString
       ? this.nativePrinter.toString()
       : this.name;
   }
 
+  /**
+   * Compare equality with another printer.
+   * @param other - Printer to compare with
+   * @returns True if printers have same name
+   */
   equals(other: Printer): boolean {
     return this.name === other.name;
   }
 
+  /**
+   * Clean up printer resources.
+   */
   dispose(): void {
     if (this.nativePrinter.dispose) {
       this.nativePrinter.dispose();
     }
   }
 
+  /**
+   * Get the printer name.
+   * @returns Printer name
+   */
   getName(): string {
     return this.name;
   }
 
+  /**
+   * Print a file using this printer.
+   * @param filePath - Path to file to print
+   * @param jobProperties - Optional job properties
+   * @throws Error if print functionality unavailable
+   */
   async printFile(
     filePath: string,
     jobProperties?: Record<string, string>
@@ -349,6 +377,11 @@ class PrinterWrapper implements Printer {
 }
 
 // Public API functions
+
+/**
+ * Get all available printers on the system.
+ * @returns Array of Printer objects
+ */
 export function getAllPrinters(): Printer[] {
   try {
     const printers = nativeModule.getAllPrinters
@@ -361,6 +394,10 @@ export function getAllPrinters(): Printer[] {
   }
 }
 
+/**
+ * Get names of all available printers.
+ * @returns Array of printer names
+ */
 export function getAllPrinterNames(): string[] {
   try {
     return nativeModule.getAllPrinterNames
@@ -372,6 +409,11 @@ export function getAllPrinterNames(): string[] {
   }
 }
 
+/**
+ * Get a specific printer by name.
+ * @param name - Printer name to search for
+ * @returns Printer object if found, null otherwise
+ */
 export function getPrinterByName(name: string): Printer | null {
   try {
     const nativePrinter = nativeModule.findPrinterByName
@@ -384,6 +426,11 @@ export function getPrinterByName(name: string): Printer | null {
   }
 }
 
+/**
+ * Check if a printer exists.
+ * @param name - Printer name to check
+ * @returns True if printer exists, false otherwise
+ */
 export function printerExists(name: string): boolean {
   try {
     return nativeModule.printerExists
@@ -395,6 +442,11 @@ export function printerExists(name: string): boolean {
   }
 }
 
+/**
+ * Get status of a print job.
+ * @param jobId - ID of the print job
+ * @returns JobStatus object if found, null otherwise
+ */
 export function getJobStatus(jobId: number): JobStatus | null {
   try {
     return nativeModule.getJobStatus ? nativeModule.getJobStatus(jobId) : null;
@@ -404,6 +456,11 @@ export function getJobStatus(jobId: number): JobStatus | null {
   }
 }
 
+/**
+ * Remove old print jobs from tracking.
+ * @param maxAgeMs - Maximum age in milliseconds (default: 30000)
+ * @returns Number of jobs removed
+ */
 export function cleanupOldJobs(maxAgeMs: number = 30000): number {
   try {
     const maxAgeSeconds = Math.floor(maxAgeMs / 1000);
@@ -416,6 +473,9 @@ export function cleanupOldJobs(maxAgeMs: number = 30000): number {
   }
 }
 
+/**
+ * Clean up resources and shutdown the printer module.
+ */
 export function shutdown(): void {
   try {
     if (nativeModule.shutdown) {
@@ -426,7 +486,9 @@ export function shutdown(): void {
   }
 }
 
-// Printer class for static methods
+/**
+ * Static methods for creating Printer instances.
+ */
 export const PrinterConstructor: PrinterClass = {
   fromName: (name: string) => getPrinterByName(name),
   // @ts-expect-error: Prevent direct construction
@@ -436,9 +498,24 @@ export const PrinterConstructor: PrinterClass = {
 };
 
 // Legacy exports for backward compatibility
+
+/** @deprecated Use getPrinterByName instead */
 export const findPrinter = getPrinterByName;
+
+/**
+ * Get the default printer.
+ * @returns Default printer if found, null otherwise
+ */
 export const getDefaultPrinter = () =>
   getAllPrinters().find(p => p.isDefault) || null;
+
+/**
+ * Create and execute a print job.
+ * @param printerName - Name of the printer
+ * @param filePath - Path to file to print
+ * @param options - Optional job properties
+ * @throws Error if printer not found
+ */
 export const createPrintJob = async (
   printerName: string,
   filePath: string,
