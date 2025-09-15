@@ -26,6 +26,16 @@
     "type": "git",
     "url": "https://github.com/esimkowitz/printers-js.git"
   },
+  "keywords": [
+    "printer",
+    "printing",
+    "print",
+    "node",
+    "deno",
+    "bun",
+    "napi",
+    "cross-platform"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
