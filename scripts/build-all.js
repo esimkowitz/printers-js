@@ -24,39 +24,56 @@ async function runCommand(command, options = {}) {
   return new Promise(resolve => {
     try {
       const [cmd, ...args] = command;
+      const showOutput = options.showOutput !== false; // Default to showing output
       const child = spawn(cmd, args, {
         cwd: options.cwd,
         env: {
           ...process.env,
           ...options.env,
         },
-        stdio: ["inherit", "pipe", "pipe"],
+        stdio: showOutput ? "inherit" : ["inherit", "pipe", "pipe"],
       });
 
-      let stdout = "";
-      let stderr = "";
+      if (!showOutput) {
+        let stdout = "";
+        let stderr = "";
 
-      child.stdout?.on("data", data => {
-        stdout += data.toString();
-      });
-
-      child.stderr?.on("data", data => {
-        stderr += data.toString();
-      });
-
-      child.on("close", code => {
-        resolve({
-          success: code === 0,
-          output: stdout + stderr,
+        child.stdout?.on("data", data => {
+          stdout += data.toString();
         });
-      });
 
-      child.on("error", error => {
-        resolve({
-          success: false,
-          output: `Command failed: ${error.message}`,
+        child.stderr?.on("data", data => {
+          stderr += data.toString();
         });
-      });
+
+        child.on("close", code => {
+          resolve({
+            success: code === 0,
+            output: stdout + stderr,
+          });
+        });
+
+        child.on("error", error => {
+          resolve({
+            success: false,
+            output: `Command failed: ${error.message}`,
+          });
+        });
+      } else {
+        child.on("close", code => {
+          resolve({
+            success: code === 0,
+            output: "",
+          });
+        });
+
+        child.on("error", error => {
+          resolve({
+            success: false,
+            output: `Command failed: ${error.message}`,
+          });
+        });
+      }
     } catch (error) {
       resolve({
         success: false,
@@ -67,7 +84,9 @@ async function runCommand(command, options = {}) {
 }
 
 async function commandExists(command) {
-  const result = await runCommand([command, "--version"]);
+  const result = await runCommand([command, "--version"], {
+    showOutput: false,
+  });
   return result.success;
 }
 
@@ -108,7 +127,9 @@ async function main() {
     const nodeModulesExists = await directoryExists("node_modules");
     if (!nodeModulesExists) {
       console.log("Installing Node.js dependencies...");
-      const installResult = await runCommand(["npm", "install"]);
+      const installResult = await runCommand(["npm", "install"], {
+        showOutput: false,
+      });
       if (!installResult.success) {
         console.log(colorize("red", "Failed to install Node.js dependencies"));
         console.log(installResult.output);
@@ -117,7 +138,7 @@ async function main() {
     }
 
     if (buildSuccess || nodeModulesExists) {
-      // Build with napi-rs CLI directly
+      // Build with napi-rs CLI directly (show output for debugging)
       const napiResult = await runCommand([
         "node",
         "scripts/build-napi.js",
@@ -129,7 +150,9 @@ async function main() {
       } else {
         console.log(colorize("red", "✗ N-API library build failed"));
         console.log("Note: N-API build requires Node.js and @napi-rs/cli");
-        console.log(napiResult.output);
+        if (napiResult.output) {
+          console.log(napiResult.output);
+        }
         buildSuccess = false;
       }
     }

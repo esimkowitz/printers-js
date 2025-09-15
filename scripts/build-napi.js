@@ -71,6 +71,22 @@ function main() {
     }
   }
 
+  // Map platform target to NPM directory names
+  const npmPlatformMap = {
+    "x86_64-apple-darwin": "darwin-x64",
+    "aarch64-apple-darwin": "darwin-arm64",
+    "x86_64-pc-windows-msvc": "win32-x64-msvc",
+    "aarch64-pc-windows-msvc": "win32-arm64-msvc",
+    "x86_64-unknown-linux-gnu": "linux-x64-gnu",
+    "aarch64-unknown-linux-gnu": "linux-arm64-gnu",
+  };
+
+  const npmPlatform = npmPlatformMap[platformTarget];
+  if (!npmPlatform) {
+    console.error(`Unknown platform mapping for ${platformTarget}`);
+    process.exit(1);
+  }
+
   // Try NAPI build approach
   console.log("Building with NAPI CLI...");
 
@@ -83,9 +99,15 @@ function main() {
       shell: platform === "win32" ? true : false,
     });
 
-    // Use napi build command with platform specification
-    const buildArgs = ["napi", "build", "--platform"];
+    // Use napi build command - it auto-detects the platform
+    const buildArgs = ["napi", "build"];
     if (isRelease) buildArgs.push("--release");
+
+    // The --platform flag tells it to build for the current platform and put in platform-specific dir
+    buildArgs.push("--platform");
+
+    // Explicitly set output directory
+    buildArgs.push("--output-dir", `npm/${npmPlatform}`);
 
     const buildCommand = buildArgs.join(" ");
     console.log(`Executing: npx ${buildCommand}`);
@@ -102,22 +124,6 @@ function main() {
     console.error("Error message:", error.message);
     console.error("Platform:", platform, "Arch:", arch);
     console.error("Target:", platformTarget);
-    process.exit(1);
-  }
-
-  // Map platform target to NPM directory names
-  const npmPlatformMap = {
-    "x86_64-apple-darwin": "darwin-x64",
-    "aarch64-apple-darwin": "darwin-arm64",
-    "x86_64-pc-windows-msvc": "win32-x64-msvc",
-    "aarch64-pc-windows-msvc": "win32-arm64-msvc",
-    "x86_64-unknown-linux-gnu": "linux-x64-gnu",
-    "aarch64-unknown-linux-gnu": "linux-arm64-gnu",
-  };
-
-  const npmPlatform = npmPlatformMap[platformTarget];
-  if (!npmPlatform) {
-    console.error(`Unknown platform mapping for ${platformTarget}`);
     process.exit(1);
   }
 
