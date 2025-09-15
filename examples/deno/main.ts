@@ -64,14 +64,25 @@ async function main() {
 
       try {
         // Start multiple print jobs concurrently
-        const jobs = [
+        const jobs = await Promise.allSettled([
           printer.printFile("document1.pdf", { copies: "1" }),
           printer.printFile("document2.pdf", { copies: "1" }),
           printer.printFile("document3.pdf", { copies: "1" }),
-        ];
+        ]);
 
-        await Promise.all(jobs);
-        console.log("✅ All print jobs completed successfully");
+        const successful = jobs.filter(
+          job => job.status === "fulfilled"
+        ).length;
+        const failed = jobs.filter(job => job.status === "rejected").length;
+
+        if (successful > 0) {
+          console.log(`✅ ${successful} print job(s) completed successfully`);
+        }
+        if (failed > 0) {
+          console.log(
+            `⚠️  ${failed} print job(s) failed (likely missing files)`
+          );
+        }
 
         if (isSimulationMode) {
           console.log(
@@ -80,7 +91,7 @@ async function main() {
         }
       } catch (error) {
         console.log(
-          `❌ Some print jobs failed: ${error instanceof Error ? error.message : String(error)}`
+          `❌ Unexpected error: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -94,9 +105,6 @@ async function main() {
 
   console.log("\n🎉 NPM import example completed!");
 }
-
-// Set simulation mode for safety
-Deno.env.set("PRINTERS_JS_SIMULATE", "true");
 
 if (import.meta.main) {
   await main();

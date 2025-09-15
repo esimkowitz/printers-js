@@ -9,7 +9,7 @@
     "dev": "bun --watch main.ts"
   },
   "dependencies": {
-    "@printers/printers": "^0.5.7"
+    "@printers/printers": "^0.5"
   },
   "engines": {
     "bun": ">= 1.0"
