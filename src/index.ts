@@ -273,6 +273,30 @@ export interface SimplePrintOptions {
   landscape?: boolean;
 }
 
+/** Job state enum matching upstream printers crate */
+export type PrinterJobState =
+  | "pending" // Job queued, waiting to be processed
+  | "paused" // Job temporarily halted
+  | "processing" // Job currently being printed
+  | "cancelled" // Job cancelled by user or system
+  | "completed" // Job finished successfully
+  | "unknown"; // Undetermined state
+
+/** Print job structure matching upstream printers crate */
+export interface PrinterJob {
+  id: number; // Unique job identifier (u64 in Rust)
+  name: string; // Job title/description
+  state: PrinterJobState; // Current job status
+  media_type: string; // File type (e.g., "application/pdf")
+  created_at: number; // Job creation timestamp (Unix timestamp)
+  processed_at?: number; // Processing start time (Unix timestamp, optional)
+  completed_at?: number; // Job completion time (Unix timestamp, optional)
+  printer_name: string; // Associated printer name
+  error_message?: string; // Error details if failed
+  age_seconds: number; // Age in seconds for convenience
+}
+
+/** Legacy interface for backward compatibility */
 export interface JobStatus {
   id: number;
   printer_name: string;

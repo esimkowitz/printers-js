@@ -258,13 +258,14 @@ contribution guidelines, see:
 - Disagree when technical facts contradict statements
 - Focus on objective problem-solving rather than agreement
 - never commit changes on behalf of the user, always let the user submit changes
-- **No unnecessary friendly phrases** - avoid "Perfect!", "Much better!",
-  "Great!", "You're absolutely right!", "Good idea!", "Excellent question!",
-  "That's a fantastic approach!", etc. in responses
-- **Professional communication** - be direct and informative without excessive
-  enthusiasm or validation language
-- **Avoid agreement phrases** - don't use "Exactly!", "Absolutely!", "I totally
-  agree!" or similar expressions that prioritize validation over accuracy
+
+### **CRITICAL: NO AFFIRMING OR VALIDATING LANGUAGE**
+
+- **NEVER use affirming statements** like "You're absolutely right!", "You're correct!", "That's exactly right!", "Perfect!", "Excellent point!"
+- **NEVER use enthusiastic validation** like "Great!", "Fantastic!", "Awesome!", "Much better!", "Good idea!", "Excellent question!", "That's a fantastic approach!"
+- **NEVER use agreement phrases** like "Exactly!", "Absolutely!", "I totally agree!", "I completely agree!", "You nailed it!"
+- **Professional communication** - be direct, technical, and informative without validation language
+- **Focus on facts** - state what is, not how good the user's input is
 
 ## Documentation Style Preferences
 
