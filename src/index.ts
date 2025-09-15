@@ -90,14 +90,14 @@ const isNode =
   typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
   !!(globalThis as GlobalWithProcess).process?.versions?.node;
 const isBun = typeof (globalThis as GlobalWithBun).Bun !== "undefined";
-const isDeno = typeof Deno !== "undefined";
+const isDeno = typeof (globalThis as any).Deno !== "undefined";
 
 // Simulation mode detection
 const simValue = isDeno
-  ? typeof Deno !== "undefined" &&
-    Deno.env &&
-    typeof Deno.env.get === "function"
-    ? Deno.env.get("PRINTERS_JS_SIMULATE")
+  ? typeof (globalThis as any).Deno !== "undefined" &&
+    (globalThis as any).Deno.env &&
+    typeof (globalThis as any).Deno.env.get === "function"
+    ? (globalThis as any).Deno.env.get("PRINTERS_JS_SIMULATE")
     : undefined
   : (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE;
 
@@ -111,8 +111,9 @@ export const runtimeInfo: RuntimeInfo = {
   isNode,
   isBun,
   version: isDeno
-    ? typeof Deno !== "undefined" && Deno.version
-      ? Deno.version.deno
+    ? typeof (globalThis as any).Deno !== "undefined" &&
+      (globalThis as any).Deno.version
+      ? (globalThis as any).Deno.version.deno
       : "unknown"
     : isBun
       ? ((globalThis as GlobalWithBun).Bun?.version ?? "unknown")
