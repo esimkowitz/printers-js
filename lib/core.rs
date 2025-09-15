@@ -419,8 +419,11 @@ mod tests {
         assert!(result.is_ok());
 
         // Test with file that should trigger file not found error
-        let result =
-            PrinterCore::print_file("Simulated Printer", "/path/that/does_not_exist/file.pdf", None);
+        let result = PrinterCore::print_file(
+            "Simulated Printer",
+            "/path/that/does_not_exist/file.pdf",
+            None,
+        );
         assert_eq!(result, Err(PrintError::FileNotFound));
 
         // Test with file that should trigger simulated failure

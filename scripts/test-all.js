@@ -167,7 +167,11 @@ async function runTests() {
   } else {
     console.log(colorize("red", "❌ Rust tests failed"));
     console.log(cargoResult.output);
-    results.push({ runtime: "rust", success: false, output: cargoResult.output });
+    results.push({
+      runtime: "rust",
+      success: false,
+      output: cargoResult.output,
+    });
     allSucceeded = false;
   }
   console.log();
