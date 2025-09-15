@@ -62,15 +62,26 @@ Each example includes the appropriate configuration files for its runtime:
 - **`package.json`**: Package configuration and scripts
 - **`bunfig.toml`**: Bun-specific configuration
 - Uses `@printers/printers` npm package
-- Environment variables preset for simulation mode
 
 ## Safety Notice
 
-⚠️ **All examples run in simulation mode by default**
-(`PRINTERS_JS_SIMULATE=true`)
+⚠️ **Examples respect environment variable for simulation mode**
 
-To test with real printers, modify the environment variable in each example, but
-**use caution** as this will send actual print jobs to your printers.
+- Set `PRINTERS_JS_SIMULATE=true` to use simulated printers (safe testing)
+- Set `PRINTERS_JS_SIMULATE=false` or leave unset to use real printers
+- **Use caution** when testing with real printers as this will send actual print jobs
+
+```bash
+# Safe testing with simulated printers
+PRINTERS_JS_SIMULATE=true deno task start
+PRINTERS_JS_SIMULATE=true npm start
+PRINTERS_JS_SIMULATE=true bun start
+
+# Real printer testing (sends actual print jobs!)
+deno task start
+npm start
+bun start
+```
 
 ## Example Features
 
