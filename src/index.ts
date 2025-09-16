@@ -957,9 +957,9 @@ class PrinterWrapper implements Printer {
     filePath: string,
     options?: PrintJobOptions | Record<string, string>
   ): Promise<number> {
-    if (this.nativePrinter.printFile) {
+    if (nativeModule.printFile) {
       const rawOptions = this.convertOptions(options);
-      return await this.nativePrinter.printFile(filePath, rawOptions);
+      return await nativeModule.printFile(this.name, filePath, rawOptions);
     }
     throw new Error("Print functionality not available");
   }
@@ -974,9 +974,9 @@ class PrinterWrapper implements Printer {
     data: Uint8Array | Buffer,
     options?: PrintJobOptions | Record<string, string>
   ): Promise<number> {
-    if (this.nativePrinter.printBytes) {
+    if (nativeModule.printBytes) {
       const rawOptions = this.convertOptions(options);
-      return await this.nativePrinter.printBytes(data, rawOptions);
+      return await nativeModule.printBytes(this.name, data, rawOptions);
     }
     throw new Error("Print bytes functionality not available");
   }
@@ -1100,14 +1100,14 @@ class PrinterWrapper implements Printer {
  */
 export function getAllPrinters(): Printer[] {
   try {
-    // Get printer names and then get actual Printer instances
-    const printerNames = nativeModule.getAllPrinterNames
-      ? nativeModule.getAllPrinterNames()
+    // Use the N-API getAllPrinters method which returns complete printer info
+    const nativePrinters = nativeModule.getAllPrinters
+      ? nativeModule.getAllPrinters()
       : [];
 
-    return printerNames
-      .map(name => getPrinterByName(name))
-      .filter((printer): printer is Printer => printer !== null);
+    return nativePrinters.map(
+      nativePrinter => new PrinterWrapper(nativePrinter)
+    );
   } catch (error) {
     console.error("Failed to get all printers:", error);
     return [];

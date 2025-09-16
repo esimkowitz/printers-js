@@ -198,6 +198,7 @@ impl PrinterCore {
                 // Try to use a real printer as template, but with the requested name
                 if let Some(mut printer) = printers::get_printers().first().cloned() {
                     printer.name = name.to_string();
+                    printer.is_default = true; // Always mark simulated printer as default
                     Some(printer)
                 } else {
                     // No real printers available - create a mock printer struct
@@ -346,6 +347,7 @@ impl PrinterCore {
         // Spawn background thread to handle printing (simplified)
         let printer_name_owned = printer_name.to_string();
         let file_path_owned = file_path.to_string();
+        let job_options_owned = Some(job_options);
         let shutdown_flag = SHUTDOWN_FLAG.clone();
         let job_tracker = JOB_TRACKER.clone();
 
@@ -354,6 +356,7 @@ impl PrinterCore {
                 job_id,
                 printer_name_owned,
                 file_path_owned,
+                job_options_owned,
                 shutdown_flag,
                 job_tracker,
             );
@@ -418,6 +421,7 @@ impl PrinterCore {
         // Spawn background thread to handle printing
         let printer_name_owned = printer_name.to_string();
         let data_owned = data.to_vec();
+        let job_options_owned = Some(job_options);
         let shutdown_flag = SHUTDOWN_FLAG.clone();
         let job_tracker = JOB_TRACKER.clone();
 
@@ -426,6 +430,7 @@ impl PrinterCore {
                 job_id,
                 printer_name_owned,
                 data_owned,
+                job_options_owned,
                 shutdown_flag,
                 job_tracker,
             );
@@ -445,6 +450,7 @@ impl PrinterCore {
         job_id: JobId,
         printer_name: String,
         file_path: String,
+        job_options: Option<PrinterJobOptions>,
         shutdown_flag: Arc<AtomicBool>,
         job_tracker: JobTracker,
     ) {
@@ -485,8 +491,11 @@ impl PrinterCore {
             }
         } else {
             // Real printing using printers crate
+            let raw_options = job_options
+                .map(|opts| opts.raw_properties)
+                .unwrap_or_default();
             let print_result =
-                Self::execute_real_print_job(&printer_name, &file_path, &HashMap::new());
+                Self::execute_real_print_job(&printer_name, &file_path, &raw_options);
 
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
@@ -509,7 +518,7 @@ impl PrinterCore {
     fn execute_real_print_job(
         printer_name: &str,
         file_path: &str,
-        _job_options: &HashMap<String, String>,
+        job_options: &HashMap<String, String>,
     ) -> Result<(), String> {
         // Find the printer
         let printer = get_printer_by_name(printer_name)
@@ -520,18 +529,40 @@ impl PrinterCore {
             return Err(format!("File '{}' not found", file_path));
         }
 
-        // Execute the print job - use simple print for now
-        // TODO: Implement proper job options conversion
+        // Convert HashMap to upstream PrinterJobOptions
         use printers::common::base::job::PrinterJobOptions as PrinterJobOpts;
-        let job_opts = PrinterJobOpts::none();
-        match printer.print_file(file_path, job_opts) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!("Print failed: {}", e)),
+        // Execute print with proper lifetime management
+        if job_options.is_empty() {
+            let job_opts = PrinterJobOpts::none();
+            match printer.print_file(file_path, job_opts) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Print failed: {}", e)),
+            }
+        } else {
+            // Convert HashMap to slice of tuple references with proper lifetime
+            let properties: Vec<(&str, &str)> = job_options
+                .iter()
+                .map(|(k, v)| (k.as_str(), v.as_str()))
+                .collect();
+
+            let job_opts = PrinterJobOpts {
+                name: job_options.get("job-name").map(|s| s.as_str()),
+                raw_properties: &properties,
+            };
+
+            match printer.print_file(file_path, job_opts) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Print failed: {}", e)),
+            }
         }
     }
 
     /// Execute actual byte printing using the printers crate
-    fn execute_real_print_bytes(printer_name: &str, data: &[u8]) -> Result<(), String> {
+    fn execute_real_print_bytes(
+        printer_name: &str,
+        data: &[u8],
+        job_options: &HashMap<String, String>,
+    ) -> Result<(), String> {
         // Find the printer
         let printer = get_printer_by_name(printer_name)
             .ok_or_else(|| format!("Printer '{}' not found", printer_name))?;
@@ -539,18 +570,46 @@ impl PrinterCore {
         // Execute the print job with raw bytes - use temp file approach
         match std::fs::write("/tmp/temp_print_data", data) {
             Ok(_) => {
+                // Convert HashMap to upstream PrinterJobOptions
                 use printers::common::base::job::PrinterJobOptions as PrinterJobOpts;
-                let job_opts = PrinterJobOpts::none();
-                match printer.print_file("/tmp/temp_print_data", job_opts) {
-                    Ok(_) => {
-                        // Clean up temp file
-                        let _ = std::fs::remove_file("/tmp/temp_print_data");
-                        Ok(())
+                // Execute print with proper lifetime management
+                if job_options.is_empty() {
+                    let job_opts = PrinterJobOpts::none();
+                    match printer.print_file("/tmp/temp_print_data", job_opts) {
+                        Ok(_) => {
+                            // Clean up temp file
+                            let _ = std::fs::remove_file("/tmp/temp_print_data");
+                            Ok(())
+                        }
+                        Err(e) => {
+                            // Clean up temp file even on error
+                            let _ = std::fs::remove_file("/tmp/temp_print_data");
+                            Err(format!("Byte print failed: {}", e))
+                        }
                     }
-                    Err(e) => {
-                        // Clean up temp file even on error
-                        let _ = std::fs::remove_file("/tmp/temp_print_data");
-                        Err(format!("Byte print failed: {}", e))
+                } else {
+                    // Convert HashMap to slice of tuple references with proper lifetime
+                    let properties: Vec<(&str, &str)> = job_options
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str()))
+                        .collect();
+
+                    let job_opts = PrinterJobOpts {
+                        name: job_options.get("job-name").map(|s| s.as_str()),
+                        raw_properties: &properties,
+                    };
+
+                    match printer.print_file("/tmp/temp_print_data", job_opts) {
+                        Ok(_) => {
+                            // Clean up temp file
+                            let _ = std::fs::remove_file("/tmp/temp_print_data");
+                            Ok(())
+                        }
+                        Err(e) => {
+                            // Clean up temp file even on error
+                            let _ = std::fs::remove_file("/tmp/temp_print_data");
+                            Err(format!("Byte print failed: {}", e))
+                        }
                     }
                 }
             }
@@ -561,8 +620,9 @@ impl PrinterCore {
     /// Handle print bytes job
     fn handle_print_bytes_job(
         job_id: JobId,
-        _printer_name: String,
-        _data: Vec<u8>,
+        printer_name: String,
+        data: Vec<u8>,
+        job_options: Option<PrinterJobOptions>,
         shutdown_flag: Arc<AtomicBool>,
         job_tracker: JobTracker,
     ) {
@@ -603,7 +663,10 @@ impl PrinterCore {
             }
         } else {
             // Real printing using printers crate
-            let print_result = Self::execute_real_print_bytes(&_printer_name, &_data);
+            let raw_options = job_options
+                .map(|opts| opts.raw_properties)
+                .unwrap_or_default();
+            let print_result = Self::execute_real_print_bytes(&printer_name, &data, &raw_options);
 
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
