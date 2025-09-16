@@ -47,10 +47,11 @@ impl Task for PrintTask {
         };
 
         // If print job was successfully submitted and waitForCompletion is true,
-        // add delay to keep printer instance alive during data transfer
-        if result.is_ok() && self.wait_for_completion {
-            let delay_ms = calculate_file_print_delay(&self.file_path);
-            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        // poll job status until completion to keep printer instance alive
+        if let Ok(job_id) = result {
+            if self.wait_for_completion {
+                poll_job_completion(job_id);
+            }
         }
 
         result
@@ -85,10 +86,11 @@ impl Task for PrintBytesTask {
         };
 
         // If print job was successfully submitted and waitForCompletion is true,
-        // add delay to keep printer instance alive during data transfer
-        if result.is_ok() && self.wait_for_completion {
-            let delay_ms = calculate_bytes_print_delay(self.data.len());
-            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        // poll job status until completion to keep printer instance alive
+        if let Ok(job_id) = result {
+            if self.wait_for_completion {
+                poll_job_completion(job_id);
+            }
         }
 
         result
@@ -528,55 +530,18 @@ pub fn shutdown() -> Result<()> {
     Ok(())
 }
 
-/// Calculate appropriate delay to keep printer instance alive based on file characteristics
-fn calculate_file_print_delay(file_path: &str) -> u64 {
-    let file_size = std::fs::metadata(file_path)
-        .map(|metadata| metadata.len())
-        .unwrap_or(0);
+/// Poll job status until completion to keep printer instance alive
+fn poll_job_completion(job_id: u64) {
+    use crate::core::{PrinterCore, PrinterJobState};
+    use std::{thread, time::Duration};
 
-    // Base delay for small files (minimum 2 seconds)
-    let mut delay_ms = 2000;
-
-    // Add delay based on file size (1 second per MB, up to 30 seconds max)
-    let size_delay = ((file_size / 1_048_576) * 1000).min(30_000) as u64;
-    delay_ms += size_delay;
-
-    // Add extra delay for image files that may need more processing time
-    if let Some(extension) = std::path::Path::new(file_path)
-        .extension()
-        .and_then(|ext| ext.to_str())
-    {
-        match extension.to_lowercase().as_str() {
-            "jpg" | "jpeg" | "png" | "gif" | "bmp" | "tiff" | "tif" => {
-                delay_ms += 3000; // Extra 3 seconds for images
+    while let Some(job) = PrinterCore::get_job_status(job_id) {
+        match job.state {
+            PrinterJobState::COMPLETED | PrinterJobState::CANCELLED => break,
+            _ => {
+                thread::sleep(Duration::from_millis(50));
             }
-            "pdf" => {
-                delay_ms += 2000; // Extra 2 seconds for PDFs
-            }
-            _ => {}
         }
     }
-
-    delay_ms
-}
-
-/// Calculate appropriate delay for raw bytes printing to keep printer instance alive
-fn calculate_bytes_print_delay(data_size: usize) -> u64 {
-    // Base delay for small data (minimum 2 seconds)
-    let mut delay_ms = 2000;
-
-    // Add delay based on data size (1 second per MB, up to 30 seconds max)
-    let size_delay = ((data_size / 1_048_576) * 1000).min(30_000) as u64;
-    delay_ms += size_delay;
-
-    // Add extra delay for larger raw data that might be images or complex documents
-    if data_size > 5_242_880 {
-        // > 5MB
-        delay_ms += 3000; // Extra 3 seconds for large data
-    } else if data_size > 1_048_576 {
-        // > 1MB
-        delay_ms += 1500; // Extra 1.5 seconds for medium data
-    }
-
-    delay_ms
+    // If job is not found, the while loop exits naturally
 }
