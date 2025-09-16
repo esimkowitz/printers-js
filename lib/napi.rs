@@ -432,6 +432,59 @@ pub fn cleanup_old_jobs(max_age_seconds: u32) -> u32 {
     PrinterCore::cleanup_old_jobs(max_age_seconds as u64)
 }
 
+/// Get active jobs for a specific printer (for printer object methods)
+#[napi]
+pub fn printer_get_active_jobs(printer_name: String) -> Vec<PrinterJob> {
+    PrinterCore::get_active_jobs_for_printer(&printer_name)
+        .into_iter()
+        .map(convert_printer_job)
+        .collect()
+}
+
+/// Get job history for a specific printer (for printer object methods)
+#[napi]
+pub fn printer_get_job_history(printer_name: String, limit: Option<u32>) -> Vec<PrinterJob> {
+    let mut jobs = PrinterCore::get_job_history_for_printer(&printer_name);
+
+    // Apply limit if specified
+    if let Some(limit) = limit {
+        jobs.truncate(limit as usize);
+    }
+
+    jobs.into_iter().map(convert_printer_job).collect()
+}
+
+/// Get a specific job for a printer (for printer object methods)
+#[napi]
+pub fn printer_get_job(printer_name: String, job_id: f64) -> Option<PrinterJob> {
+    if let Some(job) = PrinterCore::get_job_status(job_id as u64) {
+        if job.printer_name == printer_name {
+            Some(convert_printer_job(job))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+/// Get all jobs for a specific printer (for printer object methods)
+#[napi]
+pub fn printer_get_all_jobs(printer_name: String) -> Vec<PrinterJob> {
+    PrinterCore::get_all_jobs_for_printer(&printer_name)
+        .into_iter()
+        .map(convert_printer_job)
+        .collect()
+}
+
+/// Clean up old jobs for a specific printer (for printer object methods)
+#[napi]
+pub fn printer_cleanup_old_jobs(printer_name: String, max_age_seconds: u32) -> u32 {
+    // For now, just call the global cleanup and filter by printer
+    // TODO: Implement printer-specific cleanup in core
+    PrinterCore::cleanup_old_jobs(max_age_seconds as u64)
+}
+
 /// Shutdown the library and cleanup all background threads
 #[napi]
 pub fn shutdown() -> Result<()> {

@@ -55,8 +55,6 @@ const {
   printerExists,
   getPrinterByName,
   PrinterConstructor,
-  cleanupOldJobs,
-  getJobStatus,
   shutdown,
   PrintError,
   isSimulationMode,
@@ -277,20 +275,20 @@ test(`${runtimeName}: should handle printFile operations`, async () => {
   }
 });
 
-test(`${runtimeName}: should return null for invalid job ID in getJobStatus`, () => {
-  const status = getJobStatus(99999999);
-  if (status !== null) {
-    throw new Error("getJobStatus should return null for invalid job ID");
+test(`${runtimeName}: should return number from printer.cleanupOldJobs`, () => {
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    console.log("Skipping cleanupOldJobs test - no printers available");
+    return;
   }
-});
 
-test(`${runtimeName}: should return number from cleanupOldJobs`, () => {
-  const cleaned = cleanupOldJobs(3600); // 1 hour
+  const printer = printers[0];
+  const cleaned = printer.cleanupOldJobs(3600); // 1 hour
   if (typeof cleaned !== "number") {
-    throw new Error("cleanupOldJobs should return a number");
+    throw new Error("printer.cleanupOldJobs should return a number");
   }
   if (cleaned < 0) {
-    throw new Error("cleanupOldJobs should return non-negative number");
+    throw new Error("printer.cleanupOldJobs should return non-negative number");
   }
 });
 
@@ -609,78 +607,71 @@ test(`${runtimeName}: should handle edge cases in SimplePrintOptions conversion`
 });
 
 // New Job Tracking Tests
-test(`${runtimeName}: should have new job tracking API functions available`, () => {
-  const {
-    getPrinterJob,
-    getActiveJobs,
-    getActiveJobsForPrinter,
-    getJobHistory,
-    getJobHistoryForPrinter,
-    getAllJobsForPrinter,
-  } = printerAPI;
+test(`${runtimeName}: should have printer job tracking methods available`, () => {
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    console.log("Skipping printer job tracking test - no printers available");
+    return;
+  }
 
-  if (typeof getPrinterJob !== "function") {
-    throw new Error("getPrinterJob function should be available");
+  const printer = printers[0];
+
+  if (typeof printer.getActiveJobs !== "function") {
+    throw new Error("printer.getActiveJobs method should be available");
   }
-  if (typeof getActiveJobs !== "function") {
-    throw new Error("getActiveJobs function should be available");
+  if (typeof printer.getJobHistory !== "function") {
+    throw new Error("printer.getJobHistory method should be available");
   }
-  if (typeof getActiveJobsForPrinter !== "function") {
-    throw new Error("getActiveJobsForPrinter function should be available");
+  if (typeof printer.getJob !== "function") {
+    throw new Error("printer.getJob method should be available");
   }
-  if (typeof getJobHistory !== "function") {
-    throw new Error("getJobHistory function should be available");
+  if (typeof printer.getAllJobs !== "function") {
+    throw new Error("printer.getAllJobs method should be available");
   }
-  if (typeof getJobHistoryForPrinter !== "function") {
-    throw new Error("getJobHistoryForPrinter function should be available");
-  }
-  if (typeof getAllJobsForPrinter !== "function") {
-    throw new Error("getAllJobsForPrinter function should be available");
+  if (typeof printer.cleanupOldJobs !== "function") {
+    throw new Error("printer.cleanupOldJobs method should be available");
   }
 });
 
-test(`${runtimeName}: should return null for invalid job ID in getPrinterJob`, () => {
-  const { getPrinterJob } = printerAPI;
+test(`${runtimeName}: should return null for invalid job ID in printer.getJob`, () => {
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    console.log("Skipping printer.getJob test - no printers available");
+    return;
+  }
 
-  const job = getPrinterJob(99999999);
+  const printer = printers[0];
+  const job = printer.getJob(99999999);
   if (job !== null) {
-    throw new Error("getPrinterJob should return null for invalid job ID");
+    throw new Error("printer.getJob should return null for invalid job ID");
   }
 });
 
-test(`${runtimeName}: should return empty arrays for job tracking functions when no jobs exist`, () => {
-  const {
-    getActiveJobs,
-    getActiveJobsForPrinter,
-    getJobHistory,
-    getJobHistoryForPrinter,
-    getAllJobsForPrinter,
-  } = printerAPI;
+test(`${runtimeName}: should return empty arrays for printer job tracking methods when no jobs exist`, () => {
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    console.log(
+      "Skipping printer job tracking arrays test - no printers available"
+    );
+    return;
+  }
+
+  const printer = printers[0];
 
   // These should return arrays (empty or not, but arrays)
-  const activeJobs = getActiveJobs();
+  const activeJobs = printer.getActiveJobs();
   if (!Array.isArray(activeJobs)) {
-    throw new Error("getActiveJobs should return an array");
+    throw new Error("printer.getActiveJobs should return an array");
   }
 
-  const activeJobsForPrinter = getActiveJobsForPrinter("NonExistentPrinter");
-  if (!Array.isArray(activeJobsForPrinter)) {
-    throw new Error("getActiveJobsForPrinter should return an array");
-  }
-
-  const jobHistory = getJobHistory();
+  const jobHistory = printer.getJobHistory();
   if (!Array.isArray(jobHistory)) {
-    throw new Error("getJobHistory should return an array");
+    throw new Error("printer.getJobHistory should return an array");
   }
 
-  const jobHistoryForPrinter = getJobHistoryForPrinter("NonExistentPrinter");
-  if (!Array.isArray(jobHistoryForPrinter)) {
-    throw new Error("getJobHistoryForPrinter should return an array");
-  }
-
-  const allJobsForPrinter = getAllJobsForPrinter("NonExistentPrinter");
-  if (!Array.isArray(allJobsForPrinter)) {
-    throw new Error("getAllJobsForPrinter should return an array");
+  const allJobs = printer.getAllJobs();
+  if (!Array.isArray(allJobs)) {
+    throw new Error("printer.getAllJobs should return an array");
   }
 });
 
@@ -691,7 +682,6 @@ test(`${runtimeName}: should create and track print jobs with new job format`, a
     return;
   }
 
-  const { getPrinterJob, getActiveJobs } = printerAPI;
   const printer = printers[0];
 
   try {
@@ -713,7 +703,7 @@ test(`${runtimeName}: should create and track print jobs with new job format`, a
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Get the job details using new format
-    const job = getPrinterJob(jobId);
+    const job = printer.getJob(jobId);
     if (!job) {
       throw new Error(`Job ${jobId} should be found in tracker`);
     }
@@ -821,13 +811,11 @@ test(`${runtimeName}: should track jobs in active jobs list`, async () => {
     return;
   }
 
-  const { getActiveJobs, getActiveJobsForPrinter } = printerAPI;
   const printer = printers[0];
 
   try {
     // Get initial active job count
-    const initialActiveJobs = getActiveJobs();
-    const initialActiveForPrinter = getActiveJobsForPrinter(printer.name);
+    const initialActiveJobs = printer.getActiveJobs();
 
     // Submit a job
     const jobOptions = { jobName: "Active Job Test" };
@@ -837,8 +825,7 @@ test(`${runtimeName}: should track jobs in active jobs list`, async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // Check if job appears in active jobs
-    const activeJobs = getActiveJobs();
-    const activeForPrinter = getActiveJobsForPrinter(printer.name);
+    const activeJobs = printer.getActiveJobs();
 
     // Should have at least one more active job
     if (activeJobs.length <= initialActiveJobs.length) {
@@ -891,13 +878,11 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
     return;
   }
 
-  const { getJobHistory, getJobHistoryForPrinter } = printerAPI;
   const printer = printers[0];
 
   try {
     // Get initial job history count
-    const initialHistory = getJobHistory();
-    const initialHistoryForPrinter = getJobHistoryForPrinter(printer.name);
+    const initialHistory = printer.getJobHistory();
 
     // Submit a job and wait for completion
     const jobOptions = { jobName: "History Job Test" };
@@ -907,8 +892,7 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Check if job appears in history
-    const jobHistory = getJobHistory();
-    const historyForPrinter = getJobHistoryForPrinter(printer.name);
+    const jobHistory = printer.getJobHistory();
 
     // Should have at least one more completed job
     if (jobHistory.length <= initialHistory.length) {
@@ -968,7 +952,6 @@ test(`${runtimeName}: should handle media type detection correctly`, async () =>
     return;
   }
 
-  const { getPrinterJob } = printerAPI;
   const printer = printers[0];
 
   const testCases = [
@@ -988,7 +971,7 @@ test(`${runtimeName}: should handle media type detection correctly`, async () =>
       // Give job a moment to be processed
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const job = getPrinterJob(jobId);
+      const job = printer.getJob(jobId);
       if (job && job.mediaType !== testCase.expectedType) {
         throw new Error(
           `File ${testCase.file} should have media type "${testCase.expectedType}", got "${job.mediaType}"`
@@ -1020,7 +1003,6 @@ test(`${runtimeName}: should handle raw bytes printing with correct media type`,
     return;
   }
 
-  const { getPrinterJob } = printerAPI;
   const printer = printers[0];
 
   try {
@@ -1040,7 +1022,7 @@ test(`${runtimeName}: should handle raw bytes printing with correct media type`,
     // Give job a moment to be processed
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const job = getPrinterJob(jobId);
+    const job = printer.getJob(jobId);
     if (!job) {
       throw new Error("Raw bytes job should be tracked");
     }

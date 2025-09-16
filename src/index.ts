@@ -448,13 +448,12 @@ interface NativeModule {
     data: Uint8Array | Buffer,
     jobProperties?: Record<string, string>
   ): Promise<number>;
-  // New job tracking functions
-  getPrinterJob?(jobId: number): PrinterJob | null;
-  getActiveJobs?(): PrinterJob[];
-  getActiveJobsForPrinter?(printerName: string): PrinterJob[];
-  getJobHistory?(): PrinterJob[];
-  getJobHistoryForPrinter?(printerName: string): PrinterJob[];
-  getAllJobsForPrinter?(printerName: string): PrinterJob[];
+  // Printer-specific job tracking methods
+  printerGetActiveJobs?(printerName: string): PrinterJob[];
+  printerGetJobHistory?(printerName: string, limit?: number): PrinterJob[];
+  printerGetJob?(printerName: string, jobId: number): PrinterJob | null;
+  printerGetAllJobs?(printerName: string): PrinterJob[];
+  printerCleanupOldJobs?(printerName: string, maxAgeSeconds: number): number;
   Printer: {
     fromName(name: string): NativePrinter | null;
   };
@@ -1006,6 +1005,84 @@ class PrinterWrapper implements Printer {
       "cups" in options
     );
   }
+
+  /**
+   * Get active print jobs for this printer.
+   * @returns Array of active PrinterJob objects
+   */
+  getActiveJobs(): PrinterJob[] {
+    try {
+      return nativeModule.printerGetActiveJobs
+        ? nativeModule.printerGetActiveJobs(this.name)
+        : [];
+    } catch (error) {
+      console.error(`Failed to get active jobs for ${this.name}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get job history for this printer.
+   * @param limit - Maximum number of jobs to return (optional)
+   * @returns Array of completed/cancelled PrinterJob objects
+   */
+  getJobHistory(limit?: number): PrinterJob[] {
+    try {
+      return nativeModule.printerGetJobHistory
+        ? nativeModule.printerGetJobHistory(this.name, limit)
+        : [];
+    } catch (error) {
+      console.error(`Failed to get job history for ${this.name}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get a specific job by ID if it belongs to this printer.
+   * @param jobId - Job ID to look up
+   * @returns PrinterJob object if found, null otherwise
+   */
+  getJob(jobId: number): PrinterJob | null {
+    try {
+      return nativeModule.printerGetJob
+        ? nativeModule.printerGetJob(this.name, jobId)
+        : null;
+    } catch (error) {
+      console.error(`Failed to get job ${jobId} for ${this.name}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get all jobs (active and completed) for this printer.
+   * @returns Array of all PrinterJob objects
+   */
+  getAllJobs(): PrinterJob[] {
+    try {
+      return nativeModule.printerGetAllJobs
+        ? nativeModule.printerGetAllJobs(this.name)
+        : [];
+    } catch (error) {
+      console.error(`Failed to get all jobs for ${this.name}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Clean up old completed/cancelled jobs for this printer.
+   * @param maxAgeSeconds - Maximum age in seconds for jobs to keep
+   * @returns Number of jobs cleaned up
+   */
+  cleanupOldJobs(maxAgeSeconds: number): number {
+    try {
+      return nativeModule.printerCleanupOldJobs
+        ? nativeModule.printerCleanupOldJobs(this.name, maxAgeSeconds)
+        : 0;
+    } catch (error) {
+      console.error(`Failed to cleanup old jobs for ${this.name}:`, error);
+      return 0;
+    }
+  }
 }
 
 // Public API functions
@@ -1110,102 +1187,6 @@ export function cleanupOldJobs(maxAgeMs: number = 30000): number {
 }
 
 /**
- * Get printer job details using new format.
- * @param jobId - Job ID to retrieve
- * @returns PrinterJob object or null if not found
- */
-export function getPrinterJob(jobId: number): PrinterJob | null {
-  try {
-    return nativeModule.getPrinterJob
-      ? nativeModule.getPrinterJob(jobId)
-      : null;
-  } catch (error) {
-    console.error(`Failed to get printer job ${jobId}:`, error);
-    return null;
-  }
-}
-
-/**
- * Get all active jobs (pending, processing, or paused).
- * @returns Array of active PrinterJob objects
- */
-export function getActiveJobs(): PrinterJob[] {
-  try {
-    return nativeModule.getActiveJobs ? nativeModule.getActiveJobs() : [];
-  } catch (error) {
-    console.error("Failed to get active jobs:", error);
-    return [];
-  }
-}
-
-/**
- * Get active jobs for a specific printer.
- * @param printerName - Name of the printer
- * @returns Array of active PrinterJob objects for the printer
- */
-export function getActiveJobsForPrinter(printerName: string): PrinterJob[] {
-  try {
-    return nativeModule.getActiveJobsForPrinter
-      ? nativeModule.getActiveJobsForPrinter(printerName)
-      : [];
-  } catch (error) {
-    console.error(
-      `Failed to get active jobs for printer ${printerName}:`,
-      error
-    );
-    return [];
-  }
-}
-
-/**
- * Get job history (completed or cancelled jobs).
- * @returns Array of completed/cancelled PrinterJob objects
- */
-export function getJobHistory(): PrinterJob[] {
-  try {
-    return nativeModule.getJobHistory ? nativeModule.getJobHistory() : [];
-  } catch (error) {
-    console.error("Failed to get job history:", error);
-    return [];
-  }
-}
-
-/**
- * Get job history for a specific printer.
- * @param printerName - Name of the printer
- * @returns Array of completed/cancelled PrinterJob objects for the printer
- */
-export function getJobHistoryForPrinter(printerName: string): PrinterJob[] {
-  try {
-    return nativeModule.getJobHistoryForPrinter
-      ? nativeModule.getJobHistoryForPrinter(printerName)
-      : [];
-  } catch (error) {
-    console.error(
-      `Failed to get job history for printer ${printerName}:`,
-      error
-    );
-    return [];
-  }
-}
-
-/**
- * Get all jobs (active and completed) for a specific printer.
- * @param printerName - Name of the printer
- * @returns Array of all PrinterJob objects for the printer
- */
-export function getAllJobsForPrinter(printerName: string): PrinterJob[] {
-  try {
-    return nativeModule.getAllJobsForPrinter
-      ? nativeModule.getAllJobsForPrinter(printerName)
-      : [];
-  } catch (error) {
-    console.error(`Failed to get all jobs for printer ${printerName}:`, error);
-    return [];
-  }
-}
-
-/**
  * Clean up resources and shutdown the printer module.
  */
 export function shutdown(): void {
@@ -1242,14 +1223,14 @@ export const getDefaultPrinter = () =>
   getAllPrinters().find(p => p.isDefault) || null;
 
 /**
- * Create and execute a print job.
+ * Print a file to a printer.
  * @param printerName - Name of the printer
  * @param filePath - Path to file to print
  * @param options - Typed print options or raw properties
  * @returns Promise<number> - Job ID
  * @throws Error if printer not found
  */
-export const createPrintJob = async (
+export const printFile = async (
   printerName: string,
   filePath: string,
   options?: PrintJobOptions | Record<string, string>
