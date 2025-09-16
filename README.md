@@ -15,6 +15,9 @@ Cross-runtime printer library for Deno, Bun, and Node.js.
 - 🔒 Safe testing - simulation mode prevents accidental printing
 - 📊 Async job tracking - non-blocking print jobs with status monitoring
 - 🔍 Rich printer metadata - access all printer properties
+- ⚡ Flexible completion control - choose immediate return or wait for job completion
+- 🔧 Full CUPS options support - comprehensive printing configuration on Unix systems
+- 📄 Structured print options - simple, CUPS, and raw option interfaces
 
 ## Installation
 
@@ -68,14 +71,14 @@ console.log(
   printers.map(p => p.name)
 );
 
-// Print a file (returns a Promise)
+// Print a file (returns a Promise with job ID)
 const printer = printers[0];
 try {
-  await printer.printFile("/path/to/document.pdf", {
-    copies: "2",
-    orientation: "landscape",
+  const jobId = await printer.printFile("/path/to/document.pdf", {
+    simple: { copies: 2, duplex: true },
+    waitForCompletion: true, // Wait for job completion (default)
   });
-  console.log("Print job completed!");
+  console.log(`Print job ${jobId} completed!`);
 } catch (error) {
   console.error("Print failed:", error.message);
 }
@@ -161,17 +164,144 @@ Represents a system printer with metadata and printing capabilities.
 - `dispose?(): void` - Manually release printer resources (automatic cleanup
   available)
 - `getName(): string` - Get the printer name
-- `printFile(filePath: string, jobProperties?: Record<string, string>): Promise<void>` -
-  Print a file
+- `printFile(filePath: string, options?: PrintJobOptions): Promise<number>` -
+  Print a file and return job ID
+- `printBytes(data: Uint8Array, options?: PrintJobOptions): Promise<number>` -
+  Print raw bytes and return job ID
+- `getActiveJobs(): PrinterJob[]` - Get currently active/pending jobs
+- `getJobHistory(limit?: number): PrinterJob[]` - Get completed job history
+- `getJob(jobId: number): PrinterJob | null` - Get specific job details
+- `getAllJobs(): PrinterJob[]` - Get all jobs (active + history)
+- `cleanupOldJobs(maxAgeSeconds: number): number` - Remove old jobs
 
 **Static Methods (via PrinterConstructor):**
 
 - `PrinterConstructor.fromName(name: string): Printer | null` - Create printer
   instance from name
 
+## Print Options
+
+The library supports multiple ways to specify print options, with automatic conversion and precedence handling.
+
+### PrintJobOptions Interface
+
+```typescript
+interface PrintJobOptions {
+  /** Top-level job name (highest precedence) */
+  jobName?: string;
+  /** Control whether to wait for job completion (default: true) */
+  waitForCompletion?: boolean;
+  /** Raw CUPS-style options (lowest precedence) */
+  raw?: Record<string, string>;
+  /** Simple, user-friendly options (medium precedence) */
+  simple?: SimplePrintOptions;
+  /** Full CUPS options (high precedence) */
+  cups?: CUPSOptions;
+}
+```
+
+### SimplePrintOptions
+
+Easy-to-use options that get converted to CUPS format:
+
+```typescript
+interface SimplePrintOptions {
+  copies?: number;
+  duplex?: boolean;
+  paperSize?: "A4" | "Letter" | "Legal" | "A3" | "A5" | "Tabloid";
+  quality?: "draft" | "normal" | "high";
+  color?: boolean;
+  pageRange?: string; // e.g., "1-5,8,10-12"
+  jobName?: string;
+  pagesPerSheet?: 1 | 2 | 4 | 6 | 9 | 16;
+  landscape?: boolean;
+}
+```
+
+### CUPSOptions
+
+Direct CUPS option control for advanced configurations:
+
+```typescript
+interface CUPSOptions {
+  "job-name"?: string;
+  "job-priority"?: number;
+  copies?: number | string;
+  collate?: boolean;
+  "media-size"?: string;
+  "print-quality"?: number;
+  "fit-to-page"?: boolean;
+  // ... and many more CUPS options
+  [key: string]: string | number | boolean | undefined;
+}
+```
+
+### waitForCompletion Parameter
+
+Controls the async behavior of print operations:
+
+- **`true` (default)**: Wait for print job completion with intelligent delays
+- **`false`**: Return immediately after job submission
+
+```typescript
+// Wait for completion (default behavior)
+const jobId = await printer.printFile("document.pdf", {
+  simple: { copies: 2 },
+  waitForCompletion: true,
+});
+
+// Quick return - fire and forget
+const jobId = await printer.printFile("document.pdf", {
+  simple: { copies: 2 },
+  waitForCompletion: false,
+});
+```
+
+### Option Precedence
+
+Options are merged with the following precedence (highest to lowest):
+
+1. **Top-level `jobName`** - Always takes precedence
+2. **CUPS options** - Direct CUPS control
+3. **Simple options** - Converted to CUPS format
+4. **Raw options** - Base level options
+
+```typescript
+await printer.printFile("document.pdf", {
+  jobName: "Final Job Name", // Will override everything
+  raw: { "job-name": "Raw Name", copies: "1" },
+  simple: { copies: 2 }, // Will override raw copies
+  cups: { "job-priority": 75 }, // Adds to final options
+});
+// Result: job-name="Final Job Name", copies="2", job-priority="75"
+```
+
 ### Types and Interfaces
 
-#### `JobStatus`
+#### `PrinterJob`
+
+```typescript
+interface PrinterJob {
+  id: number;
+  name: string;
+  state:
+    | "pending"
+    | "paused"
+    | "processing"
+    | "cancelled"
+    | "completed"
+    | "unknown";
+  mediaType: string;
+  createdAt: number; // Unix timestamp
+  printerName: string;
+  ageSeconds: number;
+  processedAt?: number; // Unix timestamp
+  completedAt?: number; // Unix timestamp
+  errorMessage?: string;
+}
+```
+
+#### `JobStatus` (Legacy)
 
 ```typescript
 interface JobStatus {
@@ -278,12 +408,89 @@ if (printers.length > 0) {
   console.log(`Default: ${printer.isDefault}`);
 
   try {
-    await printer.printFile("document.pdf");
-    console.log("Print successful");
+    // Simple printing with job ID return
+    const jobId = await printer.printFile("document.pdf");
+    console.log(`Print job ${jobId} completed successfully`);
   } catch (error) {
     console.log("Print failed:", error.message);
   }
 }
+```
+
+### Advanced Print Options
+
+```typescript
+import { getAllPrinters } from "@printers/printers";
+
+const printer = getAllPrinters()[0];
+
+// Using simple options
+const jobId1 = await printer.printFile("document.pdf", {
+  simple: {
+    copies: 3,
+    duplex: true,
+    paperSize: "A4",
+    quality: "high",
+    color: false,
+  },
+  waitForCompletion: true, // Wait for completion (default)
+});
+
+// Using CUPS options for advanced control
+const jobId2 = await printer.printFile("document.pdf", {
+  cups: {
+    "job-name": "Important Document",
+    "job-priority": 75,
+    "print-quality": 5,
+    "media-size": "A4",
+    sides: "two-sided-long-edge",
+  },
+});
+
+// Quick fire-and-forget printing
+const jobId3 = await printer.printFile("document.pdf", {
+  simple: { copies: 1 },
+  waitForCompletion: false, // Return immediately
+});
+
+console.log(`Submitted jobs: ${jobId1}, ${jobId2}, ${jobId3}`);
+```
+
+### Job Tracking and Management
+
+```typescript
+import { getAllPrinters } from "@printers/printers";
+
+const printer = getAllPrinters()[0];
+
+// Submit a print job
+const jobId = await printer.printFile("large-document.pdf", {
+  simple: { copies: 5, duplex: true },
+  waitForCompletion: false, // Don't wait, track manually
+});
+
+// Check job status
+const job = printer.getJob(jobId);
+if (job) {
+  console.log(`Job ${job.id}: ${job.name}`);
+  console.log(`State: ${job.state}`);
+  console.log(`Media: ${job.mediaType}`);
+  console.log(`Age: ${job.ageSeconds}s`);
+}
+
+// Monitor active jobs
+const activeJobs = printer.getActiveJobs();
+console.log(`${activeJobs.length} jobs currently active`);
+
+// View job history
+const history = printer.getJobHistory(10); // Last 10 jobs
+for (const historicalJob of history) {
+  console.log(`${historicalJob.name}: ${historicalJob.state}`);
+}
+
+// Cleanup old completed jobs
+const cleaned = printer.cleanupOldJobs(3600); // Remove jobs older than 1 hour
+console.log(`Cleaned up ${cleaned} old jobs`);
 ```
 
 ### Printer Information & Management
