@@ -9,6 +9,7 @@ pub struct PrintTask {
     pub printer_name: String,
     pub file_path: String,
     pub job_options: Option<PrinterJobOptions>,
+    pub wait_for_completion: bool,
 }
 
 /// Async task for printing bytes
@@ -16,6 +17,7 @@ pub struct PrintBytesTask {
     pub printer_name: String,
     pub data: Vec<u8>,
     pub job_options: Option<PrinterJobOptions>,
+    pub wait_for_completion: bool,
 }
 
 impl Task for PrintTask {
@@ -23,7 +25,7 @@ impl Task for PrintTask {
     type JsValue = f64;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        match PrinterCore::print_file(
+        let result = match PrinterCore::print_file(
             &self.printer_name,
             &self.file_path,
             self.job_options.clone(),
@@ -42,7 +44,16 @@ impl Task for PrintTask {
                     format!("Print failed with error code: {}", e.as_i32()),
                 )),
             },
+        };
+
+        // If print job was successfully submitted and waitForCompletion is true,
+        // add delay to keep printer instance alive during data transfer
+        if result.is_ok() && self.wait_for_completion {
+            let delay_ms = calculate_file_print_delay(&self.file_path);
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
         }
+
+        result
     }
 
     fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -55,7 +66,11 @@ impl Task for PrintBytesTask {
     type JsValue = f64;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        match PrinterCore::print_bytes(&self.printer_name, &self.data, self.job_options.clone()) {
+        let result = match PrinterCore::print_bytes(
+            &self.printer_name,
+            &self.data,
+            self.job_options.clone(),
+        ) {
             Ok(job_id) => Ok(job_id),
             Err(e) => match e {
                 PrintError::PrinterNotFound => {
@@ -67,7 +82,16 @@ impl Task for PrintBytesTask {
                     format!("Print failed with error code: {}", e.as_i32()),
                 )),
             },
+        };
+
+        // If print job was successfully submitted and waitForCompletion is true,
+        // add delay to keep printer instance alive during data transfer
+        if result.is_ok() && self.wait_for_completion {
+            let delay_ms = calculate_bytes_print_delay(self.data.len());
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
         }
+
+        result
     }
 
     fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -205,12 +229,14 @@ impl Printer {
         &self,
         file_path: String,
         job_properties: Option<HashMap<String, String>>,
+        wait_for_completion: Option<bool>,
     ) -> AsyncTask<PrintTask> {
         let job_options = job_properties.map(PrinterJobOptions::from_map);
         AsyncTask::new(PrintTask {
             printer_name: self.name.clone(),
             file_path,
             job_options,
+            wait_for_completion: wait_for_completion.unwrap_or(true), // Default to true
         })
     }
 
@@ -220,12 +246,14 @@ impl Printer {
         &self,
         data: Buffer,
         job_properties: Option<HashMap<String, String>>,
+        wait_for_completion: Option<bool>,
     ) -> AsyncTask<PrintBytesTask> {
         let job_options = job_properties.map(PrinterJobOptions::from_map);
         AsyncTask::new(PrintBytesTask {
             printer_name: self.name.clone(),
             data: data.to_vec(),
             job_options,
+            wait_for_completion: wait_for_completion.unwrap_or(true), // Default to true
         })
     }
 }
@@ -292,12 +320,14 @@ pub fn print_file(
     printer_name: String,
     file_path: String,
     job_properties: Option<HashMap<String, String>>,
+    wait_for_completion: Option<bool>,
 ) -> AsyncTask<PrintTask> {
     let job_options = job_properties.map(PrinterJobOptions::from_map);
     AsyncTask::new(PrintTask {
         printer_name,
         file_path,
         job_options,
+        wait_for_completion: wait_for_completion.unwrap_or(true), // Default to true
     })
 }
 
@@ -307,12 +337,14 @@ pub fn print_bytes(
     printer_name: String,
     data: Buffer,
     job_properties: Option<HashMap<String, String>>,
+    wait_for_completion: Option<bool>,
 ) -> AsyncTask<PrintBytesTask> {
     let job_options = job_properties.map(PrinterJobOptions::from_map);
     AsyncTask::new(PrintBytesTask {
         printer_name,
         data: data.to_vec(),
         job_options,
+        wait_for_completion: wait_for_completion.unwrap_or(true), // Default to true
     })
 }
 
@@ -494,4 +526,57 @@ pub fn printer_cleanup_old_jobs(_printer_name: String, max_age_seconds: u32) -> 
 pub fn shutdown() -> Result<()> {
     PrinterCore::shutdown_library();
     Ok(())
+}
+
+/// Calculate appropriate delay to keep printer instance alive based on file characteristics
+fn calculate_file_print_delay(file_path: &str) -> u64 {
+    let file_size = std::fs::metadata(file_path)
+        .map(|metadata| metadata.len())
+        .unwrap_or(0);
+
+    // Base delay for small files (minimum 2 seconds)
+    let mut delay_ms = 2000;
+
+    // Add delay based on file size (1 second per MB, up to 30 seconds max)
+    let size_delay = ((file_size / 1_048_576) * 1000).min(30_000) as u64;
+    delay_ms += size_delay;
+
+    // Add extra delay for image files that may need more processing time
+    if let Some(extension) = std::path::Path::new(file_path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+    {
+        match extension.to_lowercase().as_str() {
+            "jpg" | "jpeg" | "png" | "gif" | "bmp" | "tiff" | "tif" => {
+                delay_ms += 3000; // Extra 3 seconds for images
+            }
+            "pdf" => {
+                delay_ms += 2000; // Extra 2 seconds for PDFs
+            }
+            _ => {}
+        }
+    }
+
+    delay_ms
+}
+
+/// Calculate appropriate delay for raw bytes printing to keep printer instance alive
+fn calculate_bytes_print_delay(data_size: usize) -> u64 {
+    // Base delay for small data (minimum 2 seconds)
+    let mut delay_ms = 2000;
+
+    // Add delay based on data size (1 second per MB, up to 30 seconds max)
+    let size_delay = ((data_size / 1_048_576) * 1000).min(30_000) as u64;
+    delay_ms += size_delay;
+
+    // Add extra delay for larger raw data that might be images or complex documents
+    if data_size > 5_242_880 {
+        // > 5MB
+        delay_ms += 3000; // Extra 3 seconds for large data
+    } else if data_size > 1_048_576 {
+        // > 1MB
+        delay_ms += 1500; // Extra 1.5 seconds for medium data
+    }
+
+    delay_ms
 }

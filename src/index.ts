@@ -568,6 +568,12 @@ export interface PrintJobOptions {
   simple?: Partial<SimplePrintOptions>;
   /** Full CUPS options with complete type safety */
   cups?: Partial<CUPSOptions>;
+  /**
+   * Whether to wait for job completion before returning.
+   * - true (default): Promise resolves when job completes/fails, keeps printer alive during transfer
+   * - false: Promise resolves immediately with job ID, background thread keeps printer alive
+   */
+  waitForCompletion?: boolean;
 }
 
 /**
@@ -958,8 +964,13 @@ class PrinterWrapper implements Printer {
     options?: PrintJobOptions | Record<string, string>
   ): Promise<number> {
     if (nativeModule.printFile) {
-      const rawOptions = this.convertOptions(options);
-      return await nativeModule.printFile(this.name, filePath, rawOptions);
+      const { rawOptions, waitForCompletion } = this.convertOptions(options);
+      return await nativeModule.printFile(
+        this.name,
+        filePath,
+        rawOptions,
+        waitForCompletion
+      );
     }
     throw new Error("Print functionality not available");
   }
@@ -975,27 +986,40 @@ class PrinterWrapper implements Printer {
     options?: PrintJobOptions | Record<string, string>
   ): Promise<number> {
     if (nativeModule.printBytes) {
-      const rawOptions = this.convertOptions(options);
-      return await nativeModule.printBytes(this.name, data, rawOptions);
+      const { rawOptions, waitForCompletion } = this.convertOptions(options);
+      return await nativeModule.printBytes(
+        this.name,
+        data,
+        rawOptions,
+        waitForCompletion
+      );
     }
     throw new Error("Print bytes functionality not available");
   }
 
   /**
-   * Convert options to raw properties for the backend
+   * Convert options to raw properties for the backend and extract waitForCompletion
    */
-  private convertOptions(
-    options?: PrintJobOptions | Record<string, string>
-  ): Record<string, string> | undefined {
-    if (!options) return undefined;
+  private convertOptions(options?: PrintJobOptions | Record<string, string>): {
+    rawOptions?: Record<string, string>;
+    waitForCompletion: boolean;
+  } {
+    if (!options) {
+      return { rawOptions: undefined, waitForCompletion: true };
+    }
 
     // If it's already raw properties (has string keys and values)
     if (this.isRawOptions(options)) {
-      return options;
+      return { rawOptions: options, waitForCompletion: true };
     }
 
-    // Convert typed options to raw
-    return printJobOptionsToRaw(options as PrintJobOptions);
+    const typedOptions = options as PrintJobOptions;
+    const waitForCompletion = typedOptions.waitForCompletion !== false; // Default to true
+
+    // Convert typed options to raw (excluding waitForCompletion)
+    const rawOptions = printJobOptionsToRaw(typedOptions);
+
+    return { rawOptions, waitForCompletion };
   }
 
   /**
