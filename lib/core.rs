@@ -8,6 +8,7 @@ use std::sync::{
 };
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime};
+use uuid::Uuid;
 
 /// Print job options for configuring print jobs
 #[derive(Clone, Debug)]
@@ -316,14 +317,11 @@ impl PrinterCore {
         // Detect media type from file extension
         let media_type = detect_media_type(file_path);
 
-        // Create job name from options or default to filename
-        let job_name = job_options.name.clone().unwrap_or_else(|| {
-            std::path::Path::new(file_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("Print Job")
-                .to_string()
-        });
+        // Create job name from options or default to GUID
+        let job_name = job_options
+            .name
+            .clone()
+            .unwrap_or_else(|| Uuid::new_v4().simple().to_string());
 
         // Create job status
         let job_status = PrinterJob {
@@ -393,11 +391,11 @@ impl PrinterCore {
         // Detect media type (raw bytes)
         let media_type = detect_media_type(&temp_file_path);
 
-        // Create job name from options or default
+        // Create job name from options or default to GUID
         let job_name = job_options
             .name
             .clone()
-            .unwrap_or_else(|| "Raw Bytes Print Job".to_string());
+            .unwrap_or_else(|| Uuid::new_v4().simple().to_string());
 
         // Create job status
         let job_status = PrinterJob {
