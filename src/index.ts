@@ -1231,46 +1231,9 @@ export const printBytes = async (
   data: Uint8Array | Buffer,
   options?: PrintJobOptions | Record<string, string>
 ): Promise<number> => {
-  try {
-    if (nativeModule.printBytes) {
-      const rawOptions = convertGlobalOptions(options);
-      return await nativeModule.printBytes(printerName, data, rawOptions);
-    }
-  } catch (error) {
-    console.error(`Failed to print bytes to ${printerName}:`, error);
-    throw error;
+  const printer = getPrinterByName(printerName);
+  if (!printer) {
+    throw new Error(`Printer not found: ${printerName}`);
   }
-  throw new Error("Print bytes functionality not available");
+  return await printer.printBytes(data, options);
 };
-
-/**
- * Helper function to convert options for global functions
- */
-function convertGlobalOptions(
-  options?: PrintJobOptions | Record<string, string>
-): Record<string, string> | undefined {
-  if (!options) return undefined;
-
-  // If it's already raw properties (has string keys and values)
-  if (isGlobalRawOptions(options)) {
-    return options;
-  }
-
-  // Convert typed options to raw
-  return printJobOptionsToRaw(options as PrintJobOptions);
-}
-
-/**
- * Check if options are raw properties for global functions
- */
-function isGlobalRawOptions(
-  options: PrintJobOptions | Record<string, string>
-): options is Record<string, string> {
-  // If it has any of the PrintJobOptions specific keys, it's typed options
-  return !(
-    "jobName" in options ||
-    "raw" in options ||
-    "simple" in options ||
-    "cups" in options
-  );
-}
