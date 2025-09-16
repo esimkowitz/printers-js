@@ -5,7 +5,6 @@
  */
 
 import {
-  cleanupOldJobs,
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
@@ -46,8 +45,17 @@ async function main() {
 
     for (const printer of printers) {
       console.log(`   Name: ${printer.name}`);
+      console.log(`   System Name: ${printer.systemName || "Unknown"}`);
+      console.log(`   Driver: ${printer.driverName || "Unknown"}`);
+      console.log(`   Description: ${printer.description || "None"}`);
+      console.log(`   Location: ${printer.location || "Not specified"}`);
       console.log(`   Default: ${printer.isDefault ? "Yes" : "No"}`);
+      console.log(`   Shared: ${printer.isShared ? "Yes" : "No"}`);
       console.log(`   State: ${printer.state || "Unknown"}`);
+      if (printer.stateReasons && printer.stateReasons.length > 0) {
+        console.log(`   State Reasons: ${printer.stateReasons.join(", ")}`);
+      }
+      console.log(`   Exists: ${printer.exists() ? "Yes" : "No"}`);
       console.log("   ---");
     }
 
@@ -64,17 +72,23 @@ async function main() {
         // Submit multiple print jobs with different options
         console.log("📄 Submitting print jobs...");
 
-        const jobId1 = await printer.printFile("document.pdf", {
-          "job-name": "PDF Document",
-          copies: "2",
-          "paper-size": "A4",
+        const jobId1 = await printer.printFile("../sample-image.png", {
+          jobName: "Sample Image",
+          simple: {
+            copies: 2,
+            paperSize: "Letter",
+            quality: "high",
+          },
         });
 
         const jobId2 = await printer.printBytes(
           new Uint8Array([72, 101, 108, 108, 111]), // "Hello"
           {
-            "job-name": "Raw Text Job",
-            copies: "1",
+            jobName: "Raw Text Job",
+            cups: {
+              copies: 1,
+              "media-size": "Letter",
+            },
           }
         );
 
@@ -130,22 +144,32 @@ async function main() {
 
     // Feature 7: Job Cleanup
     console.log("\n🧹 Cleanup:");
-    const cleaned = cleanupOldJobs(3600); // 1 hour
-    console.log(`   Cleaned up ${cleaned} old print job(s)`);
+    if (printers.length > 0) {
+      const cleaned = printers[0].cleanupOldJobs(3600); // 1 hour
+      console.log(
+        `   Cleaned up ${cleaned} old print job(s) for ${printers[0].name}`
+      );
+    }
 
-    // Feature 8: Printer Comparison
-    if (printers.length >= 2) {
-      console.log("\n🔄 Printer Comparison:");
+    // Feature 8: Printer Comparison & Methods
+    if (printers.length >= 1) {
+      console.log("\n🔄 Printer Interface Demo:");
       const printer1 = printers[0];
-      const printer2 = printers[1];
       const samePrinter = getPrinterByName(printer1.name);
 
+      console.log(`   getName(): ${printer1.getName()}`);
+      console.log(`   toString(): ${printer1.toString()}`);
+      console.log(`   exists(): ${printer1.exists()}`);
       console.log(
-        `   ${printer1.name} equals ${printer2.name}: ${printer1.equals(printer2)}`
+        `   equals(samePrinter): ${samePrinter?.equals(printer1) ?? false}`
       );
-      console.log(
-        `   ${printer1.name} equals itself: ${samePrinter?.equals(printer1) ?? false}`
-      );
+
+      if (printers.length >= 2) {
+        const printer2 = printers[1];
+        console.log(
+          `   ${printer1.name} equals ${printer2.name}: ${printer1.equals(printer2)}`
+        );
+      }
     }
   } catch (error) {
     console.error(
