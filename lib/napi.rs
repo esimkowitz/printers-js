@@ -255,12 +255,14 @@ pub fn get_all_printer_names() -> Vec<String> {
 /// Get all available printers
 #[napi]
 pub fn get_all_printers() -> Vec<PrinterInfo> {
-    PrinterCore::get_all_printer_names()
+    let printer_names = PrinterCore::get_all_printer_names();
+
+    printer_names
         .into_iter()
         .filter_map(|name| {
             // Find the actual printer from the core
             if let Some(printer) = PrinterCore::find_printer_by_name(&name) {
-                Some(PrinterInfo {
+                let printer_info = PrinterInfo {
                     name: printer.name.clone(),
                     system_name: printer.system_name.clone(),
                     driver_name: printer.driver_name.clone(),
@@ -274,7 +276,9 @@ pub fn get_all_printers() -> Vec<PrinterInfo> {
                     is_shared: printer.is_shared,
                     state: PrinterCore::get_printer_state(&printer),
                     state_reasons: printer.state_reasons.clone(),
-                })
+                };
+
+                Some(printer_info)
             } else {
                 None
             }
