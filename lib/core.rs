@@ -493,7 +493,7 @@ impl PrinterCore {
             // Real printing using printers crate
             let raw_options = job_options
                 .map(|opts| opts.raw_properties)
-                .unwrap_or_else(HashMap::new);
+                .unwrap_or_default();
             let print_result =
                 Self::execute_real_print_job(&printer_name, &file_path, &raw_options);
 
@@ -665,7 +665,7 @@ impl PrinterCore {
             // Real printing using printers crate
             let raw_options = job_options
                 .map(|opts| opts.raw_properties)
-                .unwrap_or_else(HashMap::new);
+                .unwrap_or_default();
             let print_result = Self::execute_real_print_bytes(&printer_name, &data, &raw_options);
 
             let mut tracker = job_tracker.lock().unwrap();
