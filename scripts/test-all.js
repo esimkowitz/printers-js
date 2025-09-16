@@ -197,6 +197,8 @@ async function runTests() {
       "coverage",
       "test-results/coverage/deno-temp",
       "--lcov",
+      "--exclude=scripts/",
+      "--exclude=examples/",
       "--output=test-results/coverage/deno-lcov.info",
     ]);
   }
@@ -252,6 +254,8 @@ async function runTests() {
     "test",
     "--coverage",
     "--coverage-dir=test-results/coverage/bun-temp",
+    "--coverage-exclude=scripts/**",
+    "--coverage-exclude=examples/**",
     "src/tests/shared.test.ts",
   ]);
 

@@ -65,7 +65,7 @@ async function runTests() {
 
       // Run the shared test suite with c8 coverage and capture output
       const result = execSync(
-        "npx c8 --reporter=lcov --reporter=text --temp-directory=test-results/coverage/node-temp --report-dir=test-results/coverage/node npx tsx src/tests/shared.test.ts",
+        "npx c8 --reporter=lcov --reporter=text --temp-directory=test-results/coverage/node-temp --report-dir=test-results/coverage/node --exclude=scripts/** --exclude=examples/** npx tsx src/tests/shared.test.ts",
         {
           stdio: "pipe",
           env: {
