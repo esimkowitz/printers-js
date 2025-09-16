@@ -9,8 +9,6 @@ import {
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
-  getActiveJobs,
-  getJobHistory,
   getPrinterJob,
   isSimulationMode,
   runtimeInfo,
@@ -82,8 +80,8 @@ async function main() {
 
         // Feature 4: Individual Job Inspection
         console.log("\n🔍 Job Details:");
-        const job1 = getPrinterJob(jobId1);
-        const job2 = getPrinterJob(jobId2);
+        const job1 = printer.getJob(jobId1);
+        const job2 = printer.getJob(jobId2);
 
         if (job1) {
           displayJobInfo(job1, "Job 1");
@@ -94,7 +92,7 @@ async function main() {
 
         // Feature 5: Active Jobs Monitoring
         console.log("\n📊 Active Jobs:");
-        const activeJobs = getActiveJobs();
+        const activeJobs = printer.getActiveJobs();
         console.log(`   Found ${activeJobs.length} active job(s)`);
 
         activeJobs.forEach((job, index) => {
@@ -104,8 +102,8 @@ async function main() {
         });
 
         // Feature 6: Job History
-        console.log("\n📚 Job History:");
-        const jobHistory = getJobHistory();
+        console.log("\n📚 Job History (last 10):");
+        const jobHistory = printer.getJobHistory(10);
         console.log(`   Found ${jobHistory.length} job(s) in history`);
 
         jobHistory.slice(0, 3).forEach((job, index) => {

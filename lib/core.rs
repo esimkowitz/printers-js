@@ -440,11 +440,11 @@ impl PrinterCore {
         Ok(job_id)
     }
 
-    /// Simplified print job handler
+    /// Handle print job (file) - updated with real printing
     fn handle_print_job_simple(
         job_id: JobId,
-        _printer_name: String,
-        _file_path: String,
+        printer_name: String,
+        file_path: String,
         shutdown_flag: Arc<AtomicBool>,
         job_tracker: JobTracker,
     ) {
@@ -484,13 +484,77 @@ impl PrinterCore {
                 job.completed_at = Some(SystemTime::now());
             }
         } else {
-            // For now, just mark as completed in real mode
-            // TODO: Implement actual printing logic
+            // Real printing using printers crate
+            let print_result =
+                Self::execute_real_print_job(&printer_name, &file_path, &HashMap::new());
+
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
-                job.state = PrinterJobState::COMPLETED;
-                job.completed_at = Some(SystemTime::now());
+                match print_result {
+                    Ok(_) => {
+                        job.state = PrinterJobState::COMPLETED;
+                        job.completed_at = Some(SystemTime::now());
+                    }
+                    Err(error_msg) => {
+                        job.state = PrinterJobState::CANCELLED;
+                        job.error_message = Some(error_msg);
+                        job.completed_at = Some(SystemTime::now());
+                    }
+                }
             }
+        }
+    }
+
+    /// Execute actual printing using the printers crate
+    fn execute_real_print_job(
+        printer_name: &str,
+        file_path: &str,
+        _job_options: &HashMap<String, String>,
+    ) -> Result<(), String> {
+        // Find the printer
+        let printer = get_printer_by_name(printer_name)
+            .ok_or_else(|| format!("Printer '{}' not found", printer_name))?;
+
+        // Check if file exists
+        if !std::path::Path::new(file_path).exists() {
+            return Err(format!("File '{}' not found", file_path));
+        }
+
+        // Execute the print job - use simple print for now
+        // TODO: Implement proper job options conversion
+        use printers::common::base::job::PrinterJobOptions as PrinterJobOpts;
+        let job_opts = PrinterJobOpts::none();
+        match printer.print_file(file_path, job_opts) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!("Print failed: {}", e)),
+        }
+    }
+
+    /// Execute actual byte printing using the printers crate
+    fn execute_real_print_bytes(printer_name: &str, data: &[u8]) -> Result<(), String> {
+        // Find the printer
+        let printer = get_printer_by_name(printer_name)
+            .ok_or_else(|| format!("Printer '{}' not found", printer_name))?;
+
+        // Execute the print job with raw bytes - use temp file approach
+        match std::fs::write("/tmp/temp_print_data", data) {
+            Ok(_) => {
+                use printers::common::base::job::PrinterJobOptions as PrinterJobOpts;
+                let job_opts = PrinterJobOpts::none();
+                match printer.print_file("/tmp/temp_print_data", job_opts) {
+                    Ok(_) => {
+                        // Clean up temp file
+                        let _ = std::fs::remove_file("/tmp/temp_print_data");
+                        Ok(())
+                    }
+                    Err(e) => {
+                        // Clean up temp file even on error
+                        let _ = std::fs::remove_file("/tmp/temp_print_data");
+                        Err(format!("Byte print failed: {}", e))
+                    }
+                }
+            }
+            Err(e) => Err(format!("Failed to write temp file: {}", e)),
         }
     }
 
@@ -538,12 +602,22 @@ impl PrinterCore {
                 job.completed_at = Some(SystemTime::now());
             }
         } else {
-            // For now, just mark as completed in real mode
-            // TODO: Implement actual byte printing logic using the upstream printers crate
+            // Real printing using printers crate
+            let print_result = Self::execute_real_print_bytes(&_printer_name, &_data);
+
             let mut tracker = job_tracker.lock().unwrap();
             if let Some(job) = tracker.get_mut(&job_id) {
-                job.state = PrinterJobState::COMPLETED;
-                job.completed_at = Some(SystemTime::now());
+                match print_result {
+                    Ok(_) => {
+                        job.state = PrinterJobState::COMPLETED;
+                        job.completed_at = Some(SystemTime::now());
+                    }
+                    Err(error_msg) => {
+                        job.state = PrinterJobState::CANCELLED;
+                        job.error_message = Some(error_msg);
+                        job.completed_at = Some(SystemTime::now());
+                    }
+                }
             }
         }
     }
@@ -681,6 +755,276 @@ impl PrinterCore {
     }
 }
 
+/// Extended functionality for Printer objects
+pub trait PrinterJobTracking {
+    /// Get active jobs for this printer
+    fn get_active_jobs(&self) -> Vec<PrinterJob>;
+
+    /// Get job history for this printer
+    fn get_job_history(&self, limit: Option<usize>) -> Vec<PrinterJob>;
+
+    /// Get a specific job by ID (only if it belongs to this printer)
+    fn get_job(&self, job_id: JobId) -> Option<PrinterJob>;
+
+    /// Get all jobs for this printer
+    fn get_all_jobs(&self) -> Vec<PrinterJob>;
+
+    /// Clean up old jobs for this printer
+    fn cleanup_old_jobs(&self, max_age_seconds: u64) -> u32;
+}
+
+impl PrinterJobTracking for Printer {
+    fn get_active_jobs(&self) -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .values()
+            .filter(|job| {
+                job.printer_name == self.name
+                    && !matches!(
+                        job.state,
+                        PrinterJobState::COMPLETED | PrinterJobState::CANCELLED
+                    )
+            })
+            .cloned()
+            .collect()
+    }
+
+    fn get_job_history(&self, limit: Option<usize>) -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        let mut jobs: Vec<_> = tracker
+            .values()
+            .filter(|job| {
+                job.printer_name == self.name
+                    && matches!(
+                        job.state,
+                        PrinterJobState::COMPLETED | PrinterJobState::CANCELLED
+                    )
+            })
+            .cloned()
+            .collect();
+
+        // Sort by creation time (most recent first)
+        jobs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        if let Some(limit) = limit {
+            jobs.truncate(limit);
+        }
+
+        jobs
+    }
+
+    fn get_job(&self, job_id: JobId) -> Option<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .get(&job_id)
+            .filter(|job| job.printer_name == self.name)
+            .cloned()
+    }
+
+    fn get_all_jobs(&self) -> Vec<PrinterJob> {
+        let tracker = JOB_TRACKER.lock().unwrap();
+        tracker
+            .values()
+            .filter(|job| job.printer_name == self.name)
+            .cloned()
+            .collect()
+    }
+
+    fn cleanup_old_jobs(&self, max_age_seconds: u64) -> u32 {
+        let mut tracker = JOB_TRACKER.lock().unwrap();
+        let max_age = Duration::from_secs(max_age_seconds);
+        let mut removed_count = 0;
+
+        tracker.retain(|_, job| {
+            let should_remove = job.printer_name == self.name
+                && job.created_at.elapsed().unwrap_or(Duration::from_secs(0)) >= max_age
+                && (job.state == PrinterJobState::COMPLETED
+                    || job.state == PrinterJobState::CANCELLED);
+
+            if should_remove {
+                removed_count += 1;
+                false
+            } else {
+                true
+            }
+        });
+
+        removed_count
+    }
+}
+
+#[cfg(test)]
+mod additional_tests {
+    use super::*;
+    use serial_test::serial;
+    use std::env;
+
+    #[test]
+    fn test_media_type_detection_additional() {
+        assert_eq!(detect_media_type("document.pdf"), "application/pdf");
+        assert_eq!(detect_media_type("script.ps"), "application/postscript");
+        assert_eq!(detect_media_type("image.jpg"), "image/jpeg");
+        assert_eq!(detect_media_type("image.jpeg"), "image/jpeg");
+        assert_eq!(detect_media_type("image.png"), "image/png");
+        assert_eq!(detect_media_type("image.gif"), "image/gif");
+        assert_eq!(detect_media_type("file.txt"), "text/plain");
+        assert_eq!(detect_media_type("file.text"), "text/plain");
+        assert_eq!(detect_media_type("unknown.xyz"), "application/octet-stream");
+        assert_eq!(
+            detect_media_type("no_extension"),
+            "application/octet-stream"
+        );
+        assert_eq!(
+            detect_media_type("<bytes:1024 bytes>"),
+            "application/vnd.cups-raw"
+        );
+    }
+
+    #[test]
+    fn test_printer_job_state_string_conversions() {
+        assert_eq!(PrinterJobState::PENDING.as_string(), "pending");
+        assert_eq!(PrinterJobState::PAUSED.as_string(), "paused");
+        assert_eq!(PrinterJobState::PROCESSING.as_string(), "processing");
+        assert_eq!(PrinterJobState::CANCELLED.as_string(), "cancelled");
+        assert_eq!(PrinterJobState::COMPLETED.as_string(), "completed");
+        assert_eq!(PrinterJobState::UNKNOWN.as_string(), "unknown");
+    }
+
+    #[test]
+    #[serial]
+    fn test_job_state_tracking() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+
+        // Clear any existing jobs
+        PrinterCore::cleanup_old_jobs(0);
+
+        let job_id = generate_job_id();
+        let initial_job = PrinterJob {
+            id: job_id,
+            name: "State Transition Test".to_string(),
+            state: PrinterJobState::PENDING,
+            media_type: "application/pdf".to_string(),
+            created_at: SystemTime::now(),
+            processed_at: None,
+            completed_at: None,
+            printer_name: "Simulated Printer".to_string(),
+            error_message: None,
+        };
+
+        // Insert initial job
+        {
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            tracker.insert(job_id, initial_job);
+        }
+
+        // Verify initial state
+        let job = PrinterCore::get_job_status(job_id).unwrap();
+        assert_eq!(job.state, PrinterJobState::PENDING);
+        assert!(job.processed_at.is_none());
+        assert!(job.completed_at.is_none());
+
+        // Transition to processing
+        {
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            if let Some(job) = tracker.get_mut(&job_id) {
+                job.state = PrinterJobState::PROCESSING;
+                job.processed_at = Some(SystemTime::now());
+            }
+        }
+
+        let job = PrinterCore::get_job_status(job_id).unwrap();
+        assert_eq!(job.state, PrinterJobState::PROCESSING);
+        assert!(job.processed_at.is_some());
+        assert!(job.completed_at.is_none());
+
+        // Transition to completed
+        {
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            if let Some(job) = tracker.get_mut(&job_id) {
+                job.state = PrinterJobState::COMPLETED;
+                job.completed_at = Some(SystemTime::now());
+            }
+        }
+
+        let job = PrinterCore::get_job_status(job_id).unwrap();
+        assert_eq!(job.state, PrinterJobState::COMPLETED);
+        assert!(job.processed_at.is_some());
+        assert!(job.completed_at.is_some());
+
+        // Cleanup
+        PrinterCore::cleanup_old_jobs(0);
+    }
+
+    #[test]
+    #[serial]
+    fn test_job_options_creation_and_parsing() {
+        // Test none()
+        let none_options = PrinterJobOptions::none();
+        assert!(none_options.name.is_none());
+        assert!(none_options.raw_properties.is_empty());
+
+        // Test from_map with job-name
+        let mut properties = HashMap::new();
+        properties.insert("job-name".to_string(), "Test Job".to_string());
+        properties.insert("copies".to_string(), "2".to_string());
+
+        let options = PrinterJobOptions::from_map(properties);
+        assert_eq!(options.name, Some("Test Job".to_string()));
+        assert_eq!(options.raw_properties.get("copies"), Some(&"2".to_string()));
+        assert!(!options.raw_properties.contains_key("job-name")); // Should be extracted
+
+        // Test from_map without job-name
+        let mut properties = HashMap::new();
+        properties.insert("copies".to_string(), "3".to_string());
+
+        let options = PrinterJobOptions::from_map(properties);
+        assert!(options.name.is_none());
+        assert_eq!(options.raw_properties.get("copies"), Some(&"3".to_string()));
+
+        // Test with_name_and_properties
+        let mut properties = HashMap::new();
+        properties.insert("quality".to_string(), "high".to_string());
+
+        let options =
+            PrinterJobOptions::with_name_and_properties("Named Job".to_string(), properties);
+        assert_eq!(options.name, Some("Named Job".to_string()));
+        assert_eq!(
+            options.raw_properties.get("quality"),
+            Some(&"high".to_string())
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_json_status_creation() {
+        let job = PrinterJob {
+            id: 1234,
+            name: "Test Job".to_string(),
+            state: PrinterJobState::COMPLETED,
+            media_type: "application/pdf".to_string(),
+            created_at: SystemTime::now() - Duration::from_secs(10),
+            processed_at: Some(SystemTime::now() - Duration::from_secs(8)),
+            completed_at: Some(SystemTime::now() - Duration::from_secs(5)),
+            printer_name: "Test Printer".to_string(),
+            error_message: Some("Test error".to_string()),
+        };
+
+        let json_str = create_status_json(1234, &job).unwrap();
+        let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+        assert_eq!(json_value["id"], 1234);
+        assert_eq!(json_value["name"], "Test Job");
+        assert_eq!(json_value["state"], "completed");
+        assert_eq!(json_value["media_type"], "application/pdf");
+        assert_eq!(json_value["printer_name"], "Test Printer");
+        assert_eq!(json_value["error_message"], "Test error");
+        assert!(json_value["created_at"].is_number());
+        assert!(json_value["processed_at"].is_number());
+        assert!(json_value["completed_at"].is_number());
+        assert!(json_value["age_seconds"].is_number());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -800,5 +1144,210 @@ mod tests {
         assert_eq!(PrintError::PrinterNotFound.as_i32(), 6);
         assert_eq!(PrintError::FileNotFound.as_i32(), 7);
         assert_eq!(PrintError::SimulatedFailure.as_i32(), 8);
+    }
+
+    #[test]
+    fn test_media_type_detection() {
+        assert_eq!(detect_media_type("document.pdf"), "application/pdf");
+        assert_eq!(detect_media_type("script.ps"), "application/postscript");
+        assert_eq!(detect_media_type("image.jpg"), "image/jpeg");
+        assert_eq!(detect_media_type("image.jpeg"), "image/jpeg");
+        assert_eq!(detect_media_type("image.png"), "image/png");
+        assert_eq!(detect_media_type("image.gif"), "image/gif");
+        assert_eq!(detect_media_type("file.txt"), "text/plain");
+        assert_eq!(detect_media_type("file.text"), "text/plain");
+        assert_eq!(detect_media_type("unknown.xyz"), "application/octet-stream");
+        assert_eq!(
+            detect_media_type("no_extension"),
+            "application/octet-stream"
+        );
+        assert_eq!(
+            detect_media_type("<bytes:1024 bytes>"),
+            "application/vnd.cups-raw"
+        );
+    }
+
+    #[test]
+    fn test_printer_job_state_conversions() {
+        assert_eq!(PrinterJobState::PENDING.as_string(), "pending");
+        assert_eq!(PrinterJobState::PAUSED.as_string(), "paused");
+        assert_eq!(PrinterJobState::PROCESSING.as_string(), "processing");
+        assert_eq!(PrinterJobState::CANCELLED.as_string(), "cancelled");
+        assert_eq!(PrinterJobState::COMPLETED.as_string(), "completed");
+        assert_eq!(PrinterJobState::UNKNOWN.as_string(), "unknown");
+    }
+
+    #[test]
+    #[serial]
+    fn test_cleanup_functionality() {
+        env::set_var("PRINTERS_JS_SIMULATE", "true");
+
+        // Clear any existing jobs
+        PrinterCore::cleanup_old_jobs(0);
+
+        let printer = PrinterCore::find_printer_by_name("Simulated Printer").unwrap();
+
+        // Create old completed jobs (older than 10 seconds)
+        for i in 0..5 {
+            let job_id = generate_job_id();
+            let job = PrinterJob {
+                id: job_id,
+                name: format!("Old Job {}", i),
+                state: PrinterJobState::COMPLETED,
+                media_type: "application/pdf".to_string(),
+                created_at: SystemTime::now() - Duration::from_secs(20 + i), // Old jobs
+                processed_at: Some(SystemTime::now() - Duration::from_secs(15 + i)),
+                completed_at: Some(SystemTime::now() - Duration::from_secs(12 + i)),
+                printer_name: printer.name.clone(),
+                error_message: None,
+            };
+
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            tracker.insert(job_id, job);
+        }
+
+        // Create recent completed jobs (younger than 10 seconds)
+        for i in 0..3 {
+            let job_id = generate_job_id();
+            let job = PrinterJob {
+                id: job_id,
+                name: format!("Recent Job {}", i),
+                state: PrinterJobState::COMPLETED,
+                media_type: "application/pdf".to_string(),
+                created_at: SystemTime::now() - Duration::from_secs(i), // Recent jobs
+                processed_at: Some(SystemTime::now() - Duration::from_secs(i)),
+                completed_at: Some(SystemTime::now() - Duration::from_secs(i)),
+                printer_name: printer.name.clone(),
+                error_message: None,
+            };
+
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            tracker.insert(job_id, job);
+        }
+
+        // Create active jobs (should not be cleaned up regardless of age)
+        for i in 0..2 {
+            let job_id = generate_job_id();
+            let job = PrinterJob {
+                id: job_id,
+                name: format!("Active Job {}", i),
+                state: PrinterJobState::PENDING,
+                media_type: "application/pdf".to_string(),
+                created_at: SystemTime::now() - Duration::from_secs(30 + i), // Very old but active
+                processed_at: None,
+                completed_at: None,
+                printer_name: printer.name.clone(),
+                error_message: None,
+            };
+
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            tracker.insert(job_id, job);
+        }
+
+        // Test global cleanup (should remove 5 old completed jobs)
+        let removed_count = PrinterCore::cleanup_old_jobs(10);
+        assert_eq!(removed_count, 5);
+
+        // Verify remaining jobs
+        let all_jobs = printer.get_all_jobs();
+        assert_eq!(all_jobs.len(), 5); // 3 recent completed + 2 active
+
+        // Test printer-specific cleanup
+        let printer_removed_count = printer.cleanup_old_jobs(5);
+        assert_eq!(printer_removed_count, 0); // No more old jobs to clean up
+
+        // Create more old jobs and test printer-specific cleanup
+        for i in 0..3 {
+            let job_id = generate_job_id();
+            let job = PrinterJob {
+                id: job_id,
+                name: format!("Very Old Job {}", i),
+                state: PrinterJobState::COMPLETED,
+                media_type: "application/pdf".to_string(),
+                created_at: SystemTime::now() - Duration::from_secs(30 + i),
+                processed_at: Some(SystemTime::now() - Duration::from_secs(25 + i)),
+                completed_at: Some(SystemTime::now() - Duration::from_secs(22 + i)),
+                printer_name: printer.name.clone(),
+                error_message: None,
+            };
+
+            let mut tracker = JOB_TRACKER.lock().unwrap();
+            tracker.insert(job_id, job);
+        }
+
+        let printer_removed_count = printer.cleanup_old_jobs(10);
+        assert_eq!(printer_removed_count, 3);
+
+        // Final cleanup
+        PrinterCore::cleanup_old_jobs(0);
+    }
+
+    #[test]
+    #[serial]
+    fn test_job_options_creation() {
+        // Test none()
+        let none_options = PrinterJobOptions::none();
+        assert!(none_options.name.is_none());
+        assert!(none_options.raw_properties.is_empty());
+
+        // Test from_map with job-name
+        let mut properties = HashMap::new();
+        properties.insert("job-name".to_string(), "Test Job".to_string());
+        properties.insert("copies".to_string(), "2".to_string());
+
+        let options = PrinterJobOptions::from_map(properties);
+        assert_eq!(options.name, Some("Test Job".to_string()));
+        assert_eq!(options.raw_properties.get("copies"), Some(&"2".to_string()));
+        assert!(!options.raw_properties.contains_key("job-name")); // Should be extracted
+
+        // Test from_map without job-name
+        let mut properties = HashMap::new();
+        properties.insert("copies".to_string(), "3".to_string());
+
+        let options = PrinterJobOptions::from_map(properties);
+        assert!(options.name.is_none());
+        assert_eq!(options.raw_properties.get("copies"), Some(&"3".to_string()));
+
+        // Test with_name_and_properties
+        let mut properties = HashMap::new();
+        properties.insert("quality".to_string(), "high".to_string());
+
+        let options =
+            PrinterJobOptions::with_name_and_properties("Named Job".to_string(), properties);
+        assert_eq!(options.name, Some("Named Job".to_string()));
+        assert_eq!(
+            options.raw_properties.get("quality"),
+            Some(&"high".to_string())
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_create_status_json() {
+        let job = PrinterJob {
+            id: 1234,
+            name: "Test Job".to_string(),
+            state: PrinterJobState::COMPLETED,
+            media_type: "application/pdf".to_string(),
+            created_at: SystemTime::now() - Duration::from_secs(10),
+            processed_at: Some(SystemTime::now() - Duration::from_secs(8)),
+            completed_at: Some(SystemTime::now() - Duration::from_secs(5)),
+            printer_name: "Test Printer".to_string(),
+            error_message: Some("Test error".to_string()),
+        };
+
+        let json_str = create_status_json(1234, &job).unwrap();
+        let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+
+        assert_eq!(json_value["id"], 1234);
+        assert_eq!(json_value["name"], "Test Job");
+        assert_eq!(json_value["state"], "completed");
+        assert_eq!(json_value["media_type"], "application/pdf");
+        assert_eq!(json_value["printer_name"], "Test Printer");
+        assert_eq!(json_value["error_message"], "Test error");
+        assert!(json_value["created_at"].is_number());
+        assert!(json_value["processed_at"].is_number());
+        assert!(json_value["completed_at"].is_number());
+        assert!(json_value["age_seconds"].is_number());
     }
 }
