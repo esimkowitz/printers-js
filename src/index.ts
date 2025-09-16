@@ -336,6 +336,13 @@ export interface Printer {
     data: Uint8Array | Buffer,
     options?: PrintJobOptions | Record<string, string>
   ): Promise<number>;
+
+  // Job tracking methods
+  getActiveJobs(): PrinterJob[];
+  getJobHistory(limit?: number): PrinterJob[];
+  getJob(jobId: number): PrinterJob | null;
+  getAllJobs(): PrinterJob[];
+  cleanupOldJobs(maxAgeSeconds: number): number;
 }
 
 export interface PrinterClass {
@@ -435,8 +442,6 @@ interface NativeModule {
   getAllPrinters(): NativePrinter[];
   findPrinterByName(name: string): NativePrinter | null;
   printerExists(name: string): boolean;
-  getJobStatus(jobId: number): JobStatus | null;
-  cleanupOldJobs(maxAgeSeconds: number): number;
   shutdown(): void;
   printFile(
     printerName: string,
@@ -465,7 +470,7 @@ interface NativeModule {
  * Convert SimplePrintOptions to CUPS raw properties
  */
 export function simpleToCUPS(
-  options: SimplePrintOptions
+  options: Partial<SimplePrintOptions>
 ): Record<string, string> {
   const cupsOptions: Record<string, string> = {};
 
@@ -512,7 +517,9 @@ export function simpleToCUPS(
 /**
  * Convert CUPSOptions to raw properties for backend
  */
-export function cupsToRaw(options: CUPSOptions): Record<string, string> {
+export function cupsToRaw(
+  options: Partial<CUPSOptions>
+): Record<string, string> {
   const rawOptions: Record<string, string> = {};
 
   // Convert all options to string values
@@ -558,9 +565,9 @@ export interface PrintJobOptions {
   /** Raw CUPS properties (key-value pairs) */
   raw?: Record<string, string>;
   /** Simple typed options for common use cases */
-  simple?: SimplePrintOptions;
+  simple?: Partial<SimplePrintOptions>;
   /** Full CUPS options with complete type safety */
-  cups?: CUPSOptions;
+  cups?: Partial<CUPSOptions>;
 }
 
 /**
@@ -1152,37 +1159,6 @@ export function printerExists(name: string): boolean {
   } catch (error) {
     console.error(`Failed to check if printer ${name} exists:`, error);
     return false;
-  }
-}
-
-/**
- * Get status of a print job.
- * @param jobId - ID of the print job
- * @returns JobStatus object if found, null otherwise
- */
-export function getJobStatus(jobId: number): JobStatus | null {
-  try {
-    return nativeModule.getJobStatus ? nativeModule.getJobStatus(jobId) : null;
-  } catch (error) {
-    console.error(`Failed to get job status for ${jobId}:`, error);
-    return null;
-  }
-}
-
-/**
- * Remove old print jobs from tracking.
- * @param maxAgeMs - Maximum age in milliseconds (default: 30000)
- * @returns Number of jobs removed
- */
-export function cleanupOldJobs(maxAgeMs: number = 30000): number {
-  try {
-    const maxAgeSeconds = Math.floor(maxAgeMs / 1000);
-    return nativeModule.cleanupOldJobs
-      ? nativeModule.cleanupOldJobs(maxAgeSeconds)
-      : 0;
-  } catch (error) {
-    console.error("Failed to cleanup old jobs:", error);
-    return 0;
   }
 }
 

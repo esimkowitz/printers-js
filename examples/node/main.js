@@ -5,11 +5,9 @@
  */
 
 import {
-  cleanupOldJobs,
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
-  getPrinterJob,
   isSimulationMode,
   runtimeInfo,
 } from "@printers/printers";
@@ -120,8 +118,12 @@ async function main() {
 
     // Feature 7: Job Cleanup
     console.log("\n🧹 Cleanup:");
-    const cleaned = cleanupOldJobs(3600); // 1 hour
-    console.log(`   Cleaned up ${cleaned} old print job(s)`);
+    if (printers.length > 0) {
+      const cleaned = printers[0].cleanupOldJobs(3600); // 1 hour
+      console.log(
+        `   Cleaned up ${cleaned} old print job(s) for ${printers[0].name}`
+      );
+    }
 
     // Feature 8: Printer Comparison
     if (printers.length >= 2) {

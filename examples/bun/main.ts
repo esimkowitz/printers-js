@@ -5,16 +5,15 @@
  */
 
 import {
-  cleanupOldJobs,
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
-  getPrinterJob,
   isSimulationMode,
   runtimeInfo,
   shutdown,
   type PrinterJob,
 } from "@printers/printers";
+import { CUPSOptions } from "../../src";
 
 async function main() {
   console.log("🥟 Bun Printers Example");
@@ -61,10 +60,12 @@ async function main() {
         // Submit multiple print jobs with different options
         console.log("📄 Submitting print jobs...");
 
-        const jobId1 = await printer.printFile("document.pdf", {
-          "job-name": "PDF Document",
-          copies: "2",
-          "paper-size": "A4",
+        const jobId1 = await printer.printFile("../sample-image.png", {
+          cups: {
+            "job-name": "PDF Document",
+            copies: "2",
+            "paper-size": "Letter",
+          },
         });
 
         const jobId2 = await printer.printBytes(
@@ -125,8 +126,12 @@ async function main() {
 
     // Feature 7: Job Cleanup
     console.log("\n🧹 Cleanup:");
-    const cleaned = cleanupOldJobs(3600); // 1 hour
-    console.log(`   Cleaned up ${cleaned} old print job(s)`);
+    if (printers.length > 0) {
+      const cleaned = printers[0].cleanupOldJobs(3600); // 1 hour
+      console.log(
+        `   Cleaned up ${cleaned} old print job(s) for ${printers[0].name}`
+      );
+    }
 
     // Feature 8: Printer Comparison
     if (printers.length >= 2) {
