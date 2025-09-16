@@ -479,7 +479,7 @@ pub fn printer_get_all_jobs(printer_name: String) -> Vec<PrinterJob> {
 
 /// Clean up old jobs for a specific printer (for printer object methods)
 #[napi]
-pub fn printer_cleanup_old_jobs(printer_name: String, max_age_seconds: u32) -> u32 {
+pub fn printer_cleanup_old_jobs(_printer_name: String, max_age_seconds: u32) -> u32 {
     // For now, just call the global cleanup and filter by printer
     // TODO: Implement printer-specific cleanup in core
     PrinterCore::cleanup_old_jobs(max_age_seconds as u64)

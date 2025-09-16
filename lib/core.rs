@@ -509,7 +509,7 @@ impl PrinterCore {
     fn execute_real_print_job(
         printer_name: &str,
         file_path: &str,
-        job_options: &HashMap<String, String>,
+        _job_options: &HashMap<String, String>,
     ) -> Result<(), String> {
         // Find the printer
         let printer = get_printer_by_name(printer_name)
