@@ -9,7 +9,7 @@ import {
   getAllPrinterNames,
   getAllPrinters,
   getPrinterByName,
-  getPrinterJob,
+  getDefaultPrinter,
   isSimulationMode,
   runtimeInfo,
   shutdown,
@@ -53,9 +53,13 @@ async function main() {
     }
 
     // Feature 3: Job Tracking & Management
-    if (printers.length > 0) {
-      const printer = printers[0];
-      console.log(`\n🎯 Job Tracking Demo with: ${printer.name}`);
+    const defaultPrinter = getDefaultPrinter();
+    const printer = defaultPrinter || printers[0];
+
+    if (printer) {
+      console.log(
+        `\n🎯 Job Tracking Demo with: ${printer.name}${defaultPrinter ? " (default)" : " (first available)"}`
+      );
 
       try {
         // Submit multiple print jobs with different options
