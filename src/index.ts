@@ -446,12 +446,14 @@ interface NativeModule {
   printFile(
     printerName: string,
     filePath: string,
-    jobProperties?: Record<string, string>
+    jobProperties?: Record<string, string>,
+    waitForCompletion?: boolean
   ): Promise<number>;
   printBytes(
     printerName: string,
     data: Uint8Array | Buffer,
-    jobProperties?: Record<string, string>
+    jobProperties?: Record<string, string>,
+    waitForCompletion?: boolean
   ): Promise<number>;
   // Printer-specific job tracking methods
   printerGetActiveJobs?(printerName: string): PrinterJob[];
