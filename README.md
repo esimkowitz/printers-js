@@ -124,7 +124,7 @@ const customSize = createCustomPageSize(4, 6, "in");
 
 ### Additional Exports
 
-#### Legacy/Convenience Functions
+#### Convenience Functions
 
 - `findPrinter(name: string): Printer | null` - Alias for `getPrinterByName`
 - `getDefaultPrinter(): Printer | null` - Returns the default system printer
