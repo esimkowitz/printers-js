@@ -89,127 +89,37 @@ try {
 ### Main Functions
 
 #### `getAllPrinters(): Printer[]`
-
-Returns an array of all available system printers with complete metadata.
-
-```typescript
-import { getAllPrinters } from "@printers/printers";
-
-const printers = getAllPrinters();
-for (const printer of printers) {
-  console.log(`${printer.name} - ${printer.state}`);
-}
-```
+Returns an array of all available system printers.
 
 #### `getAllPrinterNames(): string[]`
-
-Returns an array of printer names for quick enumeration.
-
-```typescript
-import { getAllPrinterNames } from "@printers/printers";
-
-const names = getAllPrinterNames();
-console.log("Available printers:", names.join(", "));
-```
+Returns an array of printer names.
 
 #### `getPrinterByName(name: string): Printer | null`
-
-Find a printer by its exact name, returns null if not found.
-
-```typescript
-import { getPrinterByName } from "@printers/printers";
-
-const printer = getPrinterByName("My Printer");
-if (printer) {
-  console.log("Found printer:", printer.name);
-}
-```
+Find a printer by its exact name.
 
 #### `printerExists(name: string): boolean`
-
-Check if a printer exists on the system without creating a Printer instance.
-
-```typescript
-import { printerExists } from "@printers/printers";
-
-if (printerExists("HP LaserJet")) {
-  console.log("Printer is available");
-}
-```
+Check if a printer exists on the system.
 
 #### `shutdown(): void`
-
 Clean up resources and shutdown the printer module. Called automatically on process exit.
-
-```typescript
-import { shutdown } from "@printers/printers";
-
-// Manually cleanup before exit
-shutdown();
-```
 
 ### Option Conversion Functions
 
 #### `simpleToCUPS(options: Partial<SimplePrintOptions>): Record<string, string>`
-
 Convert user-friendly simple options to CUPS format.
 
-```typescript
-import { simpleToCUPS } from "@printers/printers";
-
-const cupsOptions = simpleToCUPS({
-  copies: 3,
-  duplex: true,
-  quality: "high",
-  color: false
-});
-// Result: { copies: "3", sides: "two-sided-long-edge", "print-quality": "5", "print-color-mode": "monochrome" }
-```
-
 #### `cupsToRaw(options: Partial<CUPSOptions>): Record<string, string>`
-
 Convert CUPS options to raw string properties for the backend.
 
-```typescript
-import { cupsToRaw } from "@printers/printers";
-
-const rawOptions = cupsToRaw({
-  "job-name": "My Document",
-  "print-quality": 5,
-  copies: 2
-});
-// Result: { "job-name": "My Document", "print-quality": "5", "copies": "2" }
-```
-
 #### `printJobOptionsToRaw(options?: PrintJobOptions): Record<string, string>`
-
 Convert unified PrintJobOptions to raw properties with proper precedence handling.
 
-```typescript
-import { printJobOptionsToRaw } from "@printers/printers";
-
-const rawOptions = printJobOptionsToRaw({
-  jobName: "Final Name",
-  simple: { copies: 2, quality: "high" },
-  cups: { "job-priority": 75 }
-});
-// Handles precedence: jobName > cups > simple > raw
-```
-
 #### `createCustomPageSize(width: number, length: number, unit?: CustomPageSizeUnit): string`
-
 Generate a custom page size string for CUPS media option.
 
 ```typescript
-import { createCustomPageSize } from "@printers/printers";
-
 const customSize = createCustomPageSize(4, 6, "in");
 // Returns: "Custom.4x6in"
-
-// Use in print options
-await printer.printFile("photo.jpg", {
-  cups: { media: createCustomPageSize(4, 6, "in") }
-});
 ```
 
 ### Additional Exports
@@ -221,42 +131,11 @@ await printer.printFile("photo.jpg", {
 - `printFile(printerName: string, filePath: string, options?: PrintJobOptions | Record<string, string>): Promise<number>` - Print a file to a specific printer
 - `printBytes(printerName: string, data: Uint8Array | Buffer, options?: PrintJobOptions | Record<string, string>): Promise<number>` - Print raw bytes to a specific printer
 
-```typescript
-import { getDefaultPrinter, printFile } from "@printers/printers";
-
-// Get default printer
-const defaultPrinter = getDefaultPrinter();
-console.log("Default printer:", defaultPrinter?.name);
-
-// Direct print file function
-const jobId = await printFile("My Printer", "document.pdf", {
-  simple: { copies: 2, duplex: true }
-});
-```
-
 #### Constants
 
 - `isSimulationMode: boolean` - Whether simulation mode is active (read-only)
 - `runtimeInfo: RuntimeInfo` - Information about the current runtime environment
 - `PrinterConstructor: PrinterClass` - Class with static factory method for creating printer instances
-
-```typescript
-import { isSimulationMode, runtimeInfo, PrinterConstructor } from "@printers/printers";
-
-// Check simulation mode
-console.log("Simulation mode:", isSimulationMode);
-
-// Runtime information
-console.log(`Running on ${runtimeInfo.name} v${runtimeInfo.version}`);
-console.log("Runtime flags:", { 
-  isDeno: runtimeInfo.isDeno,
-  isNode: runtimeInfo.isNode,
-  isBun: runtimeInfo.isBun 
-});
-
-// Create printer using constructor
-const printer = PrinterConstructor.fromName("My Printer");
-```
 
 ### Classes
 
@@ -366,83 +245,38 @@ interface SimplePrintOptions {
 
 ### CUPSOptions
 
-Comprehensive CUPS printing options interface for advanced configurations. Based on [CUPS documentation](https://www.cups.org/doc/options.html).
+Direct CUPS option control for advanced configurations. Based on [CUPS documentation](https://www.cups.org/doc/options.html).
 
 ```typescript
 interface CUPSOptions {
-  // Job identification and control
+  // Job control
   "job-name"?: string;
   "job-priority"?: number; // 1-100
   "job-hold-until"?: JobHoldUntil;
-  "job-billing"?: string;
-  "job-sheets"?: string; // Banner pages
-
-  // Copies and collation
   copies?: number;
   collate?: boolean;
 
   // Media selection
-  media?: string; // Can be size, type, or source
+  media?: string;
   "media-size"?: MediaSize;
   "media-type"?: MediaType;
   "media-source"?: MediaSource;
 
-  // Page orientation and layout
+  // Layout and orientation
   landscape?: boolean;
   "orientation-requested"?: OrientationRequested;
-
-  // Duplex printing
   sides?: Sides;
-
-  // Page selection and arrangement
   "page-ranges"?: string; // e.g., "1-4,7,9-12"
   "number-up"?: NumberUp;
-  "number-up-layout"?: NumberUpLayout;
-  "page-border"?: PageBorder;
 
-  // Print quality and appearance
+  // Quality and appearance
   "print-quality"?: PrintQuality;
   "print-color-mode"?: ColorMode;
-  resolution?: string; // e.g., "300dpi", "600x300dpi"
+  resolution?: string;
 
-  // Output control
-  "output-order"?: OutputOrder;
-  outputbin?: string;
-
-  // Image and document options
-  "fit-to-page"?: boolean;
-  mirror?: boolean;
-  "natural-scaling"?: number; // Percentage
-  scaling?: number; // Percentage
-
-  // Document format
-  "document-format"?: DocumentFormat;
-
-  // Finishing options
-  finishings?: string; // Stapling, hole punching, etc.
-
-  // Color management
-  gamma?: number;
-  brightness?: number;
-
-  // Custom options (catch-all for printer-specific options)
+  // Custom options
   [key: string]: string | number | boolean | undefined;
 }
-```
-
-**Example usage:**
-```typescript
-const jobId = await printer.printFile("document.pdf", {
-  cups: {
-    "job-name": "Important Document",
-    "job-priority": 75,
-    "print-quality": 5, // High quality
-    "media-size": "A4",
-    sides: "two-sided-long-edge",
-    "page-ranges": "1-10,15,20-25",
-    collate: true
-  }
-});
 ```
 
 ### waitForCompletion Parameter
@@ -490,7 +324,6 @@ await printer.printFile("document.pdf", {
 #### Core Enums
 
 ##### `PrintError`
-
 ```typescript
 enum PrintError {
   InvalidParams = 1,
@@ -506,88 +339,29 @@ enum PrintError {
 
 #### CUPS Printing Option Types
 
-##### `MediaSize`
+The library exports comprehensive type definitions for CUPS printing options:
 
-Supported paper sizes including standard formats:
+**Media and Layout Types:**
+- `MediaSize` - Paper sizes: "Letter", "A4", "Legal", "A3", etc.
+- `MediaType` - Paper types: "plain", "bond", "letterhead", "transparency", etc.
+- `MediaSource` - Paper sources: "auto", "tray-1", "manual", etc.
+- `OrientationRequested` - Orientation values (3-6)
+- `Sides` - Duplex options: "one-sided", "two-sided-long-edge", "two-sided-short-edge"
 
-```typescript
-type MediaSize = 
-  | "Letter" | "Legal" | "A4" | "A3" | "A5" | "B4" | "B5" 
-  | "Executive" | "Tabloid" | "COM10" | "DL" | "C5" 
-  | "B5-envelope" | "Monarch" | "Invoice" | "Folio" 
-  | "QuartoUs" | "a0" | "a1" | "a2" 
-  | string; // Allow custom sizes
-```
+**Quality and Layout:**
+- `PrintQuality` - Quality levels (3-5)
+- `NumberUp` - Pages per sheet: 1, 2, 4, 6, 9, 16
+- `NumberUpLayout` - Layout patterns: "lrtb", "lrbt", etc.
+- `ColorMode` - Color options: "monochrome", "color", "auto"
 
-##### `MediaType`
-
-Paper/media types for print jobs:
-
-```typescript
-type MediaType = 
-  | "auto" | "plain" | "bond" | "letterhead" | "transparency" 
-  | "envelope" | "envelope-manual" | "continuous" | "continuous-long" 
-  | "continuous-short" | "tab-stock" | "pre-printed" | "labels" 
-  | "multi-layer" | "screen" | "stationery" | "stationery-coated" 
-  | "stationery-inkjet" | "stationery-preprinted" | "stationery-letterhead" 
-  | "stationery-fine" | "multi-part-form" | "other" 
-  | string; // Allow custom types
-```
-
-##### `MediaSource`
-
-Paper tray/source selection:
-
-```typescript
-type MediaSource = 
-  | "auto" | "main" | "alternate" | "large-capacity" | "manual" 
-  | "envelope" | "envelope-manual" | "auto-select" 
-  | "tray-1" | "tray-2" | "tray-3" | "tray-4" 
-  | "left" | "middle" | "right" | "rear" | "side" 
-  | "top" | "bottom" | "center" | "photo" | "disc" 
-  | string; // Allow custom sources
-```
-
-##### Other CUPS Types
-
-```typescript
-type OrientationRequested = 3 | 4 | 5 | 6; // Portrait, Landscape, Reverse landscape, Reverse portrait
-type PrintQuality = 3 | 4 | 5; // Draft, Normal, High
-type Sides = "one-sided" | "two-sided-long-edge" | "two-sided-short-edge";
-type NumberUp = 1 | 2 | 4 | 6 | 9 | 16; // Pages per sheet
-type NumberUpLayout = "lrtb" | "lrbt" | "rltb" | "rlbt" | "tblr" | "tbrl" | "btlr" | "btrl";
-type PageBorder = "none" | "single" | "single-thick" | "double" | "double-thick";
-type OutputOrder = "normal" | "reverse";
-type JobHoldUntil = "no-hold" | "indefinite" | "day-time" | "evening" | "night" | "second-shift" | "third-shift" | "weekend" | string;
-type ColorMode = "monochrome" | "color" | "auto";
-type DocumentFormat = "application/pdf" | "application/postscript" | "application/vnd.cups-raw" | "text/plain" | "image/jpeg" | "image/png" | "image/gif" | "application/vnd.cups-raster" | "image/urf" | string;
-type CustomPageSizeUnit = "pt" | "in" | "cm" | "mm";
-```
-
-#### Job and Printer State Types
-
-##### `PrinterJobState`
-
-```typescript
-type PrinterJobState = 
-  | "pending"    // Job queued, waiting to be processed
-  | "paused"     // Job temporarily halted
-  | "processing" // Job currently being printed
-  | "cancelled"  // Job cancelled by user or system
-  | "completed"  // Job finished successfully
-  | "unknown";   // Undetermined state
-```
-
-##### `PrinterState`
-
-```typescript
-type PrinterState = "idle" | "processing" | "stopped" | "unknown";
-```
+**Other Types:**
+- `PageBorder`, `OutputOrder`, `JobHoldUntil`, `DocumentFormat`, `CustomPageSizeUnit`
+- `PrinterJobState` - Job states: "pending", "processing", "completed", etc.
+- `PrinterState` - Printer states: "idle", "processing", "stopped", "unknown"
 
 #### Main Interfaces
 
-#### `PrinterJob`
-
+##### `PrinterJob`
 ```typescript
 interface PrinterJob {
   id: number;
@@ -603,8 +377,7 @@ interface PrinterJob {
 }
 ```
 
-#### `JobStatus` (Legacy)
-
+##### `JobStatus` (Legacy)
 ```typescript
 interface JobStatus {
   id: number;
@@ -616,8 +389,7 @@ interface JobStatus {
 }
 ```
 
-#### `RuntimeInfo`
-
+##### `RuntimeInfo`
 ```typescript
 interface RuntimeInfo {
   name: "deno" | "node" | "bun" | "unknown";
@@ -835,110 +607,6 @@ console.log(`Ready printers: ${readyPrinters.map(p => p.name).join(", ")}`);
 // Find network printers
 const networkPrinters = printers.filter(p => p.isShared);
 console.log(`Network printers: ${networkPrinters.map(p => p.name).join(", ")}`);
-```
-
-### Advanced Type Usage and Error Handling
-
-```typescript
-import { 
-  getAllPrinters, 
-  PrintError, 
-  createCustomPageSize,
-  isSimulationMode,
-  runtimeInfo,
-  type PrinterJobState,
-  type MediaSize 
-} from "@printers/printers";
-
-// Runtime and simulation detection
-console.log(`Runtime: ${runtimeInfo.name} v${runtimeInfo.version}`);
-console.log(`Simulation mode: ${isSimulationMode}`);
-
-// Type-safe printer operations
-const printers = getAllPrinters();
-const printer = printers[0];
-
-if (printer) {
-  try {
-    // Using custom page sizes with type safety
-    const customPhoto = createCustomPageSize(4, 6, "in");
-    
-    // Advanced CUPS options with full type coverage
-    const jobId = await printer.printFile("photo.jpg", {
-      cups: {
-        "job-name": "Custom Photo Print",
-        "media": customPhoto,
-        "print-quality": 5, // High quality
-        "orientation-requested": 4, // Landscape
-        "print-color-mode": "color",
-        "fit-to-page": true
-      },
-      waitForCompletion: true
-    });
-
-    // Type-safe job monitoring
-    const job = printer.getJob(jobId);
-    if (job) {
-      console.log(`Job ${job.id}: ${job.name}`);
-      console.log(`State: ${job.state}`); // PrinterJobState type
-      console.log(`Media: ${job.mediaType}`);
-      
-      // Monitor job state changes
-      const checkJobState = (state: PrinterJobState): string => {
-        switch (state) {
-          case "pending": return "Waiting in queue";
-          case "processing": return "Currently printing";
-          case "completed": return "Print successful";
-          case "cancelled": return "Print cancelled";
-          case "paused": return "Print paused";
-          case "unknown": return "Status unknown";
-        }
-      };
-      
-      console.log(`Status: ${checkJobState(job.state)}`);
-    }
-
-  } catch (error) {
-    // Handle specific print errors
-    if (error instanceof Error) {
-      console.error("Print operation failed:", error.message);
-      
-      // You can also check for specific error codes if the backend provides them
-      // This demonstrates the PrintError enum usage
-      console.log("Available error types:", {
-        InvalidParams: PrintError.InvalidParams,
-        PrinterNotFound: PrintError.PrinterNotFound,
-        FileNotFound: PrintError.FileNotFound,
-        SimulatedFailure: PrintError.SimulatedFailure
-      });
-    }
-  }
-}
-
-// Demonstrate type-safe media size selection
-const supportedSizes: MediaSize[] = ["A4", "Letter", "Legal", "A3"];
-const selectedSize = supportedSizes[0]; // Type-safe selection
-
-console.log(`Using paper size: ${selectedSize}`);
-```
-
-### Runtime-Specific Usage Patterns
-
-```typescript
-import { runtimeInfo, getAllPrinters } from "@printers/printers";
-
-// Adapt behavior based on runtime
-if (runtimeInfo.isDeno) {
-  console.log("Running on Deno - ensure --allow-ffi flag is set");
-} else if (runtimeInfo.isNode) {
-  console.log("Running on Node.js - standard npm installation");
-} else if (runtimeInfo.isBun) {
-  console.log("Running on Bun - optimized for fast execution");
-}
-
-// Cross-runtime printer enumeration
-const printers = getAllPrinters();
-console.log(`Found ${printers.length} printers on ${runtimeInfo.name}`);
 ```
 
 ## Platform Support
