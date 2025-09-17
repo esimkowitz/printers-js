@@ -307,7 +307,72 @@ export interface JobStatus {
   age_seconds: number;
 }
 
-export type PrinterState = "idle" | "processing" | "stopped" | "unknown";
+export type PrinterState =
+  | "idle"
+  | "printing"
+  | "paused"
+  | "offline"
+  | "unknown";
+
+// ===== PRINTER STATE MONITORING INTERFACES =====
+
+/** Printer state change event types */
+export type PrinterStateEventType =
+  | "connected" // Printer connected/appeared
+  | "disconnected" // Printer disconnected/removed
+  | "state_changed" // Printer state changed (idle -> printing, etc.)
+  | "state_reasons_changed"; // Printer state reasons changed (error conditions, etc.)
+
+/** Printer state change event */
+export interface PrinterStateChangeEvent {
+  /** Type of event that occurred */
+  eventType: PrinterStateEventType;
+  /** Name of the printer that changed */
+  printerName: string;
+  /** Previous state (for state_changed events) */
+  oldState?: string;
+  /** New state (for state_changed events) */
+  newState?: string;
+  /** Previous state reasons (for state_reasons_changed events) */
+  oldReasons?: string[];
+  /** New state reasons (for state_reasons_changed events) */
+  newReasons?: string[];
+  /** Timestamp when the event occurred */
+  timestamp: number;
+}
+
+/** Callback function for printer state change events */
+export type PrinterStateChangeCallback = (
+  event: PrinterStateChangeEvent
+) => void;
+
+/** Subscription handle for unsubscribing from events */
+export interface PrinterStateSubscription {
+  /** Unique subscription ID */
+  id: number;
+  /** Unsubscribe from events */
+  unsubscribe(): Promise<boolean>;
+}
+
+/** Current printer state snapshot */
+export interface PrinterStateSnapshot {
+  /** Printer name */
+  name: string;
+  /** Current state */
+  state: string;
+  /** Current state reasons */
+  stateReasons: string[];
+  /** Timestamp of this snapshot */
+  timestamp: number;
+}
+
+/** Printer state monitoring configuration */
+export interface PrinterStateMonitorConfig {
+  /** Polling interval in seconds (default: 2) */
+  pollInterval?: number;
+  /** Whether to start monitoring immediately (default: true) */
+  autoStart?: boolean;
+}
 
 export interface Printer {
   name: string;
@@ -461,6 +526,12 @@ interface NativeModule {
   printerGetJob?(printerName: string, jobId: number): PrinterJob | null;
   printerGetAllJobs?(printerName: string): PrinterJob[];
   printerCleanupOldJobs?(printerName: string, maxAgeSeconds: number): number;
+  // Printer state monitoring methods
+  startStateMonitoring?(): void;
+  stopStateMonitoring?(): void;
+  isStateMonitoringActive?(): boolean;
+  setStateMonitoringInterval?(seconds: number): void;
+  getPrinterStateSnapshot?(): Record<string, [string, string[]]>;
   Printer: {
     fromName(name: string): NativePrinter | null;
   };
@@ -1263,3 +1334,285 @@ export const printBytes = async (
   }
   return await printer.printBytes(data, options);
 };
+
+// ===== PRINTER STATE MONITORING FUNCTIONS =====
+
+// Global state for managing subscriptions
+let nextSubscriptionId = 1;
+const stateSubscriptions = new Map<number, PrinterStateChangeCallback>();
+let monitoringInterval: any = null;
+let previousStates = new Map<string, PrinterStateSnapshot>();
+
+/**
+ * Start printer state monitoring.
+ * @param config - Optional configuration for monitoring
+ * @returns Promise that resolves when monitoring starts
+ */
+export async function startPrinterStateMonitoring(
+  config: PrinterStateMonitorConfig = {}
+): Promise<void> {
+  try {
+    // Start native monitoring if available
+    if (nativeModule.startStateMonitoring) {
+      nativeModule.startStateMonitoring();
+    }
+
+    // Set polling interval if specified
+    if (config.pollInterval && nativeModule.setStateMonitoringInterval) {
+      nativeModule.setStateMonitoringInterval(config.pollInterval);
+    }
+
+    // Start JavaScript-side polling for event emission
+    if (!monitoringInterval) {
+      const pollInterval = (config.pollInterval || 2) * 1000; // Convert to milliseconds
+      monitoringInterval = setInterval(() => {
+        pollPrinterStates();
+      }, pollInterval);
+    }
+  } catch (error) {
+    throw new Error(
+      `Failed to start printer state monitoring: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+/**
+ * Stop printer state monitoring.
+ * @returns Promise that resolves when monitoring stops
+ */
+export async function stopPrinterStateMonitoring(): Promise<void> {
+  try {
+    // Stop native monitoring if available
+    if (nativeModule.stopStateMonitoring) {
+      nativeModule.stopStateMonitoring();
+    }
+
+    // Stop JavaScript-side polling
+    if (monitoringInterval) {
+      clearInterval(monitoringInterval);
+      monitoringInterval = null;
+    }
+
+    // Clear previous states
+    previousStates.clear();
+  } catch (error) {
+    throw new Error(
+      `Failed to stop printer state monitoring: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+/**
+ * Check if printer state monitoring is currently active.
+ * @returns True if monitoring is active
+ */
+export function isPrinterStateMonitoringActive(): boolean {
+  return (
+    monitoringInterval !== null ||
+    Boolean(nativeModule.isStateMonitoringActive?.())
+  );
+}
+
+/**
+ * Subscribe to printer state change events.
+ * @param callback - Function to call when state changes occur
+ * @returns Subscription object with unsubscribe method
+ */
+export async function subscribeToPrinterStateChanges(
+  callback: PrinterStateChangeCallback
+): Promise<PrinterStateSubscription> {
+  const id = nextSubscriptionId++;
+  stateSubscriptions.set(id, callback);
+
+  // Auto-start monitoring if not already active
+  if (!isPrinterStateMonitoringActive()) {
+    await startPrinterStateMonitoring();
+  }
+
+  return {
+    id,
+    async unsubscribe(): Promise<boolean> {
+      const removed = stateSubscriptions.delete(id);
+
+      // Stop monitoring if no more subscriptions
+      if (stateSubscriptions.size === 0) {
+        try {
+          await stopPrinterStateMonitoring();
+        } catch (error) {
+          // Monitoring might already be stopped, which is fine
+          console.debug(
+            "Warning: Could not stop monitoring during unsubscribe:",
+            error instanceof Error ? error.message : String(error)
+          );
+        }
+      }
+
+      return removed;
+    },
+  };
+}
+
+/**
+ * Get current snapshot of all printer states.
+ * @returns Map of printer names to their current state information
+ */
+export function getPrinterStateSnapshots(): Map<string, PrinterStateSnapshot> {
+  const snapshots = new Map<string, PrinterStateSnapshot>();
+  const timestamp = Date.now();
+
+  try {
+    if (nativeModule.getPrinterStateSnapshot) {
+      const nativeStates = nativeModule.getPrinterStateSnapshot();
+      for (const [name, [state, stateReasons]] of Object.entries(
+        nativeStates
+      )) {
+        snapshots.set(name, {
+          name,
+          state,
+          stateReasons,
+          timestamp,
+        });
+      }
+    } else {
+      // Fallback: get states from current printers
+      const printers = getAllPrinters();
+      for (const printer of printers) {
+        snapshots.set(printer.name, {
+          name: printer.name,
+          state: printer.state || "unknown",
+          stateReasons: printer.stateReasons || [],
+          timestamp,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get printer state snapshots:", error);
+  }
+
+  return snapshots;
+}
+
+/**
+ * Set the polling interval for state monitoring.
+ * @param seconds - Polling interval in seconds
+ */
+export async function setPrinterStateMonitoringInterval(
+  seconds: number
+): Promise<void> {
+  if (seconds < 1) {
+    throw new Error("Polling interval must be at least 1 second");
+  }
+
+  try {
+    // Update native monitoring interval if available
+    if (nativeModule.setStateMonitoringInterval) {
+      nativeModule.setStateMonitoringInterval(seconds);
+    }
+
+    // Restart JavaScript polling with new interval if active
+    if (monitoringInterval) {
+      clearInterval(monitoringInterval);
+      monitoringInterval = setInterval(() => {
+        pollPrinterStates();
+      }, seconds * 1000);
+    }
+  } catch (error) {
+    throw new Error(
+      `Failed to set monitoring interval: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+/**
+ * Internal function to poll printer states and emit events
+ */
+function pollPrinterStates(): void {
+  try {
+    const currentStates = getPrinterStateSnapshots();
+    const currentNames = new Set(currentStates.keys());
+    const previousNames = new Set(previousStates.keys());
+    const timestamp = Date.now();
+
+    // Check for new printers (connected)
+    for (const name of currentNames) {
+      if (!previousNames.has(name)) {
+        const event: PrinterStateChangeEvent = {
+          eventType: "connected",
+          printerName: name,
+          timestamp,
+        };
+        emitStateChangeEvent(event);
+      }
+    }
+
+    // Check for removed printers (disconnected)
+    for (const name of previousNames) {
+      if (!currentNames.has(name)) {
+        const event: PrinterStateChangeEvent = {
+          eventType: "disconnected",
+          printerName: name,
+          timestamp,
+        };
+        emitStateChangeEvent(event);
+      }
+    }
+
+    // Check for state changes in existing printers
+    for (const [name, currentState] of currentStates) {
+      const previousState = previousStates.get(name);
+
+      if (previousState) {
+        // Check for state change
+        if (currentState.state !== previousState.state) {
+          const event: PrinterStateChangeEvent = {
+            eventType: "state_changed",
+            printerName: name,
+            oldState: previousState.state,
+            newState: currentState.state,
+            timestamp,
+          };
+          emitStateChangeEvent(event);
+        }
+
+        // Check for state reasons change
+        if (
+          JSON.stringify(currentState.stateReasons) !==
+          JSON.stringify(previousState.stateReasons)
+        ) {
+          const event: PrinterStateChangeEvent = {
+            eventType: "state_reasons_changed",
+            printerName: name,
+            oldReasons: previousState.stateReasons,
+            newReasons: currentState.stateReasons,
+            timestamp,
+          };
+          emitStateChangeEvent(event);
+        }
+      }
+    }
+
+    // Update previous states
+    previousStates = currentStates;
+  } catch (error) {
+    console.error("Error polling printer states:", error);
+  }
+}
+
+/**
+ * Internal function to emit state change events to all subscribers
+ */
+function emitStateChangeEvent(event: PrinterStateChangeEvent): void {
+  for (const callback of stateSubscriptions.values()) {
+    try {
+      callback(event);
+    } catch (error) {
+      console.error("Error in state change callback:", error);
+    }
+  }
+}

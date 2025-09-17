@@ -4,20 +4,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/esimkowitz/printers-js/blob/main/LICENSE)
 [![Build](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml/badge.svg)](https://github.com/esimkowitz/printers-js/actions/workflows/ci.yml)
 
-Cross-runtime printer library for Deno, Bun, and Node.js.
+Cross-runtime printer library for Node.js, Deno, and Bun with native performance and comprehensive printing capabilities.
 
 ## Features
 
-- 🔄 Cross-runtime compatibility - works in Deno, Bun, and Node.js
-- 🖨️ Cross-platform printing - Windows, macOS, and Linux
-- 🦀 Native performance - Rust backend using the `printers` crate
-- 🏗️ Multi-architecture support - AMD64 and ARM64 binaries
-- 🔒 Safe testing - simulation mode prevents accidental printing
-- 📊 Async job tracking - non-blocking print jobs with status monitoring
-- 🔍 Rich printer metadata - access all printer properties
-- ⚡ Flexible completion control - choose immediate return or wait for job completion
-- 🔧 Full CUPS options support - comprehensive printing configuration on Unix systems
-- 📄 Structured print options - simple, CUPS, and raw option interfaces
+- 🔄 **Cross-runtime compatibility** - Node.js, Deno, and Bun support
+- 🖨️ **Cross-platform printing** - Windows, macOS, and Linux
+- 🦀 **Native performance** - Rust backend with N-API bindings
+- 🔒 **Safe testing** - Simulation mode prevents accidental printing
+- 📊 **Real-time monitoring** - Printer state changes and job tracking
+- 🔧 **Flexible options** - Simple, CUPS, and raw printing configuration
+- ⚡ **Async control** - Choose immediate return or wait for completion
 
 ## Installation
 
@@ -25,10 +22,6 @@ Cross-runtime printer library for Deno, Bun, and Node.js.
 
 ```bash
 npm install @printers/printers
-# or
-yarn add @printers/printers
-# or
-pnpm add @printers/printers
 ```
 
 ### Deno
@@ -37,9 +30,7 @@ pnpm add @printers/printers
 deno add npm:@printers/printers
 ```
 
-**Important:** Deno requires special configuration for N-API modules:
-
-- Add `"nodeModulesDir": "auto"` to your `deno.json`:
+Add to `deno.json`:
 
 ```json
 {
@@ -47,7 +38,7 @@ deno add npm:@printers/printers
 }
 ```
 
-- Run with the `--allow-ffi` and `--allow-env` flags:
+Run with required permissions:
 
 ```bash
 deno run --allow-ffi --allow-env your-script.ts
@@ -59,10 +50,21 @@ deno run --allow-ffi --allow-env your-script.ts
 bun add @printers/printers
 ```
 
+## Documentation
+
+📚 **[Complete Documentation](./docs/README.md)** - Comprehensive guides and examples
+
+### Feature Guides
+
+- **[Cross-Runtime Support](./docs/CrossRuntimeSupport.md)** - Node.js, Deno, and Bun compatibility
+- **[Printing Options](./docs/PrintingOptions.md)** - Simple, CUPS, and raw printing configuration
+- **[Job Tracking](./docs/JobTracking.md)** - Monitor and manage print jobs
+- **[Printer State Monitoring](./docs/PrinterStateMonitoring.md)** - Real-time printer state change events
+
 ## Quick Start
 
 ```typescript
-import { getAllPrinters, Printer } from "@printers/printers";
+import { getAllPrinters, getPrinterByName } from "@printers/printers";
 
 // List all available printers
 const printers = getAllPrinters();
@@ -71,172 +73,98 @@ console.log(
   printers.map(p => p.name)
 );
 
-// Print a file (returns a Promise with job ID)
-const printer = printers[0];
-try {
-  const jobId = await printer.printFile("/path/to/document.pdf", {
-    simple: { copies: 2, duplex: true },
-    waitForCompletion: true, // Wait for job completion (default)
+// Print a document
+const printer = getPrinterByName("My Printer");
+if (printer) {
+  const jobId = await printer.printFile("document.pdf", {
+    simple: {
+      copies: 2,
+      duplex: true,
+      quality: "high",
+    },
   });
-  console.log(`Print job ${jobId} completed!`);
-} catch (error) {
-  console.error("Print failed:", error.message);
+  console.log("Print job submitted:", jobId);
 }
 ```
 
 ## API Reference
 
-### Main Functions
+### Core Functions
 
 #### `getAllPrinters(): Printer[]`
 
 Returns an array of all available system printers.
 
-#### `getAllPrinterNames(): string[]`
-
-Returns an array of printer names.
-
 #### `getPrinterByName(name: string): Printer | null`
 
 Find a printer by its exact name.
+
+#### `getAllPrinterNames(): string[]`
+
+Returns an array of printer names.
 
 #### `printerExists(name: string): boolean`
 
 Check if a printer exists on the system.
 
-#### `shutdown(): void`
+### Printer Class
 
-Clean up resources and shutdown the printer module. Called automatically on process exit.
-
-### Option Conversion Functions
-
-#### `simpleToCUPS(options: Partial<SimplePrintOptions>): Record<string, string>`
-
-Convert user-friendly simple options to CUPS format.
-
-#### `cupsToRaw(options: Partial<CUPSOptions>): Record<string, string>`
-
-Convert CUPS options to raw string properties for the backend.
-
-#### `printJobOptionsToRaw(options?: PrintJobOptions): Record<string, string>`
-
-Convert unified PrintJobOptions to raw properties with proper precedence handling.
-
-#### `createCustomPageSize(width: number, length: number, unit?: CustomPageSizeUnit): string`
-
-Generate a custom page size string for CUPS media option.
-
-```typescript
-const customSize = createCustomPageSize(4, 6, "in");
-// Returns: "Custom.4x6in"
-```
-
-### Additional Exports
-
-#### Convenience Functions
-
-- `findPrinter(name: string): Printer | null` - Alias for `getPrinterByName`
-- `getDefaultPrinter(): Printer | null` - Returns the default system printer
-- `printFile(printerName: string, filePath: string, options?: PrintJobOptions | Record<string, string>): Promise<number>` - Print a file to a specific printer
-- `printBytes(printerName: string, data: Uint8Array | Buffer, options?: PrintJobOptions | Record<string, string>): Promise<number>` - Print raw bytes to a specific printer
-
-#### Constants
-
-- `isSimulationMode: boolean` - Whether simulation mode is active (read-only)
-- `runtimeInfo: RuntimeInfo` - Information about the current runtime environment
-
-### Classes
-
-#### `Printer`
-
-Represents a system printer with metadata and printing capabilities.
-
-**Properties:**
+#### Properties
 
 - `name: string` - Printer display name
-- `systemName?: string` - System-level printer name
-- `driverName?: string` - Printer driver name
-- `uri?: string` - Printer URI (if available)
-- `portName?: string` - Port name (e.g., "USB001", "LPT1:")
-- `processor?: string` - Print processor (e.g., "winprint")
-- `dataType?: string` - Default data type (e.g., "RAW")
-- `description?: string` - Printer description
-- `location?: string` - Physical location description
+- `state?: PrinterState` - Current printer state (`"idle"`, `"printing"`, `"paused"`, `"offline"`, `"unknown"`)
 - `isDefault?: boolean` - Whether this is the default printer
-- `isShared?: boolean` - Whether the printer is shared on network
-- `state?: PrinterState` - Current printer state
+- `location?: string` - Physical location description
+- `driverName?: string` - Printer driver name
 - `stateReasons?: string[]` - Array of state reason strings
 
-**Methods:**
+#### Methods
 
-- `exists(): boolean` - Check if printer is available
-- `toString(): string` - Get string representation with all fields
-- `equals(other: Printer): boolean` - Compare with another printer by name
-- `dispose?(): void` - Manually release printer resources (automatic cleanup
-  available)
-- `getName(): string` - Get the printer name
-- `printFile(filePath: string, options?: PrintJobOptions): Promise<number>` -
-  Print a file and return job ID
-- `printBytes(data: Uint8Array, options?: PrintJobOptions): Promise<number>` -
-  Print raw bytes and return job ID
+- `printFile(filePath: string, options?: PrintJobOptions): Promise<number>` - Print a file and return job ID
+- `printBytes(data: Uint8Array, options?: PrintJobOptions): Promise<number>` - Print raw bytes and return job ID
 - `getActiveJobs(): PrinterJob[]` - Get currently active/pending jobs
 - `getJobHistory(limit?: number): PrinterJob[]` - Get completed job history
 - `getJob(jobId: number): PrinterJob | null` - Get specific job details
-- `getAllJobs(): PrinterJob[]` - Get all jobs (active + history)
 - `cleanupOldJobs(maxAgeSeconds: number): number` - Remove old jobs
 
-**Static Methods (via PrinterConstructor):**
+### State Monitoring
 
-- `PrinterConstructor.fromName(name: string): Printer | null` - Create printer
-  instance from name
+#### `subscribeToPrinterStateChanges(callback): Promise<PrinterStateSubscription>`
 
-#### `PrinterClass`
-
-Interface for the PrinterConstructor static methods:
+Subscribe to real-time printer state change events.
 
 ```typescript
-interface PrinterClass {
-  fromName(name: string): Printer | null;
-  new (): never; // Constructor is disabled
-}
+const subscription = await subscribeToPrinterStateChanges(event => {
+  console.log(`${event.eventType}: ${event.printerName}`);
+});
+
+// Later: unsubscribe
+await subscription.unsubscribe();
 ```
 
-**Usage:**
+#### `getPrinterStateSnapshots(): Map<string, PrinterStateSnapshot>`
 
-```typescript
-import { PrinterConstructor } from "@printers/printers";
+Get current state of all printers.
 
-// Create printer instance
-const printer = PrinterConstructor.fromName("My Printer");
-if (printer) {
-  console.log("Found printer:", printer.name);
-}
-```
+#### `startPrinterStateMonitoring(config?): Promise<void>`
 
-## Print Options
+Start printer state monitoring with optional configuration.
 
-The library supports multiple ways to specify print options, with automatic conversion and precedence handling.
+### Print Options
 
-### PrintJobOptions Interface
+#### `PrintJobOptions`
 
 ```typescript
 interface PrintJobOptions {
-  /** Top-level job name (highest precedence) */
-  jobName?: string;
-  /** Control whether to wait for job completion (default: true) */
-  waitForCompletion?: boolean;
-  /** Raw CUPS-style options (lowest precedence) */
-  raw?: Record<string, string>;
-  /** Simple, user-friendly options (medium precedence) */
-  simple?: SimplePrintOptions;
-  /** Full CUPS options (high precedence) */
-  cups?: CUPSOptions;
+  jobName?: string; // Job name for identification
+  waitForCompletion?: boolean; // Wait for completion (default: true)
+  simple?: SimplePrintOptions; // Easy-to-use options
+  cups?: CUPSOptions; // Full CUPS options
+  raw?: Record<string, string>; // Raw key-value options
 }
 ```
 
-### SimplePrintOptions
-
-Easy-to-use options that get converted to CUPS format:
+#### `SimplePrintOptions`
 
 ```typescript
 interface SimplePrintOptions {
@@ -246,217 +174,8 @@ interface SimplePrintOptions {
   quality?: "draft" | "normal" | "high";
   color?: boolean;
   pageRange?: string; // e.g., "1-5,8,10-12"
-  jobName?: string;
-  pagesPerSheet?: 1 | 2 | 4 | 6 | 9 | 16;
   landscape?: boolean;
 }
-```
-
-### CUPSOptions
-
-Direct CUPS option control for advanced configurations. Based on [CUPS documentation](https://www.cups.org/doc/options.html).
-
-```typescript
-interface CUPSOptions {
-  // Job control
-  "job-name"?: string;
-  "job-priority"?: number; // 1-100
-  "job-hold-until"?: JobHoldUntil;
-  copies?: number;
-  collate?: boolean;
-
-  // Media selection
-  media?: string;
-  "media-size"?: MediaSize;
-  "media-type"?: MediaType;
-  "media-source"?: MediaSource;
-
-  // Layout and orientation
-  landscape?: boolean;
-  "orientation-requested"?: OrientationRequested;
-  sides?: Sides;
-  "page-ranges"?: string; // e.g., "1-4,7,9-12"
-  "number-up"?: NumberUp;
-
-  // Quality and appearance
-  "print-quality"?: PrintQuality;
-  "print-color-mode"?: ColorMode;
-  resolution?: string;
-
-  // Custom options
-  [key: string]: string | number | boolean | undefined;
-}
-```
-
-### waitForCompletion Parameter
-
-Controls the async behavior of print operations:
-
-- **`true` (default)**: Wait for print job completion with intelligent delays
-- **`false`**: Return immediately after job submission
-
-```typescript
-// Wait for completion (default behavior)
-const jobId = await printer.printFile("document.pdf", {
-  simple: { copies: 2 },
-  waitForCompletion: true,
-});
-
-// Quick return - fire and forget
-const jobId = await printer.printFile("document.pdf", {
-  simple: { copies: 2 },
-  waitForCompletion: false,
-});
-```
-
-### Option Precedence
-
-Options are merged with the following precedence (highest to lowest):
-
-1. **Top-level `jobName`** - Always takes precedence
-2. **CUPS options** - Direct CUPS control
-3. **Simple options** - Converted to CUPS format
-4. **Raw options** - Base level options
-
-```typescript
-await printer.printFile("document.pdf", {
-  jobName: "Final Job Name", // Will override everything
-  raw: { "job-name": "Raw Name", copies: "1" },
-  simple: { copies: 2 }, // Will override raw copies
-  cups: { "job-priority": 75 }, // Adds to final options
-});
-// Result: job-name="Final Job Name", copies="2", job-priority="75"
-```
-
-### Types and Interfaces
-
-#### Core Enums
-
-##### `PrintError`
-
-```typescript
-enum PrintError {
-  InvalidParams = 1,
-  InvalidPrinterName = 2,
-  InvalidFilePath = 3,
-  InvalidJson = 4,
-  InvalidJsonEncoding = 5,
-  PrinterNotFound = 6,
-  FileNotFound = 7,
-  SimulatedFailure = 8,
-}
-```
-
-#### CUPS Printing Option Types
-
-The library exports comprehensive type definitions for CUPS printing options:
-
-**Media and Layout Types:**
-
-- `MediaSize` - Paper sizes: "Letter", "A4", "Legal", "A3", etc.
-- `MediaType` - Paper types: "plain", "bond", "letterhead", "transparency", etc.
-- `MediaSource` - Paper sources: "auto", "tray-1", "manual", etc.
-- `OrientationRequested` - Orientation values (3-6)
-- `Sides` - Duplex options: "one-sided", "two-sided-long-edge", "two-sided-short-edge"
-
-**Quality and Layout:**
-
-- `PrintQuality` - Quality levels (3-5)
-- `NumberUp` - Pages per sheet: 1, 2, 4, 6, 9, 16
-- `NumberUpLayout` - Layout patterns: "lrtb", "lrbt", etc.
-- `ColorMode` - Color options: "monochrome", "color", "auto"
-
-**Other Types:**
-
-- `PageBorder`, `OutputOrder`, `JobHoldUntil`, `DocumentFormat`, `CustomPageSizeUnit`
-- `PrinterJobState` - Job states: "pending", "processing", "completed", etc.
-- `PrinterState` - Printer states: "idle", "processing", "stopped", "unknown"
-
-#### Main Interfaces
-
-##### `PrinterJob`
-
-```typescript
-interface PrinterJob {
-  id: number;
-  name: string;
-  state: PrinterJobState;
-  mediaType: string;
-  createdAt: number; // Unix timestamp
-  printerName: string;
-  ageSeconds: number;
-  processedAt?: number; // Unix timestamp
-  completedAt?: number; // Unix timestamp
-  errorMessage?: string;
-}
-```
-
-##### `JobStatus` (Legacy)
-
-```typescript
-interface JobStatus {
-  id: number;
-  printer_name: string;
-  file_path: string;
-  status: "queued" | "printing" | "completed" | "failed";
-  error_message?: string;
-  age_seconds: number;
-}
-```
-
-##### `RuntimeInfo`
-
-```typescript
-interface RuntimeInfo {
-  name: "deno" | "node" | "bun" | "unknown";
-  isDeno: boolean;
-  isNode: boolean;
-  isBun: boolean;
-  version: string;
-}
-```
-
-## Runtime Permissions
-
-### Deno Permissions
-
-```bash
-deno run --allow-ffi --allow-env your-script.ts
-```
-
-- `--allow-ffi` - Required for loading the N-API native module
-- `--allow-env` - Required for reading `PRINTERS_JS_SIMULATE` environment
-  variable and runtime detection
-
-### Node.js / Bun Permissions
-
-No special permissions required.
-
-## Testing & Safety
-
-### Simulation Mode
-
-Set `PRINTERS_JS_SIMULATE=true` to enable simulation mode, which prevents actual
-printing while testing all functionality:
-
-**Unix/Linux/macOS:**
-
-```bash
-PRINTERS_JS_SIMULATE=true deno run --allow-ffi --allow-env your-script.ts
-```
-
-**Windows Command Prompt:**
-
-```cmd
-set PRINTERS_JS_SIMULATE=true
-deno run --allow-ffi --allow-env your-script.ts
-```
-
-**Windows PowerShell:**
-
-```powershell
-$env:PRINTERS_JS_SIMULATE="true"
-deno run --allow-ffi --allow-env your-script.ts
 ```
 
 ## Examples
@@ -464,182 +183,96 @@ deno run --allow-ffi --allow-env your-script.ts
 ### Basic Printing
 
 ```typescript
-import { getAllPrinters } from "@printers/printers";
+const printer = getPrinterByName("My Printer");
 
-const printers = getAllPrinters();
-if (printers.length > 0) {
-  const printer = printers[0];
-
-  // Access printer information
-  console.log(`Using printer: ${printer.name}`);
-  console.log(`Driver: ${printer.driverName}`);
-  console.log(`State: ${printer.state}`);
-  console.log(`Default: ${printer.isDefault}`);
-
-  try {
-    // Simple printing with job ID return
-    const jobId = await printer.printFile("document.pdf");
-    console.log(`Print job ${jobId} completed successfully`);
-  } catch (error) {
-    console.log("Print failed:", error.message);
-  }
-}
-```
-
-### Advanced Print Options
-
-```typescript
-import { getAllPrinters } from "@printers/printers";
-
-const printer = getAllPrinters()[0];
-
-// Using simple options
-const jobId1 = await printer.printFile("document.pdf", {
-  simple: {
-    copies: 3,
-    duplex: true,
-    paperSize: "A4",
-    quality: "high",
-    color: false,
-  },
-  waitForCompletion: true, // Wait for completion (default)
+// Simple printing
+await printer.printFile("document.pdf", {
+  simple: { copies: 2, duplex: true },
 });
 
-// Using CUPS options for advanced control
-const jobId2 = await printer.printFile("document.pdf", {
-  cups: {
-    "job-name": "Important Document",
-    "job-priority": 75,
-    "print-quality": 5,
-    "media-size": "A4",
-    sides: "two-sided-long-edge",
-  },
+// With job tracking
+const jobId = await printer.printFile("document.pdf", {
+  waitForCompletion: false,
 });
 
-// Quick fire-and-forget printing
-const jobId3 = await printer.printFile("document.pdf", {
-  simple: { copies: 1 },
-  waitForCompletion: false, // Return immediately
-});
-
-console.log(`Submitted jobs: ${jobId1}, ${jobId2}, ${jobId3}`);
-```
-
-### Job Tracking and Management
-
-```typescript
-import { getAllPrinters } from "@printers/printers";
-
-const printer = getAllPrinters()[0];
-
-// Submit a print job
-const jobId = await printer.printFile("large-document.pdf", {
-  simple: { copies: 5, duplex: true },
-  waitForCompletion: false, // Don't wait, track manually
-});
-
-// Check job status
 const job = printer.getJob(jobId);
-if (job) {
-  console.log(`Job ${job.id}: ${job.name}`);
-  console.log(`State: ${job.state}`);
-  console.log(`Media: ${job.mediaType}`);
-  console.log(`Age: ${job.ageSeconds}s`);
-}
-
-// Monitor active jobs
-const activeJobs = printer.getActiveJobs();
-console.log(`${activeJobs.length} jobs currently active`);
-
-// View job history
-const history = printer.getJobHistory(10); // Last 10 jobs
-for (const historicalJob of history) {
-  console.log(`${historicalJob.name}: ${historicalJob.state}`);
-}
-
-// Cleanup old completed jobs
-const cleaned = printer.cleanupOldJobs(3600); // Remove jobs older than 1 hour
-console.log(`Cleaned up ${cleaned} old jobs`);
+console.log(`Job ${jobId}: ${job?.state}`);
 ```
 
-### Printer Information & Management
+### State Monitoring
 
 ```typescript
-import {
-  cleanupOldJobs,
-  getAllPrinterNames,
-  getAllPrinters,
-  getPrinterByName,
-  printerExists,
-} from "@printers/printers";
-
-// List all printers with detailed information
-const printers = getAllPrinters();
-for (const printer of printers) {
-  console.log(`\n${printer.name}:`);
-  console.log(`  Driver: ${printer.driverName}`);
-  console.log(`  State: ${printer.state}`);
-  console.log(`  Port: ${printer.portName}`);
-  console.log(`  Default: ${printer.isDefault ? "Yes" : "No"}`);
-  console.log(`  Shared: ${printer.isShared ? "Yes" : "No"}`);
-
-  if (printer.location) {
-    console.log(`  Location: ${printer.location}`);
+// Subscribe to printer events
+const subscription = await subscribeToPrinterStateChanges(event => {
+  switch (event.eventType) {
+    case "connected":
+      console.log(`Printer ${event.printerName} connected`);
+      break;
+    case "disconnected":
+      console.log(`Printer ${event.printerName} disconnected`);
+      break;
+    case "state_changed":
+      console.log(
+        `${event.printerName}: ${event.oldState} → ${event.newState}`
+      );
+      break;
   }
-
-  if (printer.stateReasons.length > 0 && printer.stateReasons[0] !== "none") {
-    console.log(`  Issues: ${printer.stateReasons.join(", ")}`);
-  }
-}
-
-// Check if specific printer exists
-if (printerExists("My Printer")) {
-  const printer = getPrinterByName("My Printer");
-  console.log("Found printer:", printer?.name);
-}
-
-// Clean up old print jobs (older than 1 hour)
-const cleaned = cleanupOldJobs(3600000); // 3600000ms = 1 hour
-console.log(`Cleaned up ${cleaned} old print jobs`);
+});
 ```
 
-### Working with Printer Properties
+### Custom Page Sizes
 
 ```typescript
-import { getAllPrinters } from "@printers/printers";
+import { createCustomPageSize } from "@printers/printers";
 
-const printers = getAllPrinters();
+const photoSize = createCustomPageSize(4, 6, "in"); // "Custom.4x6in"
 
-// Find default printer
-const defaultPrinter = printers.find(p => p.isDefault);
-console.log(`Default printer: ${defaultPrinter?.name || "None"}`);
+await printer.printFile("photo.jpg", {
+  cups: {
+    media: photoSize,
+    "print-quality": 5,
+  },
+});
+```
 
-// Find printers by state
-const readyPrinters = printers.filter(
-  p => p.state === "idle" || p.state === "processing"
-);
-console.log(`Ready printers: ${readyPrinters.map(p => p.name).join(", ")}`);
+## Testing & Safety
 
-// Find network printers
-const networkPrinters = printers.filter(p => p.isShared);
-console.log(`Network printers: ${networkPrinters.map(p => p.name).join(", ")}`);
+### Simulation Mode
+
+Enable simulation mode to test without real printing:
+
+```bash
+# Unix/Linux/macOS
+PRINTERS_JS_SIMULATE=true node your-script.js
+
+# Windows Command Prompt
+set PRINTERS_JS_SIMULATE=true && node your-script.js
+
+# Windows PowerShell
+$env:PRINTERS_JS_SIMULATE="true"; node your-script.js
+```
+
+Check simulation status:
+
+```typescript
+import { isSimulationMode } from "@printers/printers";
+console.log("Simulation mode:", isSimulationMode);
 ```
 
 ## Platform Support
 
-| OS      | Architecture | Deno | Bun | Node.js |
-| ------- | ------------ | ---- | --- | ------- |
-| Windows | x64          | ✅   | ✅  | ✅      |
-| Windows | ARM64        | ❌   | ❌  | ✅      |
-| macOS   | x64          | ✅   | ✅  | ✅      |
-| macOS   | ARM64        | ✅   | ✅  | ✅      |
-| Linux   | x64          | ✅   | ✅  | ✅      |
-| Linux   | ARM64        | ✅   | ✅  | ✅      |
+| OS      | Architecture | Node.js | Deno | Bun |
+| ------- | ------------ | ------- | ---- | --- |
+| Windows | x64          | ✅      | ✅   | ✅  |
+| Windows | ARM64        | ✅      | ❌   | ❌  |
+| macOS   | x64          | ✅      | ✅   | ✅  |
+| macOS   | ARM64        | ✅      | ✅   | ✅  |
+| Linux   | x64          | ✅      | ✅   | ✅  |
+| Linux   | ARM64        | ✅      | ✅   | ✅  |
 
-## Development & Contributing
+## Development
 
-For technical information about architecture, build systems, development
-workflow, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+For development setup, build instructions, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 

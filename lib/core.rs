@@ -266,7 +266,8 @@ impl PrinterCore {
             PrinterState::READY => "idle".to_string(),
             PrinterState::PRINTING => "printing".to_string(),
             PrinterState::PAUSED => "paused".to_string(),
-            _ => "unknown".to_string(),
+            PrinterState::OFFLINE => "offline".to_string(),
+            PrinterState::UNKNOWN => "unknown".to_string(),
         }
     }
 
@@ -904,6 +905,344 @@ impl PrinterJobTracking for Printer {
         });
 
         removed_count
+    }
+}
+
+// ===== PRINTER STATE MONITORING SYSTEM =====
+
+use std::collections::HashSet;
+use std::sync::mpsc::{self, Receiver, Sender};
+
+/// Printer state change event
+#[derive(Clone, Debug, PartialEq)]
+pub enum PrinterStateEvent {
+    /// Printer connected/appeared
+    Connected { name: String },
+    /// Printer disconnected/removed
+    Disconnected { name: String },
+    /// Printer state changed (idle -> printing, etc.)
+    StateChanged {
+        name: String,
+        old_state: String,
+        new_state: String,
+    },
+    /// Printer state reasons changed (error conditions, etc.)
+    StateReasonsChanged {
+        name: String,
+        old_reasons: Vec<String>,
+        new_reasons: Vec<String>,
+    },
+}
+
+/// Printer state snapshot for tracking changes
+#[derive(Clone, Debug, PartialEq)]
+struct PrinterStateSnapshot {
+    name: String,
+    state: String,
+    state_reasons: Vec<String>,
+    exists: bool,
+}
+
+/// Event subscription callback type
+pub type StateChangeCallback = Box<dyn Fn(PrinterStateEvent) + Send + Sync>;
+
+/// Printer state monitor with event subscription
+pub struct PrinterStateMonitor {
+    callbacks: Arc<Mutex<Vec<StateChangeCallback>>>,
+    monitoring_thread: Option<JoinHandle<()>>,
+    stop_sender: Option<Sender<()>>,
+    poll_interval: Duration,
+}
+
+impl Default for PrinterStateMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PrinterStateMonitor {
+    /// Create a new printer state monitor
+    pub fn new() -> Self {
+        Self {
+            callbacks: Arc::new(Mutex::new(Vec::new())),
+            monitoring_thread: None,
+            stop_sender: None,
+            poll_interval: Duration::from_secs(2), // Default 2 second polling
+        }
+    }
+
+    /// Set the polling interval for state monitoring
+    pub fn set_poll_interval(&mut self, interval: Duration) {
+        self.poll_interval = interval;
+    }
+
+    /// Subscribe to printer state change events
+    pub fn subscribe<F>(&mut self, callback: F) -> usize
+    where
+        F: Fn(PrinterStateEvent) + Send + Sync + 'static,
+    {
+        let mut callbacks = self.callbacks.lock().unwrap();
+        callbacks.push(Box::new(callback));
+        callbacks.len() - 1 // Return subscription ID
+    }
+
+    /// Remove a subscription by ID
+    pub fn unsubscribe(&mut self, subscription_id: usize) -> bool {
+        let mut callbacks = self.callbacks.lock().unwrap();
+        if subscription_id < callbacks.len() {
+            let _removed = callbacks.remove(subscription_id);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Start monitoring printer state changes
+    pub fn start_monitoring(&mut self) -> Result<(), String> {
+        if self.monitoring_thread.is_some() {
+            return Err("Monitoring already started".to_string());
+        }
+
+        let (stop_sender, stop_receiver) = mpsc::channel();
+        let callbacks = Arc::clone(&self.callbacks);
+        let poll_interval = self.poll_interval;
+
+        let handle = thread::spawn(move || {
+            Self::monitoring_loop(callbacks, stop_receiver, poll_interval);
+        });
+
+        self.monitoring_thread = Some(handle);
+        self.stop_sender = Some(stop_sender);
+        Ok(())
+    }
+
+    /// Stop monitoring printer state changes
+    pub fn stop_monitoring(&mut self) -> Result<(), String> {
+        if let Some(sender) = self.stop_sender.take() {
+            let _ = sender.send(());
+        }
+
+        if let Some(handle) = self.monitoring_thread.take() {
+            match handle.join() {
+                Ok(_) => Ok(()),
+                Err(_) => Err("Failed to stop monitoring thread".to_string()),
+            }
+        } else {
+            Err("Monitoring not started".to_string())
+        }
+    }
+
+    /// Main monitoring loop
+    fn monitoring_loop(
+        callbacks: Arc<Mutex<Vec<StateChangeCallback>>>,
+        stop_receiver: Receiver<()>,
+        poll_interval: Duration,
+    ) {
+        let mut previous_states: HashMap<String, PrinterStateSnapshot> = HashMap::new();
+
+        loop {
+            // Check for stop signal with timeout
+            match stop_receiver.recv_timeout(poll_interval) {
+                Ok(_) => break, // Stop signal received
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    // Continue monitoring
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => break, // Channel closed
+            }
+
+            // Get current printer states
+            let current_states = Self::get_all_printer_states();
+            let current_names: HashSet<String> = current_states.keys().cloned().collect();
+            let previous_names: HashSet<String> = previous_states.keys().cloned().collect();
+
+            // Check for new printers (connected)
+            for name in current_names.difference(&previous_names) {
+                let event = PrinterStateEvent::Connected { name: name.clone() };
+                Self::notify_subscribers(&callbacks, event);
+            }
+
+            // Check for removed printers (disconnected)
+            for name in previous_names.difference(&current_names) {
+                let event = PrinterStateEvent::Disconnected { name: name.clone() };
+                Self::notify_subscribers(&callbacks, event);
+            }
+
+            // Check for state changes in existing printers
+            for (name, current_state) in &current_states {
+                if let Some(previous_state) = previous_states.get(name) {
+                    // Check for state change
+                    if current_state.state != previous_state.state {
+                        let event = PrinterStateEvent::StateChanged {
+                            name: name.clone(),
+                            old_state: previous_state.state.clone(),
+                            new_state: current_state.state.clone(),
+                        };
+                        Self::notify_subscribers(&callbacks, event);
+                    }
+
+                    // Check for state reasons change
+                    if current_state.state_reasons != previous_state.state_reasons {
+                        let event = PrinterStateEvent::StateReasonsChanged {
+                            name: name.clone(),
+                            old_reasons: previous_state.state_reasons.clone(),
+                            new_reasons: current_state.state_reasons.clone(),
+                        };
+                        Self::notify_subscribers(&callbacks, event);
+                    }
+                }
+            }
+
+            // Update previous states
+            previous_states = current_states;
+        }
+    }
+
+    /// Get current state of all printers
+    fn get_all_printer_states() -> HashMap<String, PrinterStateSnapshot> {
+        let mut states = HashMap::new();
+
+        if should_simulate_printing() {
+            // In simulation mode, provide some mock printer states
+            states.insert(
+                "Simulated Printer".to_string(),
+                PrinterStateSnapshot {
+                    name: "Simulated Printer".to_string(),
+                    state: "idle".to_string(),
+                    state_reasons: vec![],
+                    exists: true,
+                },
+            );
+        } else {
+            // Get all real printers and their states
+            let printers = printers::get_printers();
+            for printer in printers {
+                let state = PrinterCore::get_printer_state(&printer);
+                states.insert(
+                    printer.name.clone(),
+                    PrinterStateSnapshot {
+                        name: printer.name.clone(),
+                        state,
+                        state_reasons: printer.state_reasons.clone(),
+                        exists: true,
+                    },
+                );
+            }
+        }
+
+        states
+    }
+
+    /// Notify all subscribers of an event
+    fn notify_subscribers(
+        callbacks: &Arc<Mutex<Vec<StateChangeCallback>>>,
+        event: PrinterStateEvent,
+    ) {
+        let callbacks = callbacks.lock().unwrap();
+        for callback in callbacks.iter() {
+            callback(event.clone());
+        }
+    }
+}
+
+impl Drop for PrinterStateMonitor {
+    fn drop(&mut self) {
+        let _ = self.stop_monitoring();
+    }
+}
+
+// Global state monitor instance
+lazy_static::lazy_static! {
+    static ref GLOBAL_STATE_MONITOR: Arc<Mutex<Option<PrinterStateMonitor>>> =
+        Arc::new(Mutex::new(None));
+}
+
+/// Global functions for printer state monitoring
+impl PrinterCore {
+    /// Start global printer state monitoring
+    pub fn start_state_monitoring() -> Result<(), String> {
+        let mut monitor_guard = GLOBAL_STATE_MONITOR.lock().unwrap();
+
+        if monitor_guard.is_some() {
+            return Err("State monitoring already active".to_string());
+        }
+
+        let mut monitor = PrinterStateMonitor::new();
+        monitor.start_monitoring()?;
+        *monitor_guard = Some(monitor);
+        Ok(())
+    }
+
+    /// Stop global printer state monitoring
+    pub fn stop_state_monitoring() -> Result<(), String> {
+        let mut monitor_guard = GLOBAL_STATE_MONITOR.lock().unwrap();
+
+        if let Some(mut monitor) = monitor_guard.take() {
+            monitor.stop_monitoring()?;
+            Ok(())
+        } else {
+            Err("State monitoring not active".to_string())
+        }
+    }
+
+    /// Subscribe to printer state change events
+    pub fn subscribe_to_state_changes<F>(callback: F) -> Result<usize, String>
+    where
+        F: Fn(PrinterStateEvent) + Send + Sync + 'static,
+    {
+        let mut monitor_guard = GLOBAL_STATE_MONITOR.lock().unwrap();
+
+        // Initialize monitor if not already done
+        if monitor_guard.is_none() {
+            let mut monitor = PrinterStateMonitor::new();
+            monitor
+                .start_monitoring()
+                .map_err(|e| format!("Failed to start monitoring: {}", e))?;
+            *monitor_guard = Some(monitor);
+        }
+
+        if let Some(monitor) = monitor_guard.as_mut() {
+            Ok(monitor.subscribe(callback))
+        } else {
+            Err("Failed to initialize state monitoring".to_string())
+        }
+    }
+
+    /// Unsubscribe from printer state change events
+    pub fn unsubscribe_from_state_changes(subscription_id: usize) -> Result<bool, String> {
+        let mut monitor_guard = GLOBAL_STATE_MONITOR.lock().unwrap();
+
+        if let Some(monitor) = monitor_guard.as_mut() {
+            Ok(monitor.unsubscribe(subscription_id))
+        } else {
+            Err("State monitoring not active".to_string())
+        }
+    }
+
+    /// Check if state monitoring is active
+    pub fn is_state_monitoring_active() -> bool {
+        let monitor_guard = GLOBAL_STATE_MONITOR.lock().unwrap();
+        monitor_guard.is_some()
+    }
+
+    /// Set the polling interval for state monitoring (in seconds)
+    pub fn set_state_monitoring_interval(seconds: u64) -> Result<(), String> {
+        let mut monitor_guard = GLOBAL_STATE_MONITOR.lock().unwrap();
+
+        if let Some(monitor) = monitor_guard.as_mut() {
+            monitor.set_poll_interval(Duration::from_secs(seconds));
+            Ok(())
+        } else {
+            Err("State monitoring not active".to_string())
+        }
+    }
+
+    /// Get a snapshot of current printer states
+    pub fn get_printer_state_snapshot() -> HashMap<String, (String, Vec<String>)> {
+        let states = PrinterStateMonitor::get_all_printer_states();
+        states
+            .into_iter()
+            .map(|(name, snapshot)| (name, (snapshot.state, snapshot.state_reasons)))
+            .collect()
     }
 }
 

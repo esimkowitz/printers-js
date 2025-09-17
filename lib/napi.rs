@@ -545,3 +545,48 @@ fn poll_job_completion(job_id: u64) {
     }
     // If job is not found, the while loop exits naturally
 }
+
+// ===== PRINTER STATE MONITORING N-API BINDINGS =====
+
+/// Printer state change event for JavaScript
+#[napi(object)]
+pub struct PrinterStateChangeEvent {
+    pub event_type: String, // "connected", "disconnected", "state_changed", "state_reasons_changed"
+    pub printer_name: String,
+    pub old_state: Option<String>,        // For state_changed events
+    pub new_state: Option<String>,        // For state_changed events
+    pub old_reasons: Option<Vec<String>>, // For state_reasons_changed events
+    pub new_reasons: Option<Vec<String>>, // For state_reasons_changed events
+}
+
+/// Start global printer state monitoring
+#[napi]
+pub fn start_state_monitoring() -> Result<()> {
+    PrinterCore::start_state_monitoring().map_err(|e| Error::new(Status::GenericFailure, e))
+}
+
+/// Stop global printer state monitoring
+#[napi]
+pub fn stop_state_monitoring() -> Result<()> {
+    PrinterCore::stop_state_monitoring().map_err(|e| Error::new(Status::GenericFailure, e))
+}
+
+/// Check if state monitoring is active
+#[napi]
+pub fn is_state_monitoring_active() -> bool {
+    PrinterCore::is_state_monitoring_active()
+}
+
+/// Set the polling interval for state monitoring (in seconds)
+#[napi]
+pub fn set_state_monitoring_interval(seconds: u32) -> Result<()> {
+    PrinterCore::set_state_monitoring_interval(seconds as u64)
+        .map_err(|e| Error::new(Status::InvalidArg, e))
+}
+
+/// Get a snapshot of current printer states
+/// Returns a map of printer names to their current state and state reasons
+#[napi]
+pub fn get_printer_state_snapshot() -> HashMap<String, (String, Vec<String>)> {
+    PrinterCore::get_printer_state_snapshot()
+}
