@@ -450,6 +450,39 @@ Common Windows CI issues:
 2. **NAPI build**: Uses simplified build approach with proper Windows shell handling
 3. **Path issues**: All scripts use cross-platform path handling
 
+### Windows Symlink Issues
+
+If you're on Windows and encountering errors with `AGENTS.md` or `GEMINI.md` files, these are likely symlink resolution issues.
+
+**Common symptoms:**
+
+- `ENOENT: no such file or directory` errors
+- Files appear as broken shortcuts in Windows Explorer
+- Git shows these files as deleted or modified
+
+**Solutions:**
+
+1. **Enable Developer Mode** (recommended):
+   - Open Windows Settings → Update & Security → For developers
+   - Enable "Developer Mode"
+   - This allows symlinks to work without administrator privileges
+
+2. **Clone with symlink support**:
+
+   ```bash
+   git clone -c core.symlinks=true <repository-url>
+   ```
+
+3. **Restore symlinks manually**:
+
+   ```bash
+   # Delete broken symlink files
+   rm AGENTS.md GEMINI.md
+
+   # Recreate symlinks
+   git checkout HEAD -- AGENTS.md GEMINI.md
+   ```
+
 ## Known Issues
 
 All runtimes (Deno, Bun, and Node.js) work correctly with proper cross-runtime
