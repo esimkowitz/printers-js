@@ -837,6 +837,110 @@ const networkPrinters = printers.filter(p => p.isShared);
 console.log(`Network printers: ${networkPrinters.map(p => p.name).join(", ")}`);
 ```
 
+### Advanced Type Usage and Error Handling
+
+```typescript
+import { 
+  getAllPrinters, 
+  PrintError, 
+  createCustomPageSize,
+  isSimulationMode,
+  runtimeInfo,
+  type PrinterJobState,
+  type MediaSize 
+} from "@printers/printers";
+
+// Runtime and simulation detection
+console.log(`Runtime: ${runtimeInfo.name} v${runtimeInfo.version}`);
+console.log(`Simulation mode: ${isSimulationMode}`);
+
+// Type-safe printer operations
+const printers = getAllPrinters();
+const printer = printers[0];
+
+if (printer) {
+  try {
+    // Using custom page sizes with type safety
+    const customPhoto = createCustomPageSize(4, 6, "in");
+    
+    // Advanced CUPS options with full type coverage
+    const jobId = await printer.printFile("photo.jpg", {
+      cups: {
+        "job-name": "Custom Photo Print",
+        "media": customPhoto,
+        "print-quality": 5, // High quality
+        "orientation-requested": 4, // Landscape
+        "print-color-mode": "color",
+        "fit-to-page": true
+      },
+      waitForCompletion: true
+    });
+
+    // Type-safe job monitoring
+    const job = printer.getJob(jobId);
+    if (job) {
+      console.log(`Job ${job.id}: ${job.name}`);
+      console.log(`State: ${job.state}`); // PrinterJobState type
+      console.log(`Media: ${job.mediaType}`);
+      
+      // Monitor job state changes
+      const checkJobState = (state: PrinterJobState): string => {
+        switch (state) {
+          case "pending": return "Waiting in queue";
+          case "processing": return "Currently printing";
+          case "completed": return "Print successful";
+          case "cancelled": return "Print cancelled";
+          case "paused": return "Print paused";
+          case "unknown": return "Status unknown";
+        }
+      };
+      
+      console.log(`Status: ${checkJobState(job.state)}`);
+    }
+
+  } catch (error) {
+    // Handle specific print errors
+    if (error instanceof Error) {
+      console.error("Print operation failed:", error.message);
+      
+      // You can also check for specific error codes if the backend provides them
+      // This demonstrates the PrintError enum usage
+      console.log("Available error types:", {
+        InvalidParams: PrintError.InvalidParams,
+        PrinterNotFound: PrintError.PrinterNotFound,
+        FileNotFound: PrintError.FileNotFound,
+        SimulatedFailure: PrintError.SimulatedFailure
+      });
+    }
+  }
+}
+
+// Demonstrate type-safe media size selection
+const supportedSizes: MediaSize[] = ["A4", "Letter", "Legal", "A3"];
+const selectedSize = supportedSizes[0]; // Type-safe selection
+
+console.log(`Using paper size: ${selectedSize}`);
+```
+
+### Runtime-Specific Usage Patterns
+
+```typescript
+import { runtimeInfo, getAllPrinters } from "@printers/printers";
+
+// Adapt behavior based on runtime
+if (runtimeInfo.isDeno) {
+  console.log("Running on Deno - ensure --allow-ffi flag is set");
+} else if (runtimeInfo.isNode) {
+  console.log("Running on Node.js - standard npm installation");
+} else if (runtimeInfo.isBun) {
+  console.log("Running on Bun - optimized for fast execution");
+}
+
+// Cross-runtime printer enumeration
+const printers = getAllPrinters();
+console.log(`Found ${printers.length} printers on ${runtimeInfo.name}`);
+```
+
 ## Platform Support
 
 | OS      | Architecture | Deno | Bun | Node.js |
