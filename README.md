@@ -135,7 +135,6 @@ const customSize = createCustomPageSize(4, 6, "in");
 
 - `isSimulationMode: boolean` - Whether simulation mode is active (read-only)
 - `runtimeInfo: RuntimeInfo` - Information about the current runtime environment
-- `PrinterConstructor: PrinterClass` - Class with static factory method for creating printer instances
 
 ### Classes
 
