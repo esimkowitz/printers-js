@@ -89,32 +89,41 @@ try {
 ### Main Functions
 
 #### `getAllPrinters(): Printer[]`
+
 Returns an array of all available system printers.
 
 #### `getAllPrinterNames(): string[]`
+
 Returns an array of printer names.
 
 #### `getPrinterByName(name: string): Printer | null`
+
 Find a printer by its exact name.
 
 #### `printerExists(name: string): boolean`
+
 Check if a printer exists on the system.
 
 #### `shutdown(): void`
+
 Clean up resources and shutdown the printer module. Called automatically on process exit.
 
 ### Option Conversion Functions
 
 #### `simpleToCUPS(options: Partial<SimplePrintOptions>): Record<string, string>`
+
 Convert user-friendly simple options to CUPS format.
 
 #### `cupsToRaw(options: Partial<CUPSOptions>): Record<string, string>`
+
 Convert CUPS options to raw string properties for the backend.
 
 #### `printJobOptionsToRaw(options?: PrintJobOptions): Record<string, string>`
+
 Convert unified PrintJobOptions to raw properties with proper precedence handling.
 
 #### `createCustomPageSize(width: number, length: number, unit?: CustomPageSizeUnit): string`
+
 Generate a custom page size string for CUPS media option.
 
 ```typescript
@@ -188,11 +197,12 @@ Interface for the PrinterConstructor static methods:
 ```typescript
 interface PrinterClass {
   fromName(name: string): Printer | null;
-  new(): never; // Constructor is disabled
+  new (): never; // Constructor is disabled
 }
 ```
 
 **Usage:**
+
 ```typescript
 import { PrinterConstructor } from "@printers/printers";
 
@@ -323,6 +333,7 @@ await printer.printFile("document.pdf", {
 #### Core Enums
 
 ##### `PrintError`
+
 ```typescript
 enum PrintError {
   InvalidParams = 1,
@@ -341,6 +352,7 @@ enum PrintError {
 The library exports comprehensive type definitions for CUPS printing options:
 
 **Media and Layout Types:**
+
 - `MediaSize` - Paper sizes: "Letter", "A4", "Legal", "A3", etc.
 - `MediaType` - Paper types: "plain", "bond", "letterhead", "transparency", etc.
 - `MediaSource` - Paper sources: "auto", "tray-1", "manual", etc.
@@ -348,12 +360,14 @@ The library exports comprehensive type definitions for CUPS printing options:
 - `Sides` - Duplex options: "one-sided", "two-sided-long-edge", "two-sided-short-edge"
 
 **Quality and Layout:**
+
 - `PrintQuality` - Quality levels (3-5)
 - `NumberUp` - Pages per sheet: 1, 2, 4, 6, 9, 16
 - `NumberUpLayout` - Layout patterns: "lrtb", "lrbt", etc.
 - `ColorMode` - Color options: "monochrome", "color", "auto"
 
 **Other Types:**
+
 - `PageBorder`, `OutputOrder`, `JobHoldUntil`, `DocumentFormat`, `CustomPageSizeUnit`
 - `PrinterJobState` - Job states: "pending", "processing", "completed", etc.
 - `PrinterState` - Printer states: "idle", "processing", "stopped", "unknown"
@@ -361,6 +375,7 @@ The library exports comprehensive type definitions for CUPS printing options:
 #### Main Interfaces
 
 ##### `PrinterJob`
+
 ```typescript
 interface PrinterJob {
   id: number;
@@ -377,6 +392,7 @@ interface PrinterJob {
 ```
 
 ##### `JobStatus` (Legacy)
+
 ```typescript
 interface JobStatus {
   id: number;
@@ -389,6 +405,7 @@ interface JobStatus {
 ```
 
 ##### `RuntimeInfo`
+
 ```typescript
 interface RuntimeInfo {
   name: "deno" | "node" | "bun" | "unknown";
