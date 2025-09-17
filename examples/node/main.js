@@ -68,10 +68,10 @@ async function main() {
       );
 
       try {
-        // Submit multiple print jobs with different options
-        console.log("📄 Submitting print jobs...");
+        // Submit print job
+        console.log("📄 Submitting print job...");
 
-        const jobId1 = await printer.printFile("../sample-image.png", {
+        const jobId = await printer.printFile("../sample-image.png", {
           jobName: "Sample Image",
           simple: {
             copies: 2,
@@ -80,27 +80,14 @@ async function main() {
           },
         });
 
-        const jobId2 = await printer.printBytes(Buffer.from("Hello", "utf-8"), {
-          jobName: "Raw Text Job",
-          cups: {
-            copies: 1,
-            "media-size": "Letter",
-          },
-        });
-
-        console.log(`   Job 1 ID: ${jobId1}`);
-        console.log(`   Job 2 ID: ${jobId2}`);
+        console.log(`   Job ID: ${jobId}`);
 
         // Feature 4: Individual Job Inspection
         console.log("\n🔍 Job Details:");
-        const job1 = printer.getJob(jobId1);
-        const job2 = printer.getJob(jobId2);
+        const job = printer.getJob(jobId);
 
-        if (job1) {
-          displayJobInfo(job1, "Job 1");
-        }
-        if (job2) {
-          displayJobInfo(job2, "Job 2");
+        if (job) {
+          displayJobInfo(job, "Sample Image Job");
         }
 
         // Feature 5: Active Jobs Monitoring
