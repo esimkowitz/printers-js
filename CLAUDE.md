@@ -165,6 +165,7 @@ ALWAYS run these after changes through the taskfile:
 - **`tests/`**: Test files organized by runtime and purpose
 - **`scripts/`**: Mixed runtime automation - Deno TypeScript for orchestration,
   Node.js JavaScript for N-API builds
+- **`docs/`**: Feature documentation organized by topic (PascalCase file names)
 - **`.devcontainer/`**: Development container setup for all runtimes
 - **`npm/`**: Platform-specific N-API packages for all N-API operations
   (gitignored)
@@ -236,11 +237,16 @@ distribution:
 
 ## Detailed Documentation
 
-For comprehensive technical details, architecture documentation, and
-contribution guidelines, see:
+The project uses a structured documentation approach:
 
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Complete development documentation
-- **[README.md](./README.md)** - User-facing documentation and examples
+- **[README.md](./README.md)** - Essential API reference and quick start examples
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Development workflow and contribution guidelines
+- **[docs/](./docs/)** - Feature-specific documentation organized by topic:
+  - **[docs/README.md](./docs/README.md)** - Documentation hub with navigation
+  - **[docs/PrinterStateMonitoring.md](./docs/PrinterStateMonitoring.md)** - State monitoring and event subscriptions
+  - **[docs/JobTracking.md](./docs/JobTracking.md)** - Job management and tracking
+  - **[docs/PrintingOptions.md](./docs/PrintingOptions.md)** - Configuration and CUPS options
+  - **[docs/CrossRuntimeSupport.md](./docs/CrossRuntimeSupport.md)** - Node.js, Deno, and Bun compatibility
 
 ---
 
@@ -398,6 +404,82 @@ interface PrinterJob {
 - `getJob(jobId)`: Get specific job details
 - `getAllJobs()`: Get all jobs (active + history)
 - `cleanupOldJobs(maxAgeSeconds)`: Remove old completed jobs
+
+### Printer State Monitoring and Event Subscription (v0.8.0+)
+
+Comprehensive printer state monitoring system with real-time event subscriptions:
+
+**Key Features:**
+
+- **Real-time monitoring**: Subscribe to printer connection, disconnection, and state changes
+- **Event-driven architecture**: Receive notifications when printers change state or encounter issues
+- **Multiple subscription support**: Multiple event handlers can be registered simultaneously
+- **Automatic lifecycle management**: Monitoring starts/stops automatically with subscriptions
+- **Cross-runtime compatibility**: Works identically in Node.js, Deno, and Bun
+- **Simulation mode support**: Safe testing in simulation mode
+
+**Core Functions:**
+
+```typescript
+// Start/stop monitoring
+await startPrinterStateMonitoring({ pollInterval: 2 });
+await stopPrinterStateMonitoring();
+const isActive = isPrinterStateMonitoringActive();
+
+// Subscribe to events
+const subscription = await subscribeToPrinterStateChanges(event => {
+  console.log(`${event.eventType}: ${event.printerName}`);
+  // Handle connected, disconnected, state_changed, state_reasons_changed
+});
+await subscription.unsubscribe();
+
+// Get current states
+const snapshots = getPrinterStateSnapshots();
+await setPrinterStateMonitoringInterval(5); // Change polling frequency
+```
+
+**Event Types:**
+
+- `connected`: Printer appeared/connected to system
+- `disconnected`: Printer removed/disconnected from system
+- `state_changed`: Printer state changed (idle ↔ printing ↔ paused ↔ stopped)
+- `state_reasons_changed`: Printer error conditions changed (paper jam, low ink, etc.)
+
+**Files Modified:**
+
+- `lib/core.rs`: Added printer state monitoring backend with polling and event detection
+- `lib/napi.rs`: Added N-API bindings for state monitoring functions
+- `src/index.ts`: Added TypeScript interfaces and JavaScript implementation
+- `src/tests/shared.test.ts`: Added comprehensive test suite for state monitoring
+- `docs/PrinterStateMonitoring.md`: Complete usage documentation and examples
+
+**Usage Example:**
+
+```typescript
+import { subscribeToPrinterStateChanges } from "@printers/printers";
+
+const subscription = await subscribeToPrinterStateChanges(event => {
+  switch (event.eventType) {
+    case "connected":
+      console.log(`Printer ${event.printerName} connected`);
+      break;
+    case "state_changed":
+      console.log(
+        `${event.printerName}: ${event.oldState} → ${event.newState}`
+      );
+      break;
+    case "state_reasons_changed":
+      if (event.newReasons?.length > 0) {
+        console.log(
+          `${event.printerName} issues: ${event.newReasons.join(", ")}`
+        );
+      }
+      break;
+  }
+});
+
+// Monitoring automatically starts and stops with subscriptions
+```
 
 ### Cross-Runtime Test Compatibility
 

@@ -62,6 +62,8 @@ export default [
         exports: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
         // Runtime detection globals
         Deno: "readonly",
         Bun: "readonly",

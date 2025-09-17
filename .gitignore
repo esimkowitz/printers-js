@@ -36,7 +36,6 @@ node_modules/
 /artifacts/
 
 # Documentation builds
-/docs/
 /target/doc/
 
 # ==========================================

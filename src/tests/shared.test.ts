@@ -63,6 +63,13 @@ const {
   cupsToRaw,
   printJobOptionsToRaw,
   createCustomPageSize,
+  // Printer state monitoring functions
+  startPrinterStateMonitoring,
+  stopPrinterStateMonitoring,
+  isPrinterStateMonitoringActive,
+  subscribeToPrinterStateChanges,
+  getPrinterStateSnapshots,
+  setPrinterStateMonitoringInterval,
 } = printerAPI;
 
 console.log("Debug: Available API functions:", Object.keys(printerAPI));
@@ -800,6 +807,412 @@ test(`${runtimeName}: should create and track print jobs with new job format`, a
     throw error;
   }
 });
+
+// ===== PRINTER STATE MONITORING TESTS =====
+
+test(`${runtimeName}: should start and stop printer state monitoring`, async () => {
+  try {
+    // Initially monitoring should not be active
+    const initialState = isPrinterStateMonitoringActive();
+
+    // Start monitoring
+    await startPrinterStateMonitoring();
+
+    // Should now be active
+    const activeState = isPrinterStateMonitoringActive();
+    if (!activeState) {
+      throw new Error("State monitoring should be active after starting");
+    }
+
+    console.log("✓ Printer state monitoring started successfully");
+
+    // Stop monitoring
+    await stopPrinterStateMonitoring();
+
+    // Should no longer be active
+    const stoppedState = isPrinterStateMonitoringActive();
+    if (stoppedState) {
+      throw new Error("State monitoring should not be active after stopping");
+    }
+
+    console.log("✓ Printer state monitoring stopped successfully");
+  } catch (error) {
+    console.error("State monitoring test failed:", error);
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should configure monitoring poll interval`, async () => {
+  try {
+    // Start monitoring first
+    await startPrinterStateMonitoring();
+
+    // Test setting poll interval
+    await setPrinterStateMonitoringInterval(5);
+    console.log("✓ Successfully set monitoring interval to 5 seconds");
+
+    // Test invalid interval
+    try {
+      await setPrinterStateMonitoringInterval(0);
+      throw new Error("Should not allow interval less than 1 second");
+    } catch (error) {
+      if (error.message.includes("at least 1 second")) {
+        console.log("✓ Correctly rejected invalid interval");
+      } else {
+        throw error;
+      }
+    }
+
+    // Clean up
+    await stopPrinterStateMonitoring();
+  } catch (error) {
+    console.error("Poll interval test failed:", error);
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should get printer state snapshots`, async () => {
+  try {
+    const snapshots = getPrinterStateSnapshots();
+
+    if (!(snapshots instanceof Map)) {
+      throw new Error("getPrinterStateSnapshots should return a Map");
+    }
+
+    console.log(`✓ Got ${snapshots.size} printer state snapshots`);
+
+    // Validate snapshot structure
+    for (const [printerName, snapshot] of snapshots) {
+      if (typeof printerName !== "string") {
+        throw new Error("Printer name should be a string");
+      }
+
+      if (typeof snapshot.name !== "string") {
+        throw new Error("Snapshot name should be a string");
+      }
+
+      if (typeof snapshot.state !== "string") {
+        throw new Error("Snapshot state should be a string");
+      }
+
+      if (!Array.isArray(snapshot.stateReasons)) {
+        throw new Error("Snapshot stateReasons should be an array");
+      }
+
+      if (typeof snapshot.timestamp !== "number") {
+        throw new Error("Snapshot timestamp should be a number");
+      }
+
+      console.log(
+        `  - ${printerName}: ${snapshot.state}, reasons: [${snapshot.stateReasons.join(", ")}]`
+      );
+    }
+  } catch (error) {
+    console.error("State snapshots test failed:", error);
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should subscribe to printer state changes`, async () => {
+  if (!isSimulationMode) {
+    console.log(
+      "Skipping state subscription test - only safe in simulation mode"
+    );
+    return;
+  }
+
+  try {
+    let eventReceived = false;
+    let receivedEvent = null;
+
+    // Subscribe to state changes
+    const subscription = await subscribeToPrinterStateChanges(event => {
+      eventReceived = true;
+      receivedEvent = event;
+      console.log(
+        `Received state change event: ${event.eventType} for ${event.printerName}`
+      );
+    });
+
+    if (typeof subscription.id !== "number") {
+      throw new Error("Subscription should have numeric ID");
+    }
+
+    if (typeof subscription.unsubscribe !== "function") {
+      throw new Error("Subscription should have unsubscribe function");
+    }
+
+    console.log(`✓ Successfully subscribed with ID: ${subscription.id}`);
+
+    // Monitoring should now be active
+    if (!isPrinterStateMonitoringActive()) {
+      throw new Error("Monitoring should be active after subscription");
+    }
+
+    // Wait a moment for potential events
+    await new Promise(resolve =>
+      setTimeout(resolve, runtimeName === "Bun" ? 1000 : 3000)
+    );
+
+    // Test unsubscribe
+    const unsubscribed = await subscription.unsubscribe();
+    if (!unsubscribed) {
+      throw new Error("Unsubscribe should return true");
+    }
+
+    console.log("✓ Successfully unsubscribed from state changes");
+
+    // Test that monitoring stops when no more subscriptions
+    // (Small delay to let cleanup happen)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (isPrinterStateMonitoringActive()) {
+      console.log(
+        "Note: Monitoring still active - may have other subscriptions"
+      );
+    } else {
+      console.log("✓ Monitoring stopped after last unsubscribe");
+    }
+  } catch (error) {
+    console.error("State subscription test failed:", error);
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should handle multiple state change subscriptions`, async () => {
+  if (!isSimulationMode) {
+    console.log(
+      "Skipping multiple subscriptions test - only safe in simulation mode"
+    );
+    return;
+  }
+
+  try {
+    let events1 = [];
+    let events2 = [];
+
+    // Create multiple subscriptions
+    const subscription1 = await subscribeToPrinterStateChanges(event => {
+      events1.push(event);
+    });
+
+    const subscription2 = await subscribeToPrinterStateChanges(event => {
+      events2.push(event);
+    });
+
+    console.log(
+      `✓ Created two subscriptions: ${subscription1.id}, ${subscription2.id}`
+    );
+
+    // Wait for potential events
+    await new Promise(resolve =>
+      setTimeout(resolve, runtimeName === "Bun" ? 500 : 1500)
+    );
+
+    // Both should be different IDs
+    if (subscription1.id === subscription2.id) {
+      throw new Error("Subscriptions should have different IDs");
+    }
+
+    // Unsubscribe first one
+    await subscription1.unsubscribe();
+
+    // Monitoring should still be active
+    if (!isPrinterStateMonitoringActive()) {
+      throw new Error(
+        "Monitoring should still be active with remaining subscription"
+      );
+    }
+
+    // Unsubscribe second one
+    await subscription2.unsubscribe();
+
+    // Give cleanup time
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    console.log(`✓ Both subscriptions unsubscribed successfully`);
+    console.log(`  - Subscription 1 received ${events1.length} events`);
+    console.log(`  - Subscription 2 received ${events2.length} events`);
+  } catch (error) {
+    console.error("Multiple subscriptions test failed:", error);
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should validate state change event structure`, async () => {
+  if (!isSimulationMode) {
+    console.log(
+      "Skipping event validation test - only safe in simulation mode"
+    );
+    return;
+  }
+
+  try {
+    let validationPassed = true;
+    let eventCount = 0;
+
+    const subscription = await subscribeToPrinterStateChanges(event => {
+      eventCount++;
+
+      try {
+        // Validate event structure
+        if (typeof event.eventType !== "string") {
+          throw new Error("Event eventType should be string");
+        }
+
+        if (typeof event.printerName !== "string") {
+          throw new Error("Event printerName should be string");
+        }
+
+        if (typeof event.timestamp !== "number") {
+          throw new Error("Event timestamp should be number");
+        }
+
+        const validEventTypes = [
+          "connected",
+          "disconnected",
+          "state_changed",
+          "state_reasons_changed",
+        ];
+        if (!validEventTypes.includes(event.eventType)) {
+          throw new Error(`Invalid event type: ${event.eventType}`);
+        }
+
+        // Validate conditional fields based on event type
+        if (event.eventType === "state_changed") {
+          if (
+            typeof event.oldState !== "string" ||
+            typeof event.newState !== "string"
+          ) {
+            throw new Error(
+              "state_changed events should have oldState and newState strings"
+            );
+          }
+        }
+
+        if (event.eventType === "state_reasons_changed") {
+          if (
+            !Array.isArray(event.oldReasons) ||
+            !Array.isArray(event.newReasons)
+          ) {
+            throw new Error(
+              "state_reasons_changed events should have oldReasons and newReasons arrays"
+            );
+          }
+        }
+
+        console.log(
+          `✓ Event ${eventCount} validation passed: ${event.eventType}`
+        );
+      } catch (validationError) {
+        console.error("Event validation failed:", validationError);
+        validationPassed = false;
+      }
+    });
+
+    // Wait for events
+    await new Promise(resolve =>
+      setTimeout(resolve, runtimeName === "Bun" ? 500 : 2000)
+    );
+
+    await subscription.unsubscribe();
+
+    if (!validationPassed) {
+      throw new Error("Event validation failed");
+    }
+
+    console.log(`✓ All ${eventCount} events passed validation`);
+  } catch (error) {
+    console.error("Event validation test failed:", error);
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should handle monitoring configuration options`, async () => {
+  try {
+    // Test with custom poll interval
+    await startPrinterStateMonitoring({
+      pollInterval: 3,
+      autoStart: true,
+    });
+
+    if (!isPrinterStateMonitoringActive()) {
+      throw new Error("Monitoring should be active with config");
+    }
+
+    console.log("✓ Started monitoring with custom configuration");
+
+    await stopPrinterStateMonitoring();
+
+    // Test with default config
+    await startPrinterStateMonitoring();
+
+    if (!isPrinterStateMonitoringActive()) {
+      throw new Error("Monitoring should be active with default config");
+    }
+
+    console.log("✓ Started monitoring with default configuration");
+
+    await stopPrinterStateMonitoring();
+  } catch (error) {
+    console.error("Configuration test failed:", error);
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should handle error conditions gracefully`, async () => {
+  try {
+    // Test stopping monitoring when not started
+    try {
+      await stopPrinterStateMonitoring();
+      // Should not throw error
+      console.log("✓ Stopping inactive monitoring handled gracefully");
+    } catch (error) {
+      // Some implementations might throw, which is acceptable
+      console.log("Note: Stop inactive monitoring threw:", error.message);
+    }
+
+    // Test multiple starts
+    await startPrinterStateMonitoring();
+    try {
+      await startPrinterStateMonitoring(); // Second start
+      console.log("✓ Multiple starts handled gracefully");
+    } catch (error) {
+      // Some implementations might prevent double-start
+      console.log("Note: Double start prevented:", error.message);
+    }
+
+    try {
+      await stopPrinterStateMonitoring();
+    } catch (error) {
+      console.log("Note: Stop monitoring after start threw:", error.message);
+    }
+
+    // Test unsubscribing invalid subscription
+    const subscription = await subscribeToPrinterStateChanges(() => {});
+    await subscription.unsubscribe();
+
+    // Try to unsubscribe again
+    try {
+      const secondUnsubscribe = await subscription.unsubscribe();
+      if (secondUnsubscribe) {
+        console.log("Note: Double unsubscribe returned true");
+      } else {
+        console.log("✓ Double unsubscribe correctly returned false");
+      }
+    } catch (error) {
+      console.log(
+        "Note: Double unsubscribe threw error (acceptable):",
+        error.message
+      );
+    }
+  } catch (error) {
+    console.error("Error handling test failed:", error);
+    throw error;
+  }
+});
+
+console.log(`\n${runtimeName}: Printer state monitoring tests completed!`);
 
 test(`${runtimeName}: should track jobs in active jobs list`, async () => {
   if (!isSimulationMode) {
