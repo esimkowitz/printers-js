@@ -554,72 +554,7 @@ impl PrinterCore {
             }
         };
 
-        // If print was successful, add delay to keep printer instance alive
-        // This prevents premature disposal during data transfer to printer
-        if result.is_ok() {
-            // Determine delay based on file size and type
-            let delay_ms = Self::calculate_print_delay(file_path);
-            eprintln!(
-                "DEBUG: Applying keep-alive delay for file printing: {}ms",
-                delay_ms
-            );
-            thread::sleep(Duration::from_millis(delay_ms));
-        }
-
         result
-    }
-
-    /// Calculate appropriate delay to keep printer instance alive based on file characteristics
-    fn calculate_print_delay(file_path: &str) -> u64 {
-        let file_size = std::fs::metadata(file_path)
-            .map(|metadata| metadata.len())
-            .unwrap_or(0);
-
-        // Base delay for small files (minimum 2 seconds)
-        let mut delay_ms = 2000;
-
-        // Add delay based on file size (1 second per MB, up to 30 seconds max)
-        let size_delay = ((file_size / 1_048_576) * 1000).min(30_000) as u64;
-        delay_ms += size_delay;
-
-        // Add extra delay for image files that may need more processing time
-        if let Some(extension) = std::path::Path::new(file_path)
-            .extension()
-            .and_then(|ext| ext.to_str())
-        {
-            match extension.to_lowercase().as_str() {
-                "jpg" | "jpeg" | "png" | "gif" | "bmp" | "tiff" | "tif" => {
-                    delay_ms += 3000; // Extra 3 seconds for images
-                }
-                "pdf" => {
-                    delay_ms += 2000; // Extra 2 seconds for PDFs
-                }
-                _ => {}
-            }
-        }
-
-        delay_ms
-    }
-
-    /// Calculate appropriate delay for raw bytes printing to keep printer instance alive
-    fn calculate_bytes_print_delay(data_size: usize) -> u64 {
-        // Base delay for small data (minimum 2 seconds)
-        let mut delay_ms = 2000;
-
-        // Add delay based on data size (1 second per MB, up to 30 seconds max)
-        let size_delay = ((data_size / 1_048_576) * 1000).min(30_000) as u64;
-        delay_ms += size_delay;
-
-        // Add extra delay for larger raw data that might be images or complex documents
-        if data_size > 5_242_880 {
-            // > 5MB
-            delay_ms += 3000; // Extra 3 seconds for large data
-        } else if data_size > 1_048_576 {
-            // > 1MB
-            delay_ms += 1500; // Extra 1.5 seconds for medium data
-        }
-
-        delay_ms
     }
 
     /// Execute actual byte printing using the printers crate
@@ -664,17 +599,6 @@ impl PrinterCore {
 
                 // Clean up temp file regardless of result
                 let _ = std::fs::remove_file("/tmp/temp_print_data");
-
-                // If print was successful, add delay to keep printer instance alive
-                if print_result.is_ok() {
-                    // Calculate delay based on data size (bytes printing)
-                    let delay_ms = Self::calculate_bytes_print_delay(data.len());
-                    eprintln!(
-                        "DEBUG: Applying keep-alive delay for bytes printing: {}ms",
-                        delay_ms
-                    );
-                    thread::sleep(Duration::from_millis(delay_ms));
-                }
 
                 print_result
             }

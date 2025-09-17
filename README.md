@@ -86,7 +86,7 @@ try {
 
 ## API Reference
 
-### Functions
+### Main Functions
 
 #### `getAllPrinters(): Printer[]`
 
@@ -104,35 +104,46 @@ Find a printer by its exact name.
 
 Check if a printer exists on the system.
 
-#### `getJobStatus(jobId: number): JobStatus | null`
-
-Get the status of a print job by ID.
-
-#### `cleanupOldJobs(maxAgeMs: number = 30000): number`
-
-Remove old completed/failed jobs and return the count removed. The maxAgeMs
-parameter is in milliseconds (default: 30000ms = 30 seconds).
-
 #### `shutdown(): void`
 
-Shutdown the library and cleanup all background threads. Called automatically on
-process exit.
+Clean up resources and shutdown the printer module. Called automatically on process exit.
+
+### Option Conversion Functions
+
+#### `simpleToCUPS(options: Partial<SimplePrintOptions>): Record<string, string>`
+
+Convert user-friendly simple options to CUPS format.
+
+#### `cupsToRaw(options: Partial<CUPSOptions>): Record<string, string>`
+
+Convert CUPS options to raw string properties for the backend.
+
+#### `printJobOptionsToRaw(options?: PrintJobOptions): Record<string, string>`
+
+Convert unified PrintJobOptions to raw properties with proper precedence handling.
+
+#### `createCustomPageSize(width: number, length: number, unit?: CustomPageSizeUnit): string`
+
+Generate a custom page size string for CUPS media option.
+
+```typescript
+const customSize = createCustomPageSize(4, 6, "in");
+// Returns: "Custom.4x6in"
+```
 
 ### Additional Exports
 
-#### Legacy/Convenience Functions
+#### Convenience Functions
 
 - `findPrinter(name: string): Printer | null` - Alias for `getPrinterByName`
 - `getDefaultPrinter(): Printer | null` - Returns the default system printer
-- `createPrintJob(printerName: string, filePath: string, options?: Record<string, string>): Promise<void>` -
-  Create and execute a print job
+- `printFile(printerName: string, filePath: string, options?: PrintJobOptions | Record<string, string>): Promise<number>` - Print a file to a specific printer
+- `printBytes(printerName: string, data: Uint8Array | Buffer, options?: PrintJobOptions | Record<string, string>): Promise<number>` - Print raw bytes to a specific printer
 
 #### Constants
 
-- `isSimulationMode: boolean` - Whether simulation mode is active
-- `runtimeInfo: RuntimeInfo` - Information about the current runtime
-- `PrinterConstructor: PrinterClass` - Class with static factory method for
-  creating printer instances
+- `isSimulationMode: boolean` - Whether simulation mode is active (read-only)
+- `runtimeInfo: RuntimeInfo` - Information about the current runtime environment
 
 ### Classes
 
@@ -179,6 +190,29 @@ Represents a system printer with metadata and printing capabilities.
 - `PrinterConstructor.fromName(name: string): Printer | null` - Create printer
   instance from name
 
+#### `PrinterClass`
+
+Interface for the PrinterConstructor static methods:
+
+```typescript
+interface PrinterClass {
+  fromName(name: string): Printer | null;
+  new (): never; // Constructor is disabled
+}
+```
+
+**Usage:**
+
+```typescript
+import { PrinterConstructor } from "@printers/printers";
+
+// Create printer instance
+const printer = PrinterConstructor.fromName("My Printer");
+if (printer) {
+  console.log("Found printer:", printer.name);
+}
+```
+
 ## Print Options
 
 The library supports multiple ways to specify print options, with automatic conversion and precedence handling.
@@ -220,18 +254,36 @@ interface SimplePrintOptions {
 
 ### CUPSOptions
 
-Direct CUPS option control for advanced configurations:
+Direct CUPS option control for advanced configurations. Based on [CUPS documentation](https://www.cups.org/doc/options.html).
 
 ```typescript
 interface CUPSOptions {
+  // Job control
   "job-name"?: string;
-  "job-priority"?: number;
-  copies?: number | string;
+  "job-priority"?: number; // 1-100
+  "job-hold-until"?: JobHoldUntil;
+  copies?: number;
   collate?: boolean;
-  "media-size"?: string;
-  "print-quality"?: number;
-  "fit-to-page"?: boolean;
-  // ... and many more CUPS options
+
+  // Media selection
+  media?: string;
+  "media-size"?: MediaSize;
+  "media-type"?: MediaType;
+  "media-source"?: MediaSource;
+
+  // Layout and orientation
+  landscape?: boolean;
+  "orientation-requested"?: OrientationRequested;
+  sides?: Sides;
+  "page-ranges"?: string; // e.g., "1-4,7,9-12"
+  "number-up"?: NumberUp;
+
+  // Quality and appearance
+  "print-quality"?: PrintQuality;
+  "print-color-mode"?: ColorMode;
+  resolution?: string;
+
+  // Custom options
   [key: string]: string | number | boolean | undefined;
 }
 ```
@@ -278,49 +330,9 @@ await printer.printFile("document.pdf", {
 
 ### Types and Interfaces
 
-#### `PrinterJob`
+#### Core Enums
 
-```typescript
-interface PrinterJob {
-  id: number;
-  name: string;
-  state:
-    | "pending"
-    | "paused"
-    | "processing"
-    | "cancelled"
-    | "completed"
-    | "unknown";
-  mediaType: string;
-  createdAt: number; // Unix timestamp
-  printerName: string;
-  ageSeconds: number;
-  processedAt?: number; // Unix timestamp
-  completedAt?: number; // Unix timestamp
-  errorMessage?: string;
-}
-```
-
-#### `JobStatus` (Legacy)
-
-```typescript
-interface JobStatus {
-  id: number;
-  printer_name: string;
-  file_path: string;
-  status: "queued" | "printing" | "completed" | "failed";
-  error_message?: string;
-  age_seconds: number;
-}
-```
-
-#### `PrinterState`
-
-```typescript
-type PrinterState = "idle" | "processing" | "stopped" | "unknown";
-```
-
-#### `PrintError`
+##### `PrintError`
 
 ```typescript
 enum PrintError {
@@ -335,7 +347,64 @@ enum PrintError {
 }
 ```
 
-#### `RuntimeInfo`
+#### CUPS Printing Option Types
+
+The library exports comprehensive type definitions for CUPS printing options:
+
+**Media and Layout Types:**
+
+- `MediaSize` - Paper sizes: "Letter", "A4", "Legal", "A3", etc.
+- `MediaType` - Paper types: "plain", "bond", "letterhead", "transparency", etc.
+- `MediaSource` - Paper sources: "auto", "tray-1", "manual", etc.
+- `OrientationRequested` - Orientation values (3-6)
+- `Sides` - Duplex options: "one-sided", "two-sided-long-edge", "two-sided-short-edge"
+
+**Quality and Layout:**
+
+- `PrintQuality` - Quality levels (3-5)
+- `NumberUp` - Pages per sheet: 1, 2, 4, 6, 9, 16
+- `NumberUpLayout` - Layout patterns: "lrtb", "lrbt", etc.
+- `ColorMode` - Color options: "monochrome", "color", "auto"
+
+**Other Types:**
+
+- `PageBorder`, `OutputOrder`, `JobHoldUntil`, `DocumentFormat`, `CustomPageSizeUnit`
+- `PrinterJobState` - Job states: "pending", "processing", "completed", etc.
+- `PrinterState` - Printer states: "idle", "processing", "stopped", "unknown"
+
+#### Main Interfaces
+
+##### `PrinterJob`
+
+```typescript
+interface PrinterJob {
+  id: number;
+  name: string;
+  state: PrinterJobState;
+  mediaType: string;
+  createdAt: number; // Unix timestamp
+  printerName: string;
+  ageSeconds: number;
+  processedAt?: number; // Unix timestamp
+  completedAt?: number; // Unix timestamp
+  errorMessage?: string;
+}
+```
+
+##### `JobStatus` (Legacy)
+
+```typescript
+interface JobStatus {
+  id: number;
+  printer_name: string;
+  file_path: string;
+  status: "queued" | "printing" | "completed" | "failed";
+  error_message?: string;
+  age_seconds: number;
+}
+```
+
+##### `RuntimeInfo`
 
 ```typescript
 interface RuntimeInfo {
