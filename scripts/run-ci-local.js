@@ -4,68 +4,13 @@
  * This script allows you to test GitHub Actions workflows locally before pushing
  */
 
-import { spawn } from "node:child_process";
-
-// Colors for output
-const colors = {
-  red: "\x1b[0;31m",
-  green: "\x1b[0;32m",
-  yellow: "\x1b[1;33m",
-  blue: "\x1b[0;34m",
-  reset: "\x1b[0m", // No Color
-};
-
-function colorize(color, text) {
-  return `${colors[color]}${text}${colors.reset}`;
-}
-
-async function runCommand(command, options = {}) {
-  return new Promise(resolve => {
-    try {
-      const [cmd, ...args] = command;
-      const child = spawn(cmd, args, {
-        env: {
-          ...process.env,
-          ...options.env,
-        },
-        stdio: ["inherit", "pipe", "pipe"],
-      });
-
-      let stdout = "";
-      let stderr = "";
-
-      child.stdout?.on("data", data => {
-        stdout += data.toString();
-      });
-
-      child.stderr?.on("data", data => {
-        stderr += data.toString();
-      });
-
-      child.on("close", code => {
-        resolve({
-          success: code === 0,
-          output: stdout + stderr,
-        });
-      });
-
-      child.on("error", error => {
-        resolve({
-          success: false,
-          output: `Command failed: ${error.message}`,
-        });
-      });
-    } catch (error) {
-      resolve({
-        success: false,
-        output: `Command failed: ${error.message}`,
-      });
-    }
-  });
-}
+import {
+  colorize,
+  runCommand,
+} from "./utils.js";
 
 async function checkActInstalled() {
-  const result = await runCommand(["act", "--version"]);
+  const result = await runCommand(["act", "--version"], { showOutput: false });
   return result.success;
 }
 
@@ -183,7 +128,7 @@ async function main() {
     process.exit(1);
   }
 
-  const versionResult = await runCommand(["act", "--version"]);
+  const versionResult = await runCommand(["act", "--version"], { showOutput: false });
   console.log(colorize("green", "✅ nektos/act is installed"));
   console.log(`Act version: ${versionResult.output.trim()}`);
   console.log();

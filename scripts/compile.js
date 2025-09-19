@@ -7,61 +7,21 @@
 
 import {
   existsSync,
-  mkdirSync,
-  rmSync,
   readFileSync,
   writeFileSync,
   readdirSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import {
+  ensureDir,
+  removeDir,
+  runCommandLegacy as runCommand,
+} from "./utils.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, "..");
 const DIST_DIR = join(PROJECT_ROOT, "dist");
-
-function ensureDir(dir) {
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-}
-
-function removeDir(dir) {
-  if (existsSync(dir)) {
-    rmSync(dir, { recursive: true });
-  }
-}
-
-function runCommand(command, args, cwd) {
-  return new Promise((resolve, reject) => {
-    const isWindows = process.platform === "win32";
-    const childProcess = spawn(command, args, {
-      cwd,
-      stdio: ["inherit", "pipe", "pipe"],
-      shell: isWindows, // Use shell on Windows to handle npx properly
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    childProcess.stdout?.on("data", data => {
-      stdout += data.toString();
-    });
-
-    childProcess.stderr?.on("data", data => {
-      stderr += data.toString();
-    });
-
-    childProcess.on("close", code => {
-      if (code === 0) {
-        resolve({ code, stdout, stderr });
-      } else {
-        reject({ code, stdout, stderr });
-      }
-    });
-  });
-}
 
 console.log("🔨 Compiling TypeScript to JavaScript...");
 

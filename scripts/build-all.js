@@ -4,109 +4,14 @@
  * Cross-platform build script that works on Windows, macOS, and Linux
  */
 
-import { spawn } from "node:child_process";
-import { stat } from "node:fs/promises";
 import { platform, arch } from "node:os";
-
-// Colors for output
-const colors = {
-  red: "\x1b[0;31m",
-  green: "\x1b[0;32m",
-  yellow: "\x1b[1;33m",
-  reset: "\x1b[0m", // No Color
-};
-
-function colorize(color, text) {
-  return `${colors[color]}${text}${colors.reset}`;
-}
-
-async function runCommand(command, options = {}) {
-  return new Promise(resolve => {
-    try {
-      const [cmd, ...args] = command;
-      const showOutput = options.showOutput !== false; // Default to showing output
-      const child = spawn(cmd, args, {
-        cwd: options.cwd,
-        env: {
-          ...process.env,
-          ...options.env,
-        },
-        stdio: showOutput ? "inherit" : ["inherit", "pipe", "pipe"],
-      });
-
-      if (!showOutput) {
-        let stdout = "";
-        let stderr = "";
-
-        child.stdout?.on("data", data => {
-          stdout += data.toString();
-        });
-
-        child.stderr?.on("data", data => {
-          stderr += data.toString();
-        });
-
-        child.on("close", code => {
-          resolve({
-            success: code === 0,
-            output: stdout + stderr,
-          });
-        });
-
-        child.on("error", error => {
-          resolve({
-            success: false,
-            output: `Command failed: ${error.message}`,
-          });
-        });
-      } else {
-        child.on("close", code => {
-          resolve({
-            success: code === 0,
-            output: "",
-          });
-        });
-
-        child.on("error", error => {
-          resolve({
-            success: false,
-            output: `Command failed: ${error.message}`,
-          });
-        });
-      }
-    } catch (error) {
-      resolve({
-        success: false,
-        output: `Command failed: ${error.message}`,
-      });
-    }
-  });
-}
-
-async function commandExists(command) {
-  const result = await runCommand([command, "--version"], {
-    showOutput: false,
-  });
-  return result.success;
-}
-
-async function fileExists(path) {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function directoryExists(path) {
-  try {
-    const stats = await stat(path);
-    return stats.isDirectory();
-  } catch {
-    return false;
-  }
-}
+import {
+  colorize,
+  runCommand,
+  commandExists,
+  fileExists,
+  directoryExists,
+} from "./utils.js";
 
 async function main() {
   console.log("Building cross-runtime printer library...");
