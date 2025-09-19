@@ -4,75 +4,9 @@
  * Cross-platform test runner that works on Windows, macOS, and Linux
  */
 
-import { spawn } from "node:child_process";
-import { writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-
-// Colors for output
-const colors = {
-  red: "\x1b[0;31m",
-  green: "\x1b[0;32m",
-  yellow: "\x1b[1;33m",
-  blue: "\x1b[0;34m",
-  reset: "\x1b[0m", // No Color
-};
-
-function colorize(color, text) {
-  return `${colors[color]}${text}${colors.reset}`;
-}
-
-async function runCommand(command, options = {}) {
-  return new Promise(resolve => {
-    try {
-      const [cmd, ...args] = command;
-      const child = spawn(cmd, args, {
-        cwd: options.cwd,
-        env: {
-          ...process.env,
-          PRINTERS_JS_SIMULATE: "true", // Always run in simulation mode
-          ...options.env,
-        },
-        stdio: ["inherit", "pipe", "pipe"],
-      });
-
-      let stdout = "";
-      let stderr = "";
-
-      child.stdout?.on("data", data => {
-        stdout += data.toString();
-      });
-
-      child.stderr?.on("data", data => {
-        stderr += data.toString();
-      });
-
-      child.on("close", code => {
-        resolve({
-          success: code === 0,
-          output: stdout + stderr,
-        });
-      });
-
-      child.on("error", error => {
-        resolve({
-          success: false,
-          output: `Command failed: ${error.message}`,
-        });
-      });
-    } catch (error) {
-      resolve({
-        success: false,
-        output: `Command failed: ${error.message}`,
-      });
-    }
-  });
-}
-
-async function ensureDir(dir) {
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-}
+import { colorize, runCommand, ensureDir } from "./utils.js";
 
 function parseTestCount(output) {
   // Parse Deno test output: "ok | 14 passed (0 step) | 0 failed (18ms)"
@@ -179,16 +113,19 @@ async function runTests() {
   // Test Deno with coverage
   console.log(colorize("yellow", "🦕 Testing with Deno..."));
   console.log("--------------------");
-  const denoResult = await runCommand([
-    "deno",
-    "test",
-    "--allow-env",
-    "--allow-read",
-    "--allow-ffi",
-    "--no-check",
-    "--coverage=test-results/coverage/deno-temp",
-    "src/tests/shared.test.ts",
-  ]);
+  const denoResult = await runCommand(
+    [
+      "deno",
+      "test",
+      "--allow-env",
+      "--allow-read",
+      "--allow-ffi",
+      "--no-check",
+      "--coverage=test-results/coverage/deno-temp",
+      "src/tests/shared.test.ts",
+    ],
+    { simulate: true }
+  );
 
   // Generate Deno coverage report
   if (existsSync("test-results/coverage/deno-temp")) {
@@ -225,11 +162,10 @@ async function runTests() {
   // Test Node.js (uses existing node-test-runner which generates proper artifacts)
   console.log(colorize("yellow", "🟢 Testing with Node.js..."));
   console.log("--------------------");
-  const nodeResult = await runCommand([
-    "npx",
-    "tsx",
-    "src/tests/node-test-runner.ts",
-  ]);
+  const nodeResult = await runCommand(
+    ["npx", "tsx", "src/tests/node-test-runner.ts"],
+    { simulate: true }
+  );
 
   if (nodeResult.success) {
     console.log(colorize("green", "✅ Node.js tests passed"));
@@ -249,15 +185,18 @@ async function runTests() {
   // Test Bun with coverage
   console.log(colorize("yellow", "🥟 Testing with Bun..."));
   console.log("--------------------");
-  const bunResult = await runCommand([
-    "bun",
-    "test",
-    "--coverage",
-    "--coverage-dir=test-results/coverage/bun-temp",
-    "--coverage-exclude=scripts/**",
-    "--coverage-exclude=examples/**",
-    "src/tests/shared.test.ts",
-  ]);
+  const bunResult = await runCommand(
+    [
+      "bun",
+      "test",
+      "--coverage",
+      "--coverage-dir=test-results/coverage/bun-temp",
+      "--coverage-exclude=scripts/**",
+      "--coverage-exclude=examples/**",
+      "src/tests/shared.test.ts",
+    ],
+    { simulate: true }
+  );
 
   // Generate Bun coverage report (Bun doesn't have built-in LCOV export, so create a basic one)
   generateBasicLCOV("bun", bunResult.output);

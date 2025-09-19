@@ -10,43 +10,10 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
 import semver from "semver";
+import { runCommand } from "./utils.js";
 
 const BUMP_TYPES = ["major", "minor", "patch"];
-
-function runCommand(command, args) {
-  return new Promise(resolve => {
-    const child = spawn(command, args, {
-      stdio: ["inherit", "pipe", "pipe"],
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout?.on("data", data => {
-      stdout += data.toString();
-    });
-
-    child.stderr?.on("data", data => {
-      stderr += data.toString();
-    });
-
-    child.on("close", code => {
-      resolve({
-        success: code === 0,
-        output: stdout + stderr,
-      });
-    });
-
-    child.on("error", error => {
-      resolve({
-        success: false,
-        output: `Command failed: ${error.message}`,
-      });
-    });
-  });
-}
 
 function updatePackageJson(newVersion) {
   const packageJsonPath = join(process.cwd(), "package.json");
@@ -147,7 +114,9 @@ async function main() {
       updateCargoToml(newVersionString);
 
       console.log("Updating package-lock.json...");
-      const npmResult = await runCommand("npm", ["install"]);
+      const npmResult = await runCommand(["npm", "install"], {
+        showOutput: false,
+      });
       if (!npmResult.success) {
         console.warn(
           "⚠️ npm install failed, package-lock.json may be out of sync"
@@ -155,7 +124,9 @@ async function main() {
       }
 
       console.log("Updating Cargo.lock...");
-      const cargoResult = await runCommand("cargo", ["check"]);
+      const cargoResult = await runCommand(["cargo", "check"], {
+        showOutput: false,
+      });
       if (!cargoResult.success) {
         console.warn("⚠️ cargo check failed, Cargo.lock may be out of sync");
       }
