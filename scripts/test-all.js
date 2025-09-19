@@ -6,11 +6,7 @@
 
 import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  colorize,
-  runCommand,
-  ensureDir,
-} from "./utils.js";
+import { colorize, runCommand, ensureDir } from "./utils.js";
 
 function parseTestCount(output) {
   // Parse Deno test output: "ok | 14 passed (0 step) | 0 failed (18ms)"
@@ -117,16 +113,19 @@ async function runTests() {
   // Test Deno with coverage
   console.log(colorize("yellow", "🦕 Testing with Deno..."));
   console.log("--------------------");
-  const denoResult = await runCommand([
-    "deno",
-    "test",
-    "--allow-env",
-    "--allow-read",
-    "--allow-ffi",
-    "--no-check",
-    "--coverage=test-results/coverage/deno-temp",
-    "src/tests/shared.test.ts",
-  ], { simulate: true });
+  const denoResult = await runCommand(
+    [
+      "deno",
+      "test",
+      "--allow-env",
+      "--allow-read",
+      "--allow-ffi",
+      "--no-check",
+      "--coverage=test-results/coverage/deno-temp",
+      "src/tests/shared.test.ts",
+    ],
+    { simulate: true }
+  );
 
   // Generate Deno coverage report
   if (existsSync("test-results/coverage/deno-temp")) {
@@ -163,11 +162,10 @@ async function runTests() {
   // Test Node.js (uses existing node-test-runner which generates proper artifacts)
   console.log(colorize("yellow", "🟢 Testing with Node.js..."));
   console.log("--------------------");
-  const nodeResult = await runCommand([
-    "npx",
-    "tsx",
-    "src/tests/node-test-runner.ts",
-  ], { simulate: true });
+  const nodeResult = await runCommand(
+    ["npx", "tsx", "src/tests/node-test-runner.ts"],
+    { simulate: true }
+  );
 
   if (nodeResult.success) {
     console.log(colorize("green", "✅ Node.js tests passed"));
@@ -187,15 +185,18 @@ async function runTests() {
   // Test Bun with coverage
   console.log(colorize("yellow", "🥟 Testing with Bun..."));
   console.log("--------------------");
-  const bunResult = await runCommand([
-    "bun",
-    "test",
-    "--coverage",
-    "--coverage-dir=test-results/coverage/bun-temp",
-    "--coverage-exclude=scripts/**",
-    "--coverage-exclude=examples/**",
-    "src/tests/shared.test.ts",
-  ], { simulate: true });
+  const bunResult = await runCommand(
+    [
+      "bun",
+      "test",
+      "--coverage",
+      "--coverage-dir=test-results/coverage/bun-temp",
+      "--coverage-exclude=scripts/**",
+      "--coverage-exclude=examples/**",
+      "src/tests/shared.test.ts",
+    ],
+    { simulate: true }
+  );
 
   // Generate Bun coverage report (Bun doesn't have built-in LCOV export, so create a basic one)
   generateBasicLCOV("bun", bunResult.output);

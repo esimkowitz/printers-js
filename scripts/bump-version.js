@@ -11,9 +11,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import semver from "semver";
-import {
-  runCommand,
-} from "./utils.js";
+import { runCommand } from "./utils.js";
 
 const BUMP_TYPES = ["major", "minor", "patch"];
 
@@ -116,7 +114,9 @@ async function main() {
       updateCargoToml(newVersionString);
 
       console.log("Updating package-lock.json...");
-      const npmResult = await runCommand(["npm", "install"], { showOutput: false });
+      const npmResult = await runCommand(["npm", "install"], {
+        showOutput: false,
+      });
       if (!npmResult.success) {
         console.warn(
           "⚠️ npm install failed, package-lock.json may be out of sync"
@@ -124,7 +124,9 @@ async function main() {
       }
 
       console.log("Updating Cargo.lock...");
-      const cargoResult = await runCommand(["cargo", "check"], { showOutput: false });
+      const cargoResult = await runCommand(["cargo", "check"], {
+        showOutput: false,
+      });
       if (!cargoResult.success) {
         console.warn("⚠️ cargo check failed, Cargo.lock may be out of sync");
       }

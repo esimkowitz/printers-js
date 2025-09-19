@@ -29,10 +29,7 @@ export function colorize(color, text) {
  * Universal command runner that supports all script use cases
  * Provides consistent command execution across all scripts with flexible options
  */
-export async function runCommand(
-  command,
-  options = {}
-) {
+export async function runCommand(command, options = {}) {
   return new Promise(resolve => {
     try {
       const [cmd, ...args] = command;
@@ -169,11 +166,7 @@ export function removeDir(dir) {
  * Legacy runCommand for compile.js compatibility
  * Returns a promise that rejects on failure instead of always resolving
  */
-export function runCommandLegacy(
-  command,
-  args,
-  cwd
-) {
+export function runCommandLegacy(command, args, cwd) {
   return new Promise((resolve, reject) => {
     const useShell = process.platform === "win32";
     const childProcess = spawn(command, args, {

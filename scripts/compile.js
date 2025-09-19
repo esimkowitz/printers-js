@@ -5,12 +5,7 @@
  * the primary entrypoints for both npm and JSR packages.
  */
 
-import {
-  existsSync,
-  readFileSync,
-  writeFileSync,
-  readdirSync,
-} from "node:fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {

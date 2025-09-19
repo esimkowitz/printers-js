@@ -4,10 +4,7 @@
  * This script allows you to test GitHub Actions workflows locally before pushing
  */
 
-import {
-  colorize,
-  runCommand,
-} from "./utils.js";
+import { colorize, runCommand } from "./utils.js";
 
 async function checkActInstalled() {
   const result = await runCommand(["act", "--version"], { showOutput: false });
@@ -128,7 +125,9 @@ async function main() {
     process.exit(1);
   }
 
-  const versionResult = await runCommand(["act", "--version"], { showOutput: false });
+  const versionResult = await runCommand(["act", "--version"], {
+    showOutput: false,
+  });
   console.log(colorize("green", "✅ nektos/act is installed"));
   console.log(`Act version: ${versionResult.output.trim()}`);
   console.log();
