@@ -4,11 +4,7 @@ This document describes the cross-runtime compatibility features of the `@printe
 
 ## Overview
 
-The `@printers/printers` library provides identical functionality across three major JavaScript runtimes:
-
-- **Node.js** - Primary runtime with full feature support
-- **Deno** - Full compatibility with TypeScript-first development
-- **Bun** - High-performance alternative with complete API parity
+The `@printers/printers` library provides identical functionality across three major JavaScript runtimes: Node.js, Deno, and Bun.
 
 ## Key Features
 
@@ -31,51 +27,6 @@ console.log(runtimeInfo);
 // Bun:     { name: "bun", isDeno: false, isNode: false, isBun: true, version: "1.x.x" }
 ```
 
-## Installation and Import
-
-### Node.js
-
-```bash
-npm install @printers/printers
-```
-
-```typescript
-// ESM (recommended)
-import { getAllPrinters, getPrinterByName } from "@printers/printers";
-
-// CommonJS (legacy)
-const { getAllPrinters, getPrinterByName } = require("@printers/printers");
-```
-
-### Deno
-
-```typescript
-// Import from npm: (recommended)
-import { getAllPrinters, getPrinterByName } from "npm:@printers/printers";
-
-// Or with specific version
-import {
-  getAllPrinters,
-  getPrinterByName,
-} from "npm:@printers/printers@^0.8.0";
-```
-
-Required permissions:
-
-```bash
-deno run --allow-env --allow-read --allow-ffi your-script.ts
-```
-
-### Bun
-
-```bash
-bun add @printers/printers
-```
-
-```typescript
-import { getAllPrinters, getPrinterByName } from "@printers/printers";
-```
-
 ## Universal Entry Point
 
 All runtimes use the same entry point (`src/index.ts`) which automatically:
@@ -84,22 +35,6 @@ All runtimes use the same entry point (`src/index.ts`) which automatically:
 2. **Loads the appropriate N-API module** for the platform
 3. **Provides consistent APIs** regardless of runtime
 4. **Handles simulation mode** uniformly
-
-```typescript
-// This works identically in all runtimes
-import {
-  getAllPrinters,
-  subscribeToPrinterStateChanges,
-  startPrinterStateMonitoring,
-} from "@printers/printers"; // Node.js/Bun
-// or "npm:@printers/printers" for Deno
-
-// Identical usage across all runtimes
-const printers = getAllPrinters();
-const subscription = await subscribeToPrinterStateChanges(event => {
-  console.log(`${event.eventType}: ${event.printerName}`);
-});
-```
 
 ## N-API Module Loading
 
@@ -125,33 +60,11 @@ import("@printers/printers-{platform}");
 
 ## Runtime-Specific Considerations
 
-### Node.js
+### Node.js and Bun
 
-- **Primary runtime** - Most extensively tested and supported
-- **Full feature set** - All functionality available
-- **Best performance** - Optimized for Node.js ecosystem
-- **ESM and CommonJS** - Both module systems supported
-
-```typescript
-// Node.js specific features
-import fs from "fs";
-import { getPrinterByName } from "@printers/printers";
-
-const printer = getPrinterByName("My Printer");
-
-// File system operations work naturally
-const fileExists = fs.existsSync("document.pdf");
-if (fileExists) {
-  await printer.printFile("document.pdf");
-}
-```
+No special considerations; works out of the box.
 
 ### Deno
-
-- **TypeScript-first** - No compilation step needed
-- **Permission-based security** - Requires explicit permissions
-- **Standard library** - Uses Deno's built-in modules
-- **NPM compatibility** - Accesses library via `npm:` prefix
 
 Required permissions:
 
@@ -170,29 +83,7 @@ const printer = getPrinterByName("My Printer");
 await printer.printFile("document.pdf");
 ```
 
-### Bun
-
-- **High performance** - Fast JavaScript runtime
-- **Node.js compatibility** - Drop-in replacement for many Node.js apps
-- **Built-in TypeScript** - No additional transpilation needed
-- **Fast package installation** - Quick dependency resolution
-
-```typescript
-// Bun specific usage (identical to Node.js)
-import { getPrinterByName } from "@printers/printers";
-
-// Bun provides process global like Node.js
-process.env.PRINTERS_JS_SIMULATE = "true";
-
-const printer = getPrinterByName("My Printer");
-await printer.printFile("document.pdf");
-```
-
-## Environment Variables
-
-Consistent environment variable handling across runtimes:
-
-### Simulation Mode
+## Simulation Mode
 
 ```typescript
 // Node.js & Bun
@@ -285,105 +176,6 @@ task build:napi
 task build:ts
 ```
 
-### CI/CD Support
-
-GitHub Actions workflow builds and tests across:
-
-- **Multiple platforms** (macOS, Windows, Linux)
-- **Multiple runtimes** (Node.js, Deno, Bun)
-- **Multiple architectures** (x64, ARM64)
-
-## Performance Characteristics
-
-### Runtime Performance
-
-| Runtime | Startup   | Print Job | State Monitoring | Memory Usage |
-| ------- | --------- | --------- | ---------------- | ------------ |
-| Node.js | Fast      | Excellent | Excellent        | Moderate     |
-| Deno    | Moderate  | Good      | Good             | Low          |
-| Bun     | Very Fast | Excellent | Excellent        | Very Low     |
-
-### Optimization Tips
-
-1. **Use appropriate runtime** for your use case
-2. **Enable simulation mode** for development
-3. **Batch operations** when possible
-4. **Clean up subscriptions** to prevent memory leaks
-5. **Use waitForCompletion: false** for responsive UIs
-
-## Migration Between Runtimes
-
-### Node.js to Deno
-
-```typescript
-// Before (Node.js)
-import fs from "fs";
-import { getPrinterByName } from "@printers/printers";
-
-const exists = fs.existsSync("file.pdf");
-
-// After (Deno)
-import { getPrinterByName } from "npm:@printers/printers";
-
-const exists = await Deno.stat("file.pdf")
-  .then(() => true)
-  .catch(() => false);
-```
-
-### Node.js to Bun
-
-```typescript
-// Before (Node.js)
-import { getPrinterByName } from "@printers/printers";
-
-// After (Bun) - No changes needed!
-import { getPrinterByName } from "@printers/printers";
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Deno Permission Errors
-
-```bash
-# Error: Requires read access
-deno run --allow-read your-script.ts
-
-# Error: Requires FFI access
-deno run --allow-ffi your-script.ts
-
-# Error: Requires env access
-deno run --allow-env your-script.ts
-
-# Solution: Grant all required permissions
-deno run --allow-env --allow-read --allow-ffi your-script.ts
-```
-
-#### Module Not Found Errors
-
-```typescript
-// Error: Cannot find module '@printers/printers-{platform}'
-// Solution: Build the N-API modules
-task build:napi
-
-// Or install platform-specific packages
-npm install @printers/printers-darwin-arm64
-```
-
-#### Runtime Detection Issues
-
-```typescript
-// Check runtime detection
-import { runtimeInfo } from "@printers/printers";
-console.log("Detected runtime:", runtimeInfo.name);
-
-// Force runtime if needed (not recommended)
-if (runtimeInfo.name === "unknown") {
-  console.warn("Runtime detection failed");
-}
-```
-
 ## Best Practices
 
 1. **Use the universal entry point** - Always import from the main package
@@ -393,14 +185,3 @@ if (runtimeInfo.name === "unknown") {
 5. **Monitor performance** - Different runtimes have different characteristics
 6. **Keep dependencies minimal** - The library has zero runtime dependencies
 7. **Update regularly** - Cross-runtime compatibility improves with each release
-
-## Future Runtime Support
-
-The library is designed to easily support additional JavaScript runtimes as they emerge. The modular architecture allows for:
-
-- **New runtime detection** in the universal entry point
-- **Additional N-API bindings** for new platforms
-- **Extended test coverage** for new environments
-- **Performance optimizations** per runtime
-
-To request support for a new runtime, please open an issue with details about the target environment and use case.
