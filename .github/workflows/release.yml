@@ -14,10 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-13
+          - host: macos-15-intel
             target: x86_64-apple-darwin
             npm_platform: darwin-x64
-          - host: macos-14
+          - host: macos-latest
             target: aarch64-apple-darwin
             npm_platform: darwin-arm64
           - host: windows-latest
