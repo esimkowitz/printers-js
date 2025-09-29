@@ -2,7 +2,7 @@ name: CI Report
 
 on:
   workflow_run:
-    workflows: ["Build"]
+    workflows: ["CI"]
     types:
       - completed
 
@@ -93,12 +93,12 @@ jobs:
             // Function to parse JUnit XML
             function parseJUnit(xmlContent) {
               let testMatch = xmlContent.match(/<testsuite[^>]*tests="(\d+)"[^>]*errors="(\d+)"[^>]*failures="(\d+)"/);
-              
+
               if (!testMatch) {
                 const testsMatch = xmlContent.match(/tests="(\d+)"/);
                 const errorsMatch = xmlContent.match(/errors="(\d+)"/);
                 const failuresMatch = xmlContent.match(/failures="(\d+)"/);
-                
+
                 if (testsMatch) {
                   const tests = parseInt(testsMatch[1]);
                   const errors = errorsMatch ? parseInt(errorsMatch[1]) : 0;
@@ -111,12 +111,12 @@ jobs:
                   };
                 }
               }
-              
+
               if (!testMatch) {
                 const testcases = (xmlContent.match(/<testcase/g) || []).length;
                 const failures = (xmlContent.match(/<failure/g) || []).length;
                 const errors = (xmlContent.match(/<error/g) || []).length;
-                
+
                 if (testcases > 0) {
                   return {
                     total: testcases,
@@ -126,7 +126,7 @@ jobs:
                   };
                 }
               }
-              
+
               if (testMatch) {
                 return {
                   total: parseInt(testMatch[1]),
@@ -135,7 +135,7 @@ jobs:
                   passed: parseInt(testMatch[1]) - parseInt(testMatch[2]) - parseInt(testMatch[3])
                 };
               }
-              
+
               return { total: 0, errors: 0, failures: 0, passed: 0 };
             }
 
@@ -145,11 +145,11 @@ jobs:
                 if (!fs.existsSync(filePath)) {
                   return 'No coverage';
                 }
-                
+
                 const lcovContent = fs.readFileSync(filePath, 'utf8');
                 let totalLines = 0;
                 let hitLines = 0;
-                
+
                 const lines = lcovContent.split('\n');
                 for (const line of lines) {
                   if (line.startsWith('DA:')) {
@@ -160,11 +160,11 @@ jobs:
                     }
                   }
                 }
-                
+
                 if (totalLines === 0) {
                   return 'No data';
                 }
-                
+
                 const percentage = Math.round((hitLines / totalLines) * 100);
                 return `${percentage}% (${hitLines}/${totalLines})`;
               } catch (error) {
@@ -191,13 +191,13 @@ jobs:
                 if (file.endsWith('.xml')) {
                   const content = fs.readFileSync(path.join(reportsPath, file), 'utf8');
                   const parsed = parseJUnit(content);
-                  
+
                   let runtime = null;
                   if (file.includes('deno')) runtime = 'deno';
                   else if (file.includes('bun')) runtime = 'bun';
                   else if (file.includes('node')) runtime = 'node';
                   else if (file.includes('cargo')) runtime = 'cargo';
-                  
+
                   if (runtime && parsed.total > 0) {
                     results[runtime] = parsed;
                   }
@@ -252,12 +252,12 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: prNumber,
               });
-              
+
               const existingComment = comments.data.find(comment =>
                 comment.user.type === 'Bot' &&
                 comment.body.includes(COMMENT_IDENTIFIER)
               );
-              
+
               if (existingComment) {
                 await github.rest.issues.updateComment({
                   owner: context.repo.owner,
@@ -307,13 +307,13 @@ jobs:
               if (codeQualityResults.rust_lint === 'failure') failedChecks.push('Rust lint');
               if (codeQualityResults.prettier_fmt === 'failure') failedChecks.push('Prettier format');
               if (codeQualityResults.eslint === 'failure') failedChecks.push('ESLint');
-              
+
               const allPassed = failedChecks.length === 0;
               const state = allPassed ? 'success' : 'failure';
-              const description = allPassed 
+              const description = allPassed
                 ? 'All code quality checks passed'
                 : `Code quality issues: ${failedChecks.join(', ')}`;
-              
+
               try {
                 await github.rest.repos.createCommitStatus({
                   owner: context.repo.owner,
