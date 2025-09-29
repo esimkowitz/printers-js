@@ -11,14 +11,6 @@ The library provides multiple ways to configure print jobs through:
 - **Raw properties** - Direct key-value pairs for advanced customization
 - **Option precedence** - Intelligent merging of different option types
 
-## Key Features
-
-- **Type-safe interfaces** - Full TypeScript support for all options
-- **Multiple option formats** - Simple, CUPS, and raw options
-- **Automatic conversion** - Simple options convert to CUPS automatically
-- **Option precedence** - Clear hierarchy for conflicting options
-- **Cross-platform support** - Works with CUPS (Unix/Linux/macOS) and Windows
-
 ## Simple Print Options
 
 The `SimplePrintOptions` interface provides easy-to-use options for common printing scenarios:

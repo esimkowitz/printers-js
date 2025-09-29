@@ -37,36 +37,6 @@ if (printer) {
 - **[Job Tracking](./JobTracking.md)** - Monitor and manage print jobs
 - **[Printer State Monitoring](./PrinterStateMonitoring.md)** - Real-time printer state change events
 
-### Installation Guides
-
-#### Node.js
-
-```bash
-npm install @printers/printers
-```
-
-#### Deno
-
-```typescript
-import { getAllPrinters } from "npm:@printers/printers";
-```
-
-#### Bun
-
-```bash
-bun add @printers/printers
-```
-
-## Key Features
-
-- ✅ **Cross-runtime compatibility** - Works with Node.js, Deno, and Bun
-- ✅ **Type-safe APIs** - Full TypeScript support with comprehensive type definitions
-- ✅ **Real-time monitoring** - Subscribe to printer state changes and events
-- ✅ **Flexible printing options** - Simple, CUPS, and raw option formats
-- ✅ **Job tracking** - Monitor print job lifecycle and history
-- ✅ **Simulation mode** - Safe testing without real hardware
-- ✅ **Cross-platform** - Windows, macOS, and Linux support
-
 ## Basic Examples
 
 ### Getting Printer Information
@@ -163,56 +133,6 @@ const checkJob = () => {
   }
 };
 checkJob();
-```
-
-## Runtime-Specific Examples
-
-### Node.js
-
-```typescript
-import fs from "fs";
-import { getPrinterByName } from "@printers/printers";
-
-const printer = getPrinterByName("My Printer");
-
-// Check if file exists before printing
-if (fs.existsSync("document.pdf")) {
-  await printer.printFile("document.pdf");
-}
-```
-
-### Deno
-
-```typescript
-import { getPrinterByName } from "npm:@printers/printers";
-
-// Set simulation mode
-Deno.env.set("PRINTERS_JS_SIMULATE", "true");
-
-const printer = getPrinterByName("My Printer");
-
-// Check if file exists (Deno style)
-try {
-  await Deno.stat("document.pdf");
-  await printer.printFile("document.pdf");
-} catch {
-  console.log("File not found");
-}
-```
-
-### Bun
-
-```typescript
-import { getPrinterByName } from "@printers/printers";
-import { file } from "bun";
-
-const printer = getPrinterByName("My Printer");
-
-// Use Bun's file API
-const document = file("document.pdf");
-if (await document.exists()) {
-  await printer.printFile("document.pdf");
-}
 ```
 
 ## Advanced Usage
@@ -388,22 +308,6 @@ try {
 }
 ```
 
-## Performance Tips
-
-1. **Use simulation mode** during development
-2. **Enable waitForCompletion: false** for responsive UIs
-3. **Subscribe to state changes** instead of polling
-4. **Clean up old jobs** regularly with `cleanupOldJobs()`
-5. **Unsubscribe from events** when done
-6. **Batch multiple print jobs** when possible
-
-## Support and Contributing
-
-- **Issues**: Report bugs and request features on [GitHub](https://github.com/your-repo/printers-js)
-- **Documentation**: Contribute to documentation improvements
-- **Testing**: Help test across different platforms and runtimes
-- **Examples**: Share real-world usage examples
-
 ## Version History
 
 - **v0.8.0+** - Printer state monitoring and event subscription
@@ -412,17 +316,3 @@ try {
 - **v0.5.0+** - Basic cross-runtime support and N-API bindings
 
 For detailed changelogs and migration guides, see the main project documentation.
-
-## Next Steps
-
-1. **Read the feature documentation** that interests you most
-2. **Try the examples** in your preferred runtime
-3. **Enable simulation mode** for safe experimentation
-4. **Join the community** for support and discussion
-
-Choose the documentation section that matches your needs:
-
-- **Getting started with printing**: [Printing Options](./PrintingOptions.md)
-- **Tracking print jobs**: [Job Tracking](./JobTracking.md)
-- **Monitoring printer status**: [Printer State Monitoring](./PrinterStateMonitoring.md)
-- **Working across runtimes**: [Cross-Runtime Support](./CrossRuntimeSupport.md)

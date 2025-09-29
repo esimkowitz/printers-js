@@ -2,22 +2,6 @@
 
 This document describes the cross-runtime compatibility features of the `@printers/printers` library.
 
-## Overview
-
-The `@printers/printers` library provides identical functionality across three major JavaScript runtimes:
-
-- **Node.js** - Primary runtime with full feature support
-- **Deno** - Full compatibility with TypeScript-first development
-- **Bun** - High-performance alternative with complete API parity
-
-## Key Features
-
-- **Identical APIs** - Same function signatures and behavior across all runtimes
-- **Universal entry point** - Single import works everywhere
-- **Automatic runtime detection** - Library adapts to the current environment
-- **Consistent N-API bindings** - Same native code across platforms
-- **Cross-runtime testing** - Shared test suite validates all runtimes
-
 ## Runtime Detection
 
 The library automatically detects the current runtime and loads appropriate modules:
@@ -29,51 +13,6 @@ console.log(runtimeInfo);
 // Node.js: { name: "node", isDeno: false, isNode: true, isBun: false, version: "20.x.x" }
 // Deno:    { name: "deno", isDeno: true, isNode: false, isBun: false, version: "1.x.x" }
 // Bun:     { name: "bun", isDeno: false, isNode: false, isBun: true, version: "1.x.x" }
-```
-
-## Installation and Import
-
-### Node.js
-
-```bash
-npm install @printers/printers
-```
-
-```typescript
-// ESM (recommended)
-import { getAllPrinters, getPrinterByName } from "@printers/printers";
-
-// CommonJS (legacy)
-const { getAllPrinters, getPrinterByName } = require("@printers/printers");
-```
-
-### Deno
-
-```typescript
-// Import from npm: (recommended)
-import { getAllPrinters, getPrinterByName } from "npm:@printers/printers";
-
-// Or with specific version
-import {
-  getAllPrinters,
-  getPrinterByName,
-} from "npm:@printers/printers@^0.8.0";
-```
-
-Required permissions:
-
-```bash
-deno run --allow-env --allow-read --allow-ffi your-script.ts
-```
-
-### Bun
-
-```bash
-bun add @printers/printers
-```
-
-```typescript
-import { getAllPrinters, getPrinterByName } from "@printers/printers";
 ```
 
 ## Universal Entry Point
@@ -125,33 +64,7 @@ import("@printers/printers-{platform}");
 
 ## Runtime-Specific Considerations
 
-### Node.js
-
-- **Primary runtime** - Most extensively tested and supported
-- **Full feature set** - All functionality available
-- **Best performance** - Optimized for Node.js ecosystem
-- **ESM and CommonJS** - Both module systems supported
-
-```typescript
-// Node.js specific features
-import fs from "fs";
-import { getPrinterByName } from "@printers/printers";
-
-const printer = getPrinterByName("My Printer");
-
-// File system operations work naturally
-const fileExists = fs.existsSync("document.pdf");
-if (fileExists) {
-  await printer.printFile("document.pdf");
-}
-```
-
 ### Deno
-
-- **TypeScript-first** - No compilation step needed
-- **Permission-based security** - Requires explicit permissions
-- **Standard library** - Uses Deno's built-in modules
-- **NPM compatibility** - Accesses library via `npm:` prefix
 
 Required permissions:
 
@@ -165,24 +78,6 @@ import { getPrinterByName } from "npm:@printers/printers";
 
 // Set simulation mode using Deno API
 Deno.env.set("PRINTERS_JS_SIMULATE", "true");
-
-const printer = getPrinterByName("My Printer");
-await printer.printFile("document.pdf");
-```
-
-### Bun
-
-- **High performance** - Fast JavaScript runtime
-- **Node.js compatibility** - Drop-in replacement for many Node.js apps
-- **Built-in TypeScript** - No additional transpilation needed
-- **Fast package installation** - Quick dependency resolution
-
-```typescript
-// Bun specific usage (identical to Node.js)
-import { getPrinterByName } from "@printers/printers";
-
-// Bun provides process global like Node.js
-process.env.PRINTERS_JS_SIMULATE = "true";
 
 const printer = getPrinterByName("My Printer");
 await printer.printFile("document.pdf");
@@ -393,14 +288,3 @@ if (runtimeInfo.name === "unknown") {
 5. **Monitor performance** - Different runtimes have different characteristics
 6. **Keep dependencies minimal** - The library has zero runtime dependencies
 7. **Update regularly** - Cross-runtime compatibility improves with each release
-
-## Future Runtime Support
-
-The library is designed to easily support additional JavaScript runtimes as they emerge. The modular architecture allows for:
-
-- **New runtime detection** in the universal entry point
-- **Additional N-API bindings** for new platforms
-- **Extended test coverage** for new environments
-- **Performance optimizations** per runtime
-
-To request support for a new runtime, please open an issue with details about the target environment and use case.

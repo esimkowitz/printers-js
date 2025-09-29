@@ -12,14 +12,6 @@ The job tracking system provides comprehensive monitoring and management of prin
 - **Active job monitoring** - Get real-time status of running jobs
 - **Job cleanup** - Remove old completed jobs to manage memory
 
-## Key Features
-
-- **Real-time job status** - Get current state of any print job
-- **Complete job metadata** - Track job names, media types, timestamps, and error messages
-- **Printer-specific tracking** - Each printer maintains its own job lists
-- **Cross-runtime compatibility** - Works with Node.js, Deno, and Bun
-- **Simulation mode support** - Safe testing without real printing
-
 ## Job Interface
 
 The `PrinterJob` interface provides comprehensive job information:
