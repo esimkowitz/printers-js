@@ -9,8 +9,11 @@ import { join } from "node:path";
 import { colorize, runCommand, ensureDir } from "./utils.js";
 
 function parseTestCount(output) {
-  // Parse Deno test output: "ok | 14 passed (0 step) | 0 failed (18ms)"
-  const denoMatch = output.match(/(\d+) passed.*?(\d+) failed/);
+  // Strip ANSI color codes first for reliable parsing
+  const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, "");
+
+  // Parse Deno test output: "ok | 41 passed | 0 failed (24s)"
+  const denoMatch = cleanOutput.match(/(\d+)\s+passed[^|]*\|\s*(\d+)\s+failed/);
   if (denoMatch) {
     const passed = parseInt(denoMatch[1]);
     const failed = parseInt(denoMatch[2]);
@@ -19,8 +22,8 @@ function parseTestCount(output) {
 
   // Parse Bun test output: " 41 pass\n 0 fail\nRan 41 tests across 1 file."
   // Use multiline flag and more flexible pattern matching
-  const bunPassMatch = output.match(/^\s*(\d+)\s+pass/m);
-  const bunFailMatch = output.match(/^\s*(\d+)\s+fail/m);
+  const bunPassMatch = cleanOutput.match(/^\s*(\d+)\s+pass/m);
+  const bunFailMatch = cleanOutput.match(/^\s*(\d+)\s+fail/m);
   if (bunPassMatch || bunFailMatch) {
     const passed = bunPassMatch ? parseInt(bunPassMatch[1]) : 0;
     const failed = bunFailMatch ? parseInt(bunFailMatch[1]) : 0;
@@ -28,11 +31,11 @@ function parseTestCount(output) {
   }
 
   // Parse alternative Bun format: "Ran X tests across Y file(s)"
-  const bunRanMatch = output.match(/Ran (\d+) tests across/);
+  const bunRanMatch = cleanOutput.match(/Ran (\d+) tests across/);
   if (bunRanMatch) {
     const total = parseInt(bunRanMatch[1]);
     // If we can't determine passed/failed split, assume all passed if no explicit failures
-    const failMatch = output.match(/(\d+)\s+fail/);
+    const failMatch = cleanOutput.match(/(\d+)\s+fail/);
     const failed = failMatch ? parseInt(failMatch[1]) : 0;
     return { total, passed: total - failed, failed };
   }
@@ -40,7 +43,7 @@ function parseTestCount(output) {
   // Default fallback - this indicates parsing failed
   console.warn(
     "⚠️  Failed to parse test count from output:",
-    output.slice(0, 200)
+    cleanOutput.slice(0, 200)
   );
   return { total: 1, passed: 1, failed: 0 };
 }
@@ -139,7 +142,7 @@ async function runTests() {
       "--coverage=test-results/coverage/deno-temp",
       "src/tests/shared.test.ts",
     ],
-    { simulate: true }
+    { simulate: true, showOutput: false }
   );
 
   // Generate Deno coverage report
@@ -210,7 +213,7 @@ async function runTests() {
       "--coverage-exclude=examples/**",
       "src/tests/shared.test.ts",
     ],
-    { simulate: true }
+    { simulate: true, showOutput: false }
   );
 
   // Generate Bun coverage report (Bun doesn't have built-in LCOV export, so create a basic one)
