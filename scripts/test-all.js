@@ -17,16 +17,31 @@ function parseTestCount(output) {
     return { total: passed + failed, passed, failed };
   }
 
-  // Parse Bun test output: look for test result summaries
-  const bunPassMatch = output.match(/(\d+) pass/);
-  const bunFailMatch = output.match(/(\d+) fail/);
+  // Parse Bun test output: " 41 pass\n 0 fail\nRan 41 tests across 1 file."
+  // Use multiline flag and more flexible pattern matching
+  const bunPassMatch = output.match(/^\s*(\d+)\s+pass/m);
+  const bunFailMatch = output.match(/^\s*(\d+)\s+fail/m);
   if (bunPassMatch || bunFailMatch) {
     const passed = bunPassMatch ? parseInt(bunPassMatch[1]) : 0;
     const failed = bunFailMatch ? parseInt(bunFailMatch[1]) : 0;
     return { total: passed + failed, passed, failed };
   }
 
-  // Default fallback
+  // Parse alternative Bun format: "Ran X tests across Y file(s)"
+  const bunRanMatch = output.match(/Ran (\d+) tests across/);
+  if (bunRanMatch) {
+    const total = parseInt(bunRanMatch[1]);
+    // If we can't determine passed/failed split, assume all passed if no explicit failures
+    const failMatch = output.match(/(\d+)\s+fail/);
+    const failed = failMatch ? parseInt(failMatch[1]) : 0;
+    return { total, passed: total - failed, failed };
+  }
+
+  // Default fallback - this indicates parsing failed
+  console.warn(
+    "⚠️  Failed to parse test count from output:",
+    output.slice(0, 200)
+  );
   return { total: 1, passed: 1, failed: 0 };
 }
 
