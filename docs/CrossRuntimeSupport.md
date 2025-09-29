@@ -2,6 +2,18 @@
 
 This document describes the cross-runtime compatibility features of the `@printers/printers` library.
 
+## Overview
+
+The `@printers/printers` library provides identical functionality across three major JavaScript runtimes: Node.js, Deno, and Bun.
+
+## Key Features
+
+- **Identical APIs** - Same function signatures and behavior across all runtimes
+- **Universal entry point** - Single import works everywhere
+- **Automatic runtime detection** - Library adapts to the current environment
+- **Consistent N-API bindings** - Same native code across platforms
+- **Cross-runtime testing** - Shared test suite validates all runtimes
+
 ## Runtime Detection
 
 The library automatically detects the current runtime and loads appropriate modules:
@@ -23,22 +35,6 @@ All runtimes use the same entry point (`src/index.ts`) which automatically:
 2. **Loads the appropriate N-API module** for the platform
 3. **Provides consistent APIs** regardless of runtime
 4. **Handles simulation mode** uniformly
-
-```typescript
-// This works identically in all runtimes
-import {
-  getAllPrinters,
-  subscribeToPrinterStateChanges,
-  startPrinterStateMonitoring,
-} from "@printers/printers"; // Node.js/Bun
-// or "npm:@printers/printers" for Deno
-
-// Identical usage across all runtimes
-const printers = getAllPrinters();
-const subscription = await subscribeToPrinterStateChanges(event => {
-  console.log(`${event.eventType}: ${event.printerName}`);
-});
-```
 
 ## N-API Module Loading
 
@@ -64,6 +60,10 @@ import("@printers/printers-{platform}");
 
 ## Runtime-Specific Considerations
 
+### Node.js and Bun
+
+No special considerations; works out of the box.
+
 ### Deno
 
 Required permissions:
@@ -83,11 +83,7 @@ const printer = getPrinterByName("My Printer");
 await printer.printFile("document.pdf");
 ```
 
-## Environment Variables
-
-Consistent environment variable handling across runtimes:
-
-### Simulation Mode
+## Simulation Mode
 
 ```typescript
 // Node.js & Bun
@@ -178,105 +174,6 @@ task build:napi
 
 # Build TypeScript only
 task build:ts
-```
-
-### CI/CD Support
-
-GitHub Actions workflow builds and tests across:
-
-- **Multiple platforms** (macOS, Windows, Linux)
-- **Multiple runtimes** (Node.js, Deno, Bun)
-- **Multiple architectures** (x64, ARM64)
-
-## Performance Characteristics
-
-### Runtime Performance
-
-| Runtime | Startup   | Print Job | State Monitoring | Memory Usage |
-| ------- | --------- | --------- | ---------------- | ------------ |
-| Node.js | Fast      | Excellent | Excellent        | Moderate     |
-| Deno    | Moderate  | Good      | Good             | Low          |
-| Bun     | Very Fast | Excellent | Excellent        | Very Low     |
-
-### Optimization Tips
-
-1. **Use appropriate runtime** for your use case
-2. **Enable simulation mode** for development
-3. **Batch operations** when possible
-4. **Clean up subscriptions** to prevent memory leaks
-5. **Use waitForCompletion: false** for responsive UIs
-
-## Migration Between Runtimes
-
-### Node.js to Deno
-
-```typescript
-// Before (Node.js)
-import fs from "fs";
-import { getPrinterByName } from "@printers/printers";
-
-const exists = fs.existsSync("file.pdf");
-
-// After (Deno)
-import { getPrinterByName } from "npm:@printers/printers";
-
-const exists = await Deno.stat("file.pdf")
-  .then(() => true)
-  .catch(() => false);
-```
-
-### Node.js to Bun
-
-```typescript
-// Before (Node.js)
-import { getPrinterByName } from "@printers/printers";
-
-// After (Bun) - No changes needed!
-import { getPrinterByName } from "@printers/printers";
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Deno Permission Errors
-
-```bash
-# Error: Requires read access
-deno run --allow-read your-script.ts
-
-# Error: Requires FFI access
-deno run --allow-ffi your-script.ts
-
-# Error: Requires env access
-deno run --allow-env your-script.ts
-
-# Solution: Grant all required permissions
-deno run --allow-env --allow-read --allow-ffi your-script.ts
-```
-
-#### Module Not Found Errors
-
-```typescript
-// Error: Cannot find module '@printers/printers-{platform}'
-// Solution: Build the N-API modules
-task build:napi
-
-// Or install platform-specific packages
-npm install @printers/printers-darwin-arm64
-```
-
-#### Runtime Detection Issues
-
-```typescript
-// Check runtime detection
-import { runtimeInfo } from "@printers/printers";
-console.log("Detected runtime:", runtimeInfo.name);
-
-// Force runtime if needed (not recommended)
-if (runtimeInfo.name === "unknown") {
-  console.warn("Runtime detection failed");
-}
 ```
 
 ## Best Practices
