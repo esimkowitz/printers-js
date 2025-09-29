@@ -11,14 +11,6 @@ The printer state monitoring system allows you to:
 - **Monitor error conditions** - Get notifications when printer state reasons change (e.g., paper jam, low ink)
 - **Subscribe to events** - Register callbacks to handle state change events in real-time
 
-## Key Features
-
-- **Cross-runtime compatibility** - Works with Node.js, Deno, and Bun
-- **Automatic lifecycle management** - Monitoring starts/stops automatically with subscriptions
-- **Multiple subscriptions** - Support for multiple event listeners
-- **Configurable polling** - Customizable polling intervals for state monitoring
-- **Simulation mode support** - Safe testing in simulation mode
-
 ## Basic Usage
 
 ### Starting and Stopping Monitoring
