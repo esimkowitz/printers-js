@@ -69,12 +69,8 @@ jobs:
         with:
           bun-version: latest
 
-      # Install Task runner
-      - name: Setup Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Task runner
+        uses: go-task/setup-task@v1
 
       # Code quality checks (continue on error to gather all results)
       - name: Check Rust formatting
@@ -175,11 +171,8 @@ jobs:
         with:
           bun-version: latest
 
-      # Setup Task runner
-      - uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Task runhner
+        uses: go-task/setup-task@v1
 
       # Setup Node.js
       - name: Setup Node
