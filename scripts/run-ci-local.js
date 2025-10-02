@@ -56,7 +56,7 @@ async function main() {
   console.log(
     colorize(
       "blue",
-      "🏃 Running GitHub Actions workflows locally with nektos/act"
+      "   Running GitHub Actions workflows locally with nektos/act"
     )
   );
   console.log(
@@ -128,14 +128,14 @@ async function main() {
   const versionResult = await runCommand(["act", "--version"], {
     showOutput: false,
   });
-  console.log(colorize("green", "✅ nektos/act is installed"));
+  console.log(colorize("green", "   nektos/act is installed"));
   console.log(`Act version: ${versionResult.output.trim()}`);
   console.log();
 
   // Dry run mode - just show what would be executed
   if (dryRun) {
     console.log(
-      colorize("yellow", "🔍 DRY RUN MODE - showing what would be executed:")
+      colorize("yellow", "   DRY RUN MODE - showing what would be executed:")
     );
     console.log();
 

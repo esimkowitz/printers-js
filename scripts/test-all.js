@@ -4,7 +4,7 @@
  * Cross-platform test runner that works on Windows, macOS, and Linux
  */
 
-import { writeFileSync, existsSync } from "node:fs";
+import { writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
 import { colorize, runCommand, ensureDir } from "./utils.js";
 
@@ -64,40 +64,22 @@ ${Array.from({ length: testCount.total }, (_, i) => {
   console.log(`📊 Generated ${runtime} JUnit XML: ${fileName}`);
 }
 
-function generateBasicLCOV(runtime, output) {
-  // Create a basic LCOV file for Bun (since it doesn't export LCOV directly)
-  // This is a placeholder that shows some coverage data
-  const fileName = `test-results/coverage/${runtime}-lcov.info`;
+function copyBunLCOV() {
+  // Bun generates lcov.info in coverage-dir, copy it to our standard location
+  const bunCoverageDir = "test-results/coverage/bun-temp";
+  const sourceLCOV = join(bunCoverageDir, "lcov.info");
+  const targetLCOV = "test-results/coverage/bun-lcov.info";
 
-  // Try to extract coverage info from Bun output if available
-  const coverageMatch = output.match(/All files.*?(\d+(?:\.\d+)?)%/);
-  const coverage = coverageMatch ? parseFloat(coverageMatch[1]) : 85; // Default fallback
-
-  // Generate basic LCOV format
-  const lcov = `TN:
-SF:src/index.ts
-FN:1,main
-FNF:1
-FNH:1
-FNDA:1,main
-DA:1,1
-DA:2,1
-DA:3,1
-DA:4,1
-DA:5,0
-LF:5
-LH:4
-end_of_record
-`;
-
-  writeFileSync(fileName, lcov);
-  console.log(`📊 Generated ${runtime} LCOV coverage: ${fileName}`);
+  if (existsSync(sourceLCOV)) {
+    copyFileSync(sourceLCOV, targetLCOV);
+    console.log(`   Generated Bun LCOV coverage: ${targetLCOV}`);
+  } else {
+    console.warn(`⚠️  Bun LCOV file not found at ${sourceLCOV}`);
+  }
 }
 
 async function runTests() {
-  console.log(
-    colorize("blue", "🧪 Running comprehensive test suite across all runtimes")
-  );
+  console.log(colorize("blue", "🧪 Running test suite across all runtimes"));
   console.log("========================================================");
   console.log();
 
@@ -105,8 +87,8 @@ async function runTests() {
   const results = [];
 
   // Ensure test-results directory exists
-  await ensureDir("test-results");
-  await ensureDir("test-results/coverage");
+  ensureDir("test-results");
+  ensureDir("test-results/coverage");
 
   // Test Rust code first
   console.log(colorize("yellow", "🦀 Testing Rust code..."));
@@ -208,6 +190,7 @@ async function runTests() {
       "bun",
       "test",
       "--coverage",
+      "--coverage-reporter=lcov",
       "--coverage-dir=test-results/coverage/bun-temp",
       "--coverage-exclude=scripts/**",
       "--coverage-exclude=examples/**",
@@ -216,8 +199,8 @@ async function runTests() {
     { simulate: true, showOutput: false }
   );
 
-  // Generate Bun coverage report (Bun doesn't have built-in LCOV export, so create a basic one)
-  generateBasicLCOV("bun", bunResult.output);
+  // Copy Bun's generated LCOV file to our standard location
+  copyBunLCOV();
 
   // Generate JUnit XML for Bun
   const bunTestCount = parseTestCount(bunResult.output);

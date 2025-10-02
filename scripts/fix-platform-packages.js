@@ -73,7 +73,7 @@ for (const platform of platforms) {
   // Write updated package.json
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
-  console.log(`✅ Fixed ${platform}/package.json:`);
+  console.log(`   Fixed ${platform}/package.json:`);
   console.log(`   - main: "${pkg.main}"`);
   console.log(`   - types: "${pkg.types}"`);
   console.log(`   - files: ${JSON.stringify(pkg.files)}`);
