@@ -72,7 +72,7 @@ function copyBunLCOV() {
 
   if (existsSync(sourceLCOV)) {
     copyFileSync(sourceLCOV, targetLCOV);
-    console.log(`   Generated Bun LCOV coverage: ${targetLCOV}`);
+    console.log(`📊 Generated Bun LCOV coverage: ${targetLCOV}`);
   } else {
     console.warn(`⚠️  Bun LCOV file not found at ${sourceLCOV}`);
   }
