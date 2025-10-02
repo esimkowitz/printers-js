@@ -116,7 +116,7 @@ for (const file of filesToProcess) {
   }
 }
 
-console.log("📁 Generated files:");
+console.log("   Generated files:");
 try {
   const entries = readdirSync(DIST_DIR, { withFileTypes: true });
   for (const entry of entries) {

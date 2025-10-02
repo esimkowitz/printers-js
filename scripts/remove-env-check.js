@@ -95,7 +95,7 @@ try {
   }
 
   console.log(
-    `📊 Processed ${processedCount} platform(s), modified ${modifiedCount} file(s)`
+    `   Processed ${processedCount} platform(s), modified ${modifiedCount} file(s)`
   );
 } catch (error) {
   console.error("❌ Error processing index files:", error);
