@@ -26,7 +26,7 @@ npm install @printers/printers
 
 ### Deno
 
-> [! NOTE]
+> [!NOTE]
 > This package exposes a Node-API addon for running the Rust backend natively. To use Node-API addons in Deno, you must enable `nodeModulesDir` in your `deno.json` configuration file and pass the `--allow-ffi` flag when running your program. To learn more, see the [Node and npm compatibility](https://docs.deno.com/runtime/fundamentals/node/#node-api-addons) and [Security and permissions](<https://docs.deno.com/runtime/fundamentals/security/#ffi-(foreign-function-interface)>) documentation.
 
 Add to `deno.json`:
