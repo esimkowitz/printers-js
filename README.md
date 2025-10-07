@@ -10,7 +10,7 @@ Cross-runtime printer library for Node.js, Deno, and Bun with native performance
 
 - 🔄 **Cross-runtime compatibility** - Node.js, Deno, and Bun support
 - 🖨️ **Cross-platform printing** - Windows, macOS, and Linux
-- 🦀 **Native performance** - Rust backend with N-API bindings
+- 🦀 **Native performance** - Rust backend with Node-API bindings
 - 🔒 **Safe testing** - Simulation mode prevents accidental printing
 - 📊 **Real-time monitoring** - Printer state changes and job tracking
 - 🔧 **Flexible options** - Simple, CUPS, and raw printing configuration
@@ -26,9 +26,7 @@ npm install @printers/printers
 
 ### Deno
 
-```bash
-deno add npm:@printers/printers
-```
+> [!NOTE] This package exposes a Node-API addon for running the Rust backend natively. To use Node-API addons in Deno, you must enable `nodeModulesDir` in your `deno.json` configuration file and pass the `--allow-ffi` flag when running your program. To learn more, see the [Node and npm compatibility](https://docs.deno.com/runtime/fundamentals/node/#node-api-addons) and [Security and permissions](<https://docs.deno.com/runtime/fundamentals/security/#ffi-(foreign-function-interface)>) documentation.
 
 Add to `deno.json`:
 
@@ -36,6 +34,10 @@ Add to `deno.json`:
 {
   "nodeModulesDir": "auto"
 }
+```
+
+```bash
+deno add npm:@printers/printers
 ```
 
 Run with required permissions:
