@@ -104,24 +104,18 @@ task bump:major    # 0.1.4 -> 1.0.0
 
 ### Automation
 
-**Deno Scripts** (TypeScript):
-
-- **`scripts/build-all.ts`**: Cross-runtime build orchestration
-- **`scripts/test-all.ts`**: Comprehensive test runner with coverage reports
-- **`scripts/run-ci-local.ts`**: Local CI simulation
-- **`scripts/bump-version.ts`**: Version management
-
 **Node.js Scripts** (ESM JavaScript):
 
-- **`scripts/build-napi.js`**: N-API module building (requires Node.js
-  subprocess environment)
+- **`scripts/build-all.js`**: Cross-runtime build orchestration
+- **`scripts/test-all.js`**: Comprehensive test runner with coverage reports
+- **`scripts/run-ci-local.js`**: Local CI simulation
+- **`scripts/bump-version.js`**: Version management
+- **`scripts/build-napi.js`**: N-API module building (requires Node.js subprocess environment)
 - **`scripts/remove-env-check.js`**: Post-build N-API processing
-- **`scripts/compile.ts`**: TypeScript to JavaScript compilation for npm publishing
-- **`scripts/build-all-node.js`**: Alternative Node.js-based build script
+- **`scripts/compile.js`**: TypeScript to JavaScript compilation for npm publishing
+- **`scripts/utils.js`**: Shared utility functions for build scripts
 
-**Script Runtime Selection**: Deno handles automation/orchestration; Node.js
-handles N-API builds that require specific subprocess environments and must run
-on Windows ARM CI runners where Deno is not available.
+All utility scripts are Node.js JavaScript files using ESM syntax.
 
 ## Safety Reminders
 
@@ -129,7 +123,7 @@ on Windows ARM CI runners where Deno is not available.
 
 - Always use `PRINTERS_JS_SIMULATE=true` for safe testing
 - Default tests use simulation mode automatically
-- Scripts like `test-all.sh` automatically set simulation mode
+- Scripts like `test-all.js` automatically set simulation mode
 - Only disable simulation mode when intentionally testing real printing
 - The devcontainer sets `PRINTERS_JS_SIMULATE=true` by default
 
@@ -163,8 +157,7 @@ ALWAYS run these after changes through the taskfile:
 - **`src/`**: TypeScript implementation files with modular architecture
 - **`lib/`**: Rust source code with modular architecture
 - **`tests/`**: Test files organized by runtime and purpose
-- **`scripts/`**: Mixed runtime automation - Deno TypeScript for orchestration,
-  Node.js JavaScript for N-API builds
+- **`scripts/`**: Node.js JavaScript build automation and utility scripts
 - **`docs/`**: Feature documentation organized by topic (PascalCase file names)
 - **`.devcontainer/`**: Development container setup for all runtimes
 - **`npm/`**: Platform-specific N-API packages for all N-API operations
@@ -185,8 +178,8 @@ ALWAYS run these after changes through the taskfile:
 7. **Coverage reporting**: Tests generate comprehensive JUnit XML and LCOV
    coverage reports with actual percentage calculations (deno-lcov.info,
    node-lcov.info, bun-lcov.info, rust.lcov)
-8. **Cross-platform scripts**: All build and test scripts are now Deno
-   TypeScript for cross-platform compatibility
+8. **Cross-platform scripts**: All build and test scripts are Node.js JavaScript
+   for cross-platform compatibility
 9. **Universal entrypoint**: Always import from `src/index.ts` for consistent
    runtime detection and behavior
 10. **Android support**: Intentionally excluded from N-API builds
