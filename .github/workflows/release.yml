@@ -41,7 +41,7 @@ jobs:
           sudo rm -f /var/lib/man-db/auto-update
       - uses: actions/checkout@v5
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           package-manager-cache: false
@@ -132,7 +132,7 @@ jobs:
           bun-version: latest
           no-cache: true
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           package-manager-cache: false
@@ -183,7 +183,7 @@ jobs:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
