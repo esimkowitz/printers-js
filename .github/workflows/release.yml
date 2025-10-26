@@ -210,4 +210,11 @@ jobs:
       - name: Compile TypeScript for publishing
         run: task compile
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish --provenance
+      - name: Upload npm logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-publish-logs
+          path: ~/.npm/_logs/
+          if-no-files-found: warn

@@ -22,40 +22,45 @@ tasks:
     cmd: node scripts/build-napi.js --release
 
   test:
-    desc: Run comprehensive test suite across all runtimes
-    cmd: node scripts/test-all.js
+    desc: Run comprehensive test suite across all runtimes via test-runtimes.js
+    cmd: node scripts/test-runtimes.js {{.CLI_ARGS}}
 
   test:real:
     desc: Run comprehensive test suite with real printing (not recommended)
-    cmd: PRINTERS_JS_SIMULATE=false node scripts/test-all.js
+    cmd: PRINTERS_JS_SIMULATE=false task test
 
-  test:deno:
-    desc: Run Deno tests in simulation mode
-    cmd: "{{.SIMULATE}} deno test --allow-env --allow-read --allow-ffi --no-check src/tests/shared.test.ts"
+  test:rust:
+    desc: Run only Rust tests via test-runtimes.js
+    cmd: task test -- rust
 
-  test:deno:real:
-    desc: Run Deno tests with real printing
-    cmd: "deno test --allow-env --allow-read --allow-ffi src/tests/shared.test.ts"
+  test:js:
+    desc: Run only JavaScript runtime tests via test-runtimes.js
+    cmd: task test -- deno node bun
+
+  test:direct:
+    desc: Run all runtime tests directly (Rust + JS runtimes)
+    deps:
+      [test:direct:rust, test:direct:deno, test:direct:node, test:direct:bun]
+
+  test:direct:rust:
+    desc: Run Rust tests directly with cargo
+    cmd: "{{.SIMULATE}} cargo test"
+
+  test:direct:deno:
+    desc: Run Deno tests directly
+    cmd: "{{.SIMULATE}} deno test --allow-read --allow-write --allow-env --allow-ffi tests/shared.test.ts"
+
+  test:direct:node:
+    desc: Run Node.js tests directly
+    cmd: "{{.SIMULATE}} node tests/node-test-runner.mjs"
+
+  test:direct:bun:
+    desc: Run Bun tests directly
+    cmd: "{{.SIMULATE}} bun test tests/shared.test.ts"
 
   test:doc:
     desc: Run documentation tests
     cmd: deno test --doc --allow-env src/index.ts
-
-  test:node:
-    desc: Run Node.js tests in simulation mode
-    cmd: "{{.SIMULATE}} npx tsx src/tests/node-test-runner.ts"
-
-  test:node:real:
-    desc: Run Node.js tests with real printing
-    cmd: npx tsx src/tests/node-test-runner.ts
-
-  test:bun:
-    desc: Run Bun tests in simulation mode
-    cmd: "{{.SIMULATE}} bun test src/tests/shared.test.ts"
-
-  test:bun:real:
-    desc: Run Bun tests with real printing
-    cmd: bun test src/tests/shared.test.ts
 
   lint:
     desc: Lint all code

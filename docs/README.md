@@ -167,13 +167,17 @@ In simulation mode:
 ### Running Tests
 
 ```bash
-# Test all runtimes
-task test
+# Test all runtimes with comprehensive reporting
+task test                      # All runtimes via test-runtimes.js
+task test -- rust              # Only Rust tests
+task test -- deno node bun     # Only JavaScript runtimes
 
-# Test specific runtime
-task test:node
-task test:deno
-task test:bun
+# Test with verbose output (for debugging)
+task test:direct               # All runtimes with direct commands
+task test:direct:rust          # cargo test (verbose)
+task test:direct:deno          # deno test (verbose)
+task test:direct:node          # Node.js test runner (verbose)
+task test:direct:bun           # bun test (verbose)
 ```
 
 ## Error Handling

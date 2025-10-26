@@ -103,15 +103,26 @@ task compile            # Compile TypeScript only
 ## Testing
 
 ```bash
-# Simulation mode (recommended for development)
-task test               # All runtimes
-task test:deno          # Deno only
-task test:node          # Node.js only
-task test:bun           # Bun only
+# Comprehensive testing with reporting (generates JUnit XML + LCOV coverage)
+task test                      # All runtimes via test-runtimes.js
+task test -- rust              # Only Rust tests
+task test -- deno node bun     # Only JavaScript runtimes
+
+# Direct runtime testing (verbose output, no reporting)
+task test:direct               # All runtimes with direct commands
+task test:direct:rust          # cargo test
+task test:direct:deno          # deno test
+task test:direct:node          # Node.js test runner
+task test:direct:bun           # bun test
 
 # Real printing (use with caution)
-task test:real          # All runtimes with actual printing
+task test:real                 # All runtimes with actual printing
 ```
+
+**Test Strategies:**
+
+- **test-runtimes.js wrapper** (`task test`): Provides test count summaries, JUnit XML reports, and LCOV coverage. Use for CI-like testing and coverage analysis.
+- **Direct runtime commands** (`task test:direct:*`): Provides verbose output directly from each test runner. Use for debugging test failures and seeing detailed test output.
 
 **Safety:** All tests use `PRINTERS_JS_SIMULATE=true` by default to prevent accidental printing.
 
