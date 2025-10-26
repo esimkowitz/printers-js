@@ -4,7 +4,7 @@
     "dev": "deno run --allow-env --allow-read --allow-net --allow-ffi --watch main.ts"
   },
   "imports": {
-    "@printers/printers": "npm:@printers/printers@^0.7"
+    "@printers/printers": "npm:@printers/printers@^0.8"
   },
   "nodeModulesDir": "auto",
   "compilerOptions": {
