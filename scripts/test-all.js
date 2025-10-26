@@ -6,7 +6,29 @@
 
 import { writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
-import { colorize, runCommand, ensureDir } from "./utils.js";
+import { colorize, runCommand, ensureDir, commandExists } from "./utils.js";
+
+function parseCargoTestOutput(output) {
+  // Strip ANSI color codes first for reliable parsing
+  const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, "");
+
+  // Parse Cargo test output: "test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out"
+  const cargoMatch = cleanOutput.match(
+    /test result:.*?(\d+)\s+passed;\s*(\d+)\s+failed/
+  );
+  if (cargoMatch) {
+    const passed = parseInt(cargoMatch[1]);
+    const failed = parseInt(cargoMatch[2]);
+    return { total: passed + failed, passed, failed };
+  }
+
+  // Default fallback for Cargo tests
+  console.warn(
+    "⚠️  Failed to parse Cargo test count from output:",
+    cleanOutput.slice(0, 200)
+  );
+  return { total: 0, passed: 0, failed: 0 };
+}
 
 function parseTestCount(output) {
   // Strip ANSI color codes first for reliable parsing
@@ -93,10 +115,40 @@ async function runTests() {
   // Test Rust code first
   console.log(colorize("yellow", "🦀 Testing Rust code..."));
   console.log("--------------------");
-  const cargoResult = await runCommand(["cargo", "test"]);
+
+  // Check if cargo-llvm-cov is available for coverage
+  const hasLlvmCov = await commandExists("cargo-llvm-cov");
+
+  let cargoResult;
+  if (hasLlvmCov) {
+    // Run with coverage if available
+    console.log("Running Rust tests with coverage...");
+    cargoResult = await runCommand([
+      "cargo",
+      "llvm-cov",
+      "--all-features",
+      "--workspace",
+      "--lcov",
+      "--output-path",
+      "test-results/coverage/rust.lcov",
+      "test",
+    ]);
+  } else {
+    // Run regular tests
+    cargoResult = await runCommand(["cargo", "test"], { showOutput: false });
+  }
+
+  // Parse Rust test results and generate JUnit XML
+  const cargoTestCount = parseCargoTestOutput(cargoResult.output);
+  generateJUnitXML("cargo", cargoTestCount, cargoResult.success);
 
   if (cargoResult.success) {
     console.log(colorize("green", "✅ Rust tests passed"));
+    if (hasLlvmCov) {
+      console.log(
+        "📊 Generated Rust LCOV coverage: test-results/coverage/rust.lcov"
+      );
+    }
     results.push({ runtime: "rust", success: true });
   } else {
     console.log(colorize("red", "❌ Rust tests failed"));
