@@ -826,7 +826,7 @@ try {
 
 /**
  * Wrapper class providing consistent API across all runtimes.
- * Dynamically exposes all NativePrinter properties via getters.
+ * Uses Proxy to dynamically expose all NativePrinter properties.
  */
 class PrinterWrapperImpl {
   private _native: NativePrinter;
@@ -834,25 +834,49 @@ class PrinterWrapperImpl {
   constructor(nativePrinter: NativePrinter) {
     this._native = nativePrinter;
 
-    // Dynamically define getters/methods for all enumerable properties on the native printer
-    for (const key of Object.keys(nativePrinter)) {
-      const value = (nativePrinter as any)[key];
-      if (typeof value === "function") {
-        // Bind native functions to maintain correct 'this' context
-        Object.defineProperty(this, key, {
-          value: value.bind(nativePrinter),
-          enumerable: true,
-          configurable: true,
-        });
-      } else {
-        // Define getter for non-function properties
-        Object.defineProperty(this, key, {
-          get: () => this._native[key as keyof NativePrinter],
-          enumerable: true,
-          configurable: true,
-        });
-      }
-    }
+    // Return a Proxy that intercepts property access
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        // If the property exists on the wrapper, use it
+        if (prop in target) {
+          const value = Reflect.get(target, prop, receiver);
+          // Bind functions to maintain correct 'this' context
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+
+        // Otherwise, try to get it from the native printer
+        const nativeValue = (target._native as any)[prop];
+        if (nativeValue !== undefined) {
+          // Bind native functions to the native printer
+          return typeof nativeValue === "function"
+            ? nativeValue.bind(target._native)
+            : nativeValue;
+        }
+
+        return undefined;
+      },
+
+      // Make properties enumerable for iteration
+      ownKeys(target) {
+        const wrapperKeys = Reflect.ownKeys(target);
+        const nativeKeys = Reflect.ownKeys(target._native);
+        return [...new Set([...wrapperKeys, ...nativeKeys])];
+      },
+
+      // Required for ownKeys to work properly
+      getOwnPropertyDescriptor(target, prop) {
+        if (prop in target) {
+          return Reflect.getOwnPropertyDescriptor(target, prop);
+        }
+        if (prop in target._native) {
+          return {
+            enumerable: true,
+            configurable: true,
+          };
+        }
+        return undefined;
+      },
+    });
   }
 
   /**
@@ -990,11 +1014,11 @@ class PrinterWrapperImpl {
   getActiveJobs(): PrinterJob[] {
     try {
       return nativeModule.printerGetActiveJobs
-        ? nativeModule.printerGetActiveJobs((this as any).name)
+        ? nativeModule.printerGetActiveJobs(this._native.name)
         : [];
     } catch (error) {
       console.error(
-        `Failed to get active jobs for ${(this as any).name}:`,
+        `Failed to get active jobs for ${this._native.name}:`,
         error
       );
       return [];
@@ -1009,11 +1033,11 @@ class PrinterWrapperImpl {
   getJobHistory(limit?: number): PrinterJob[] {
     try {
       return nativeModule.printerGetJobHistory
-        ? nativeModule.printerGetJobHistory((this as any).name, limit)
+        ? nativeModule.printerGetJobHistory(this._native.name, limit)
         : [];
     } catch (error) {
       console.error(
-        `Failed to get job history for ${(this as any).name}:`,
+        `Failed to get job history for ${this._native.name}:`,
         error
       );
       return [];
@@ -1028,11 +1052,11 @@ class PrinterWrapperImpl {
   getJob(jobId: number): PrinterJob | null {
     try {
       return nativeModule.printerGetJob
-        ? nativeModule.printerGetJob((this as any).name, jobId)
+        ? nativeModule.printerGetJob(this._native.name, jobId)
         : null;
     } catch (error) {
       console.error(
-        `Failed to get job ${jobId} for ${(this as any).name}:`,
+        `Failed to get job ${jobId} for ${this._native.name}:`,
         error
       );
       return null;
@@ -1046,10 +1070,10 @@ class PrinterWrapperImpl {
   getAllJobs(): PrinterJob[] {
     try {
       return nativeModule.printerGetAllJobs
-        ? nativeModule.printerGetAllJobs((this as any).name)
+        ? nativeModule.printerGetAllJobs(this._native.name)
         : [];
     } catch (error) {
-      console.error(`Failed to get all jobs for ${(this as any).name}:`, error);
+      console.error(`Failed to get all jobs for ${this._native.name}:`, error);
       return [];
     }
   }
@@ -1062,11 +1086,11 @@ class PrinterWrapperImpl {
   cleanupOldJobs(maxAgeSeconds: number): number {
     try {
       return nativeModule.printerCleanupOldJobs
-        ? nativeModule.printerCleanupOldJobs((this as any).name, maxAgeSeconds)
+        ? nativeModule.printerCleanupOldJobs(this._native.name, maxAgeSeconds)
         : 0;
     } catch (error) {
       console.error(
-        `Failed to cleanup old jobs for ${(this as any).name}:`,
+        `Failed to cleanup old jobs for ${this._native.name}:`,
         error
       );
       return 0;
