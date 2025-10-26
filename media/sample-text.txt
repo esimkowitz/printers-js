@@ -1,0 +1,19 @@
+Sample Test Document
+
+This is a sample text file for testing the printers library.
+
+The printers library provides a cross-runtime printer interface for JavaScript,
+supporting Node.js, Deno, and Bun with a unified API.
+
+Key Features:
+- List all available printers
+- Print files and raw bytes
+- Track print jobs
+- Monitor printer state
+- Subscribe to printer events
+
+This text file is used in automated tests to verify that the library
+can correctly handle plain text document printing.
+
+Test content includes multiple lines and various formatting to ensure
+proper text rendering across different printer types and configurations.
