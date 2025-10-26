@@ -223,8 +223,8 @@ type PrinterStateEventType =
 interface PrinterStateChangeEvent {
   eventType: PrinterStateEventType;
   printerName: string;
-  oldState?: string; // For state_changed events
-  newState?: string; // For state_changed events
+  oldState?: PrinterState; // For state_changed events
+  newState?: PrinterState; // For state_changed events
   oldReasons?: string[]; // For state_reasons_changed events
   newReasons?: string[]; // For state_reasons_changed events
   timestamp: number; // Unix timestamp
@@ -236,7 +236,7 @@ interface PrinterStateChangeEvent {
 ```typescript
 interface PrinterStateSnapshot {
   name: string;
-  state: string;
+  state: PrinterState; // "idle" | "printing" | "paused" | "offline" | "unknown"
   stateReasons: string[];
   timestamp: number;
 }
