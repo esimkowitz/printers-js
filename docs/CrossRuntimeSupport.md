@@ -110,24 +110,23 @@ The library includes a comprehensive test suite that validates functionality acr
 ### Running Tests
 
 ```bash
-# Node.js tests
-npm test
-# or
-task test:node
+# All runtimes with comprehensive reporting
+task test                      # All runtimes via test-runtimes.js
+task test -- rust              # Only Rust tests
+task test -- deno node bun     # Only JavaScript runtimes
 
-# Deno tests
-deno test --allow-env --allow-read --allow-ffi src/tests/shared.test.ts
-# or
-task test:deno
-
-# Bun tests
-bun test src/tests/shared.test.ts
-# or
-task test:bun
-
-# All runtimes
-task test
+# Direct runtime testing (verbose output)
+task test:direct               # All runtimes with direct commands
+task test:direct:rust          # cargo test
+task test:direct:deno          # deno test (verbose)
+task test:direct:node          # Node.js test runner (verbose)
+task test:direct:bun           # bun test (verbose)
 ```
+
+**Test Strategies:**
+
+- **test-runtimes.js wrapper** (`task test`): Provides test count summaries, JUnit XML reports, and LCOV coverage. Use for CI-like testing.
+- **Direct runtime commands** (`task test:direct:*`): Provides verbose output directly from each test runner. Use for debugging test failures.
 
 ### Test Examples
 

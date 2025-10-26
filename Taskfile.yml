@@ -22,7 +22,7 @@ tasks:
     cmd: node scripts/build-napi.js --release
 
   test:
-    desc: Run comprehensive test suite across all runtimes
+    desc: Run comprehensive test suite across all runtimes via test-runtimes.js
     cmd: node scripts/test-runtimes.js {{.CLI_ARGS}}
 
   test:real:
@@ -30,40 +30,37 @@ tasks:
     cmd: PRINTERS_JS_SIMULATE=false task test
 
   test:rust:
-    desc: Run only Rust tests
+    desc: Run only Rust tests via test-runtimes.js
     cmd: task test -- rust
 
   test:js:
-    desc: Run only JavaScript runtime tests (Deno, Node.js, Bun)
+    desc: Run only JavaScript runtime tests via test-runtimes.js
     cmd: task test -- deno node bun
 
-  test:deno:
-    desc: Run Deno tests in simulation mode
-    cmd: "{{.SIMULATE}} task test:deno:real"
+  test:direct:
+    desc: Run all runtime tests directly (Rust + JS runtimes)
+    deps:
+      [test:direct:rust, test:direct:deno, test:direct:node, test:direct:bun]
 
-  test:deno:real:
-    desc: Run Deno tests with real printing
-    cmd: task test -- deno
+  test:direct:rust:
+    desc: Run Rust tests directly with cargo
+    cmd: "{{.SIMULATE}} cargo test"
+
+  test:direct:deno:
+    desc: Run Deno tests directly
+    cmd: "{{.SIMULATE}} deno test --allow-read --allow-write --allow-env --allow-ffi tests/shared.test.ts"
+
+  test:direct:node:
+    desc: Run Node.js tests directly
+    cmd: "{{.SIMULATE}} node tests/node-test-runner.mjs"
+
+  test:direct:bun:
+    desc: Run Bun tests directly
+    cmd: "{{.SIMULATE}} bun test tests/shared.test.ts"
 
   test:doc:
     desc: Run documentation tests
     cmd: deno test --doc --allow-env src/index.ts
-
-  test:node:
-    desc: Run Node.js tests in simulation mode
-    cmd: "{{.SIMULATE}} task test:node:real"
-
-  test:node:real:
-    desc: Run Node.js tests with real printing
-    cmd: task test -- node
-
-  test:bun:
-    desc: Run Bun tests in simulation mode
-    cmd: "{{.SIMULATE}} task test:bun:real"
-
-  test:bun:real:
-    desc: Run Bun tests with real printing
-    cmd: task test -- bun
 
   lint:
     desc: Lint all code

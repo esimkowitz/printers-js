@@ -42,26 +42,22 @@ task build
 # Build N-API module only
 task build:napi          # Build N-API module for all runtimes
 
-# Test all runtimes with comprehensive reporting
-task test
+# Test all runtimes with comprehensive reporting (generates JUnit XML + LCOV coverage)
+task test                # All runtimes via test-runtimes.js
+task test -- rust        # Only Rust tests via test-runtimes.js
+task test -- deno node bun  # Only JavaScript runtimes via test-runtimes.js
 
-# Test individual runtimes
-task test:deno           # Deno tests with shared.test.ts
-task test:node                    # Node.js tests with c8 coverage
-task test:bun                     # Bun tests
-
-# Runtime-specific entrypoints (use only for debugging)
-npx tsx src/index.ts                            # Node.js with N-API (PRIMARY)
-bun src/index.ts                                # Bun with N-API
-deno run --allow-env --allow-ffi src/index.ts  # Deno with N-API (--allow-ffi required)
+# Test individual runtimes directly (verbose output, no reporting)
+task test:direct         # All runtimes with direct commands
+task test:direct:rust    # cargo test
+task test:direct:deno    # deno test
+task test:direct:node    # Node.js test runner
+task test:direct:bun     # bun test
 ```
 
 ### Development Workflow
 
 ```bash
-# Run comprehensive tests (generates JUnit XML + LCOV coverage)
-task test:all
-
 # Run CI locally with nektos/act
 task ci:local
 
