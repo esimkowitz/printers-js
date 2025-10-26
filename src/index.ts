@@ -307,6 +307,7 @@ export interface JobStatus {
   age_seconds: number;
 }
 
+/** Printer state enum matching the Rust PrinterState enum */
 export type PrinterState =
   | "idle"
   | "printing"
@@ -330,9 +331,9 @@ export interface PrinterStateChangeEvent {
   /** Name of the printer that changed */
   printerName: string;
   /** Previous state (for state_changed events) */
-  oldState?: string;
+  oldState?: PrinterState;
   /** New state (for state_changed events) */
-  newState?: string;
+  newState?: PrinterState;
   /** Previous state reasons (for state_reasons_changed events) */
   oldReasons?: string[];
   /** New state reasons (for state_reasons_changed events) */
@@ -359,7 +360,7 @@ export interface PrinterStateSnapshot {
   /** Printer name */
   name: string;
   /** Current state */
-  state: string;
+  state: PrinterState;
   /** Current state reasons */
   stateReasons: string[];
   /** Timestamp of this snapshot */
@@ -387,7 +388,7 @@ export interface NativePrinter {
   location?: string;
   isDefault?: boolean;
   isShared?: boolean;
-  state?: string;
+  state?: PrinterState;
   stateReasons?: string[];
   exists?: () => boolean;
   printFile?: (
@@ -535,7 +536,7 @@ interface NativeModule {
   stopStateMonitoring?(): void;
   isStateMonitoringActive?(): boolean;
   setStateMonitoringInterval?(seconds: number): void;
-  getPrinterStateSnapshot?(): Record<string, [string, string[]]>;
+  getPrinterStateSnapshot?(): Record<string, [PrinterState, string[]]>;
   Printer: {
     fromName(name: string): NativePrinter | null;
   };
