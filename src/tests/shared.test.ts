@@ -9,6 +9,7 @@
 declare var process: any;
 
 import { test } from "@cross/test";
+import type * as PrinterTypes from "../index.ts";
 
 // Runtime detection and simulation mode setup - MUST happen before importing the module
 let runtimeName: string;
@@ -37,9 +38,8 @@ if (typeof Deno !== "undefined") {
   if (typeof process !== "undefined") process.env.PRINTERS_JS_SIMULATE = "true";
 }
 
-// Always use the universal entrypoint for consistency
-// deno-lint-ignore no-explicit-any
-let printerAPI: any;
+// Always use the universal entrypoint for consistency - type-safe dynamic import
+let printerAPI: typeof PrinterTypes;
 try {
   printerAPI = await import("../index.ts");
   console.log("Debug: Successfully imported src/index.ts");
@@ -48,7 +48,7 @@ try {
   throw error;
 }
 
-// Extract API functions
+// Extract API functions with proper types
 const {
   getAllPrinterNames,
   getAllPrinters,
@@ -419,7 +419,7 @@ test(`${runtimeName}: simulated printer should have correct field values`, () =>
 
   // Test expected field values for simulated printer
   const validSimulatedStates = ["idle", "printing", "paused"];
-  if (!validSimulatedStates.includes(simulatedPrinter.state)) {
+  if (!validSimulatedStates.includes(simulatedPrinter.state || "")) {
     throw new Error(
       `Simulated printer state should be one of ${validSimulatedStates.join(", ")}, got '${simulatedPrinter.state}'`
     );
@@ -508,7 +508,6 @@ test(`${runtimeName}: should convert CUPSOptions to raw properties correctly`, (
     copies: 2,
     collate: true,
     "media-size": "Letter",
-    "print-quality": 4,
     "fit-to-page": false,
     "custom-option": "test-value",
   };
@@ -933,7 +932,11 @@ test(`${runtimeName}: should subscribe to printer state changes`, async () => {
 
   try {
     let eventReceived = false;
-    let receivedEvent = null;
+    let receivedEvent: PrinterTypes.PrinterStateChangeEvent = {
+      eventType: "connected",
+      printerName: "",
+      timestamp: 0,
+    };
 
     // Subscribe to state changes
     const subscription = await subscribeToPrinterStateChanges(event => {
@@ -998,8 +1001,8 @@ test(`${runtimeName}: should handle multiple state change subscriptions`, async 
   }
 
   try {
-    let events1 = [];
-    let events2 = [];
+    let events1: PrinterTypes.PrinterStateChangeEvent[] = [];
+    let events2: PrinterTypes.PrinterStateChangeEvent[] = [];
 
     // Create multiple subscriptions
     const subscription1 = await subscribeToPrinterStateChanges(event => {
