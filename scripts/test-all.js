@@ -116,8 +116,17 @@ async function runTests() {
   console.log(colorize("yellow", "🦀 Testing Rust code..."));
   console.log("--------------------");
 
-  // Check if cargo-llvm-cov is available for coverage
-  const hasLlvmCov = await commandExists("cargo-llvm-cov");
+  // Check if cargo llvm-cov is available for coverage
+  // In CI, it's only installed on Linux, but local developers can use it on any platform
+  let hasLlvmCov = false;
+  const hasCargo = await commandExists("cargo");
+  if (hasCargo) {
+    // Check if the llvm-cov subcommand exists
+    const llvmCovCheck = await runCommand(["cargo", "llvm-cov", "--version"], {
+      showOutput: false,
+    });
+    hasLlvmCov = llvmCovCheck.success;
+  }
 
   let cargoResult;
   if (hasLlvmCov) {

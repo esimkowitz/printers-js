@@ -148,8 +148,8 @@ jobs:
         with:
           prefix-key: ${{ matrix.os }}-rust
 
-      # Install cargo-llvm-cov for code coverage
-      # Note: Coverage artifacts only generated for Linux to avoid duplicates
+      # Install cargo-llvm-cov for code coverage (Linux only)
+      # Coverage artifacts only uploaded from Linux to avoid duplicates
       - name: Install cargo-llvm-cov (Linux only)
         if: runner.os == 'Linux'
         uses: taiki-e/install-action@cargo-llvm-cov
