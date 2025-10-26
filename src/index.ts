@@ -307,6 +307,7 @@ export interface JobStatus {
   age_seconds: number;
 }
 
+/** Printer state enum matching the Rust PrinterState enum */
 export type PrinterState =
   | "idle"
   | "printing"
@@ -330,9 +331,9 @@ export interface PrinterStateChangeEvent {
   /** Name of the printer that changed */
   printerName: string;
   /** Previous state (for state_changed events) */
-  oldState?: string;
+  oldState?: PrinterState;
   /** New state (for state_changed events) */
-  newState?: string;
+  newState?: PrinterState;
   /** Previous state reasons (for state_reasons_changed events) */
   oldReasons?: string[];
   /** New state reasons (for state_reasons_changed events) */
@@ -359,7 +360,7 @@ export interface PrinterStateSnapshot {
   /** Printer name */
   name: string;
   /** Current state */
-  state: string;
+  state: PrinterState;
   /** Current state reasons */
   stateReasons: string[];
   /** Timestamp of this snapshot */
@@ -374,24 +375,32 @@ export interface PrinterStateMonitorConfig {
   autoStart?: boolean;
 }
 
-export interface Printer {
+/**
+ * N-API native printer interface
+ * Represents the raw PrinterInfo struct from Rust - data only, no methods
+ */
+export interface NativePrinter {
   name: string;
-  systemName?: string;
-  driverName?: string;
-  uri?: string;
-  portName?: string;
-  processor?: string;
-  dataType?: string;
-  description?: string;
-  location?: string;
-  isDefault?: boolean;
-  isShared?: boolean;
-  state?: PrinterState;
-  stateReasons?: string[];
+  systemName: string;
+  driverName: string;
+  uri: string;
+  portName: string;
+  processor: string;
+  dataType: string;
+  description: string;
+  location: string;
+  isDefault: boolean;
+  isShared: boolean;
+  state: PrinterState;
+  stateReasons: string[];
+}
+
+// Trick to expose NativePrinter properties on Printer for linting and type checking
+// Properties are readonly - automatically proxied from the underlying NativePrinter
+export interface Printer extends Readonly<NativePrinter> {
   exists(): boolean;
   toString(): string;
   equals(other: Printer): boolean;
-  dispose?(): void;
   getName(): string;
   printFile(
     filePath: string,
@@ -474,34 +483,7 @@ export const runtimeInfo: RuntimeInfo = {
         : "unknown",
 };
 
-// N-API module interfaces
-interface NativePrinter {
-  name: string;
-  systemName?: string;
-  driverName?: string;
-  uri?: string;
-  portName?: string;
-  processor?: string;
-  dataType?: string;
-  description?: string;
-  location?: string;
-  isDefault?: boolean;
-  isShared?: boolean;
-  state?: string;
-  stateReasons?: string[];
-  exists?: () => boolean;
-  printFile?: (
-    filePath: string,
-    jobProperties?: Record<string, string>
-  ) => Promise<number>;
-  printBytes?: (
-    data: Uint8Array | Buffer,
-    jobProperties?: Record<string, string>
-  ) => Promise<number>;
-  toString?: () => string;
-  dispose?: () => void;
-}
-
+// N-API module interface
 interface NativeModule {
   getAllPrinterNames(): string[];
   getAllPrinters(): NativePrinter[];
@@ -531,7 +513,7 @@ interface NativeModule {
   stopStateMonitoring?(): void;
   isStateMonitoringActive?(): boolean;
   setStateMonitoringInterval?(seconds: number): void;
-  getPrinterStateSnapshot?(): Record<string, [string, string[]]>;
+  getPrinterStateSnapshot?(): Record<string, [PrinterState, string[]]>;
   Printer: {
     fromName(name: string): NativePrinter | null;
   };
@@ -822,164 +804,57 @@ try {
 
 /**
  * Wrapper class providing consistent API across all runtimes.
+ * Uses Proxy to dynamically expose all NativePrinter properties.
  */
-class PrinterWrapper implements Printer {
-  private nativePrinter: NativePrinter;
+class PrinterWrapperImpl {
+  private _native: NativePrinter;
 
   constructor(nativePrinter: NativePrinter) {
-    this.nativePrinter = nativePrinter;
-  }
+    this._native = nativePrinter;
 
-  private getInfoProperty(propertyName: string): any {
-    // For native Printer class instances, we need to get the info
-    if (
-      "getInfo" in this.nativePrinter &&
-      typeof this.nativePrinter.getInfo === "function"
-    ) {
-      try {
-        const info = (this.nativePrinter as any).getInfo();
-        return info[propertyName];
-      } catch (error) {
-        console.warn("Failed to get printer info:", error);
-      }
-    }
-    return undefined;
-  }
+    // Return a Proxy that intercepts property access
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        // If the property exists on the wrapper, use it
+        if (prop in target) {
+          const value = Reflect.get(target, prop, receiver);
+          // Bind functions to maintain correct 'this' context
+          return typeof value === "function" ? value.bind(target) : value;
+        }
 
-  get name(): string {
-    return this.nativePrinter.name || "";
-  }
+        // Otherwise, try to get it from the native printer
+        const nativeValue = (target._native as any)[prop];
+        if (nativeValue !== undefined) {
+          // Bind native functions to the native printer
+          return typeof nativeValue === "function"
+            ? nativeValue.bind(target._native)
+            : nativeValue;
+        }
 
-  get systemName(): string | undefined {
-    if (this.nativePrinter.systemName) {
-      return this.nativePrinter.systemName;
-    }
-    return this.getInfoProperty("systemName");
-  }
+        return undefined;
+      },
 
-  get driverName(): string | undefined {
-    if (this.nativePrinter.driverName) {
-      return this.nativePrinter.driverName;
-    }
-    return this.getInfoProperty("driverName");
-  }
+      // Make properties enumerable for iteration
+      ownKeys(target) {
+        const wrapperKeys = Reflect.ownKeys(target);
+        const nativeKeys = Reflect.ownKeys(target._native);
+        return [...new Set([...wrapperKeys, ...nativeKeys])];
+      },
 
-  get uri(): string | undefined {
-    if (this.nativePrinter.uri) {
-      return this.nativePrinter.uri;
-    }
-    return this.getInfoProperty("uri");
-  }
-
-  get portName(): string | undefined {
-    if (this.nativePrinter.portName) {
-      return this.nativePrinter.portName;
-    }
-    return this.getInfoProperty("portName");
-  }
-
-  get processor(): string | undefined {
-    if (this.nativePrinter.processor) {
-      return this.nativePrinter.processor;
-    }
-    return this.getInfoProperty("processor");
-  }
-
-  get dataType(): string | undefined {
-    if (this.nativePrinter.dataType) {
-      return this.nativePrinter.dataType;
-    }
-    return this.getInfoProperty("dataType");
-  }
-
-  get description(): string | undefined {
-    if (this.nativePrinter.description) {
-      return this.nativePrinter.description;
-    }
-    return this.getInfoProperty("description");
-  }
-
-  get location(): string | undefined {
-    if (this.nativePrinter.location) {
-      return this.nativePrinter.location;
-    }
-    return this.getInfoProperty("location");
-  }
-
-  get isDefault(): boolean | undefined {
-    if (this.nativePrinter.isDefault !== undefined) {
-      return this.nativePrinter.isDefault;
-    }
-    // For native Printer class instances, we need to get the info
-    if (
-      "getInfo" in this.nativePrinter &&
-      typeof this.nativePrinter.getInfo === "function"
-    ) {
-      try {
-        const info = (this.nativePrinter as any).getInfo();
-        return info.isDefault;
-      } catch (error) {
-        console.warn("Failed to get printer info:", error);
-      }
-    }
-    return undefined;
-  }
-
-  get isShared(): boolean | undefined {
-    if (this.nativePrinter.isShared !== undefined) {
-      return this.nativePrinter.isShared;
-    }
-    // For native Printer class instances, we need to get the info
-    if (
-      "getInfo" in this.nativePrinter &&
-      typeof this.nativePrinter.getInfo === "function"
-    ) {
-      try {
-        const info = (this.nativePrinter as any).getInfo();
-        return info.isShared;
-      } catch (error) {
-        console.warn("Failed to get printer info:", error);
-      }
-    }
-    return undefined;
-  }
-
-  get state(): PrinterState | undefined {
-    if (this.nativePrinter.state) {
-      return this.nativePrinter.state as PrinterState;
-    }
-    // For native Printer class instances, we need to get the info
-    if (
-      "getInfo" in this.nativePrinter &&
-      typeof this.nativePrinter.getInfo === "function"
-    ) {
-      try {
-        const info = (this.nativePrinter as any).getInfo();
-        return (info.state as PrinterState) || "unknown";
-      } catch (error) {
-        console.warn("Failed to get printer info:", error);
-      }
-    }
-    return "unknown";
-  }
-
-  get stateReasons(): string[] | undefined {
-    if (this.nativePrinter.stateReasons) {
-      return this.nativePrinter.stateReasons;
-    }
-    // For native Printer class instances, we need to get the info
-    if (
-      "getInfo" in this.nativePrinter &&
-      typeof this.nativePrinter.getInfo === "function"
-    ) {
-      try {
-        const info = (this.nativePrinter as any).getInfo();
-        return info.stateReasons;
-      } catch (error) {
-        console.warn("Failed to get printer info:", error);
-      }
-    }
-    return [];
+      // Required for ownKeys to work properly
+      getOwnPropertyDescriptor(target, prop) {
+        if (prop in target) {
+          return Reflect.getOwnPropertyDescriptor(target, prop);
+        }
+        if (prop in target._native) {
+          return {
+            enumerable: true,
+            configurable: true,
+          };
+        }
+        return undefined;
+      },
+    });
   }
 
   /**
@@ -987,35 +862,28 @@ class PrinterWrapper implements Printer {
    * @returns True if printer exists
    */
   exists(): boolean {
-    return this.nativePrinter.exists ? this.nativePrinter.exists() : true;
+    return printerExists(this._native.name);
   }
 
   /**
    * Get string representation of the printer.
-   * @returns Printer name or custom string representation
+   * @returns Formatted printer information string
    */
   toString(): string {
-    return this.nativePrinter.toString
-      ? this.nativePrinter.toString()
-      : this.name;
+    const status = this._native.isDefault ? " (default)" : "";
+    const state = this._native.state ? ` [${this._native.state}]` : "";
+    return `${this._native.name}${status}${state}`;
   }
 
   /**
    * Compare equality with another printer.
+   * Printers are considered equal if they have the same name.
    * @param other - Printer to compare with
    * @returns True if printers have same name
    */
   equals(other: Printer): boolean {
-    return this.name === other.name;
-  }
-
-  /**
-   * Clean up printer resources.
-   */
-  dispose(): void {
-    if (this.nativePrinter.dispose) {
-      this.nativePrinter.dispose();
-    }
+    // Since name is guaranteed to exist on NativePrinter, we can directly compare
+    return this._native.name === other.name;
   }
 
   /**
@@ -1023,7 +891,7 @@ class PrinterWrapper implements Printer {
    * @returns Printer name
    */
   getName(): string {
-    return this.name;
+    return this._native.name;
   }
 
   /**
@@ -1039,7 +907,7 @@ class PrinterWrapper implements Printer {
     if (nativeModule.printFile) {
       const { rawOptions, waitForCompletion } = this.convertOptions(options);
       return await nativeModule.printFile(
-        this.name,
+        this._native.name,
         filePath,
         rawOptions,
         waitForCompletion
@@ -1061,7 +929,7 @@ class PrinterWrapper implements Printer {
     if (nativeModule.printBytes) {
       const { rawOptions, waitForCompletion } = this.convertOptions(options);
       return await nativeModule.printBytes(
-        this.name,
+        this._native.name,
         data,
         rawOptions,
         waitForCompletion
@@ -1117,10 +985,13 @@ class PrinterWrapper implements Printer {
   getActiveJobs(): PrinterJob[] {
     try {
       return nativeModule.printerGetActiveJobs
-        ? nativeModule.printerGetActiveJobs(this.name)
+        ? nativeModule.printerGetActiveJobs(this._native.name)
         : [];
     } catch (error) {
-      console.error(`Failed to get active jobs for ${this.name}:`, error);
+      console.error(
+        `Failed to get active jobs for ${this._native.name}:`,
+        error
+      );
       return [];
     }
   }
@@ -1133,10 +1004,13 @@ class PrinterWrapper implements Printer {
   getJobHistory(limit?: number): PrinterJob[] {
     try {
       return nativeModule.printerGetJobHistory
-        ? nativeModule.printerGetJobHistory(this.name, limit)
+        ? nativeModule.printerGetJobHistory(this._native.name, limit)
         : [];
     } catch (error) {
-      console.error(`Failed to get job history for ${this.name}:`, error);
+      console.error(
+        `Failed to get job history for ${this._native.name}:`,
+        error
+      );
       return [];
     }
   }
@@ -1149,10 +1023,13 @@ class PrinterWrapper implements Printer {
   getJob(jobId: number): PrinterJob | null {
     try {
       return nativeModule.printerGetJob
-        ? nativeModule.printerGetJob(this.name, jobId)
+        ? nativeModule.printerGetJob(this._native.name, jobId)
         : null;
     } catch (error) {
-      console.error(`Failed to get job ${jobId} for ${this.name}:`, error);
+      console.error(
+        `Failed to get job ${jobId} for ${this._native.name}:`,
+        error
+      );
       return null;
     }
   }
@@ -1164,10 +1041,10 @@ class PrinterWrapper implements Printer {
   getAllJobs(): PrinterJob[] {
     try {
       return nativeModule.printerGetAllJobs
-        ? nativeModule.printerGetAllJobs(this.name)
+        ? nativeModule.printerGetAllJobs(this._native.name)
         : [];
     } catch (error) {
-      console.error(`Failed to get all jobs for ${this.name}:`, error);
+      console.error(`Failed to get all jobs for ${this._native.name}:`, error);
       return [];
     }
   }
@@ -1180,10 +1057,13 @@ class PrinterWrapper implements Printer {
   cleanupOldJobs(maxAgeSeconds: number): number {
     try {
       return nativeModule.printerCleanupOldJobs
-        ? nativeModule.printerCleanupOldJobs(this.name, maxAgeSeconds)
+        ? nativeModule.printerCleanupOldJobs(this._native.name, maxAgeSeconds)
         : 0;
     } catch (error) {
-      console.error(`Failed to cleanup old jobs for ${this.name}:`, error);
+      console.error(
+        `Failed to cleanup old jobs for ${this._native.name}:`,
+        error
+      );
       return 0;
     }
   }
@@ -1203,7 +1083,8 @@ export function getAllPrinters(): Printer[] {
       : [];
 
     return nativePrinters.map(
-      nativePrinter => new PrinterWrapper(nativePrinter)
+      nativePrinter =>
+        new PrinterWrapperImpl(nativePrinter) as unknown as Printer
     );
   } catch (error) {
     console.error("Failed to get all printers:", error);
@@ -1236,7 +1117,9 @@ export function getPrinterByName(name: string): Printer | null {
     const nativePrinter = nativeModule.findPrinterByName
       ? nativeModule.findPrinterByName(name)
       : null;
-    return nativePrinter ? new PrinterWrapper(nativePrinter) : null;
+    return nativePrinter
+      ? (new PrinterWrapperImpl(nativePrinter) as unknown as Printer)
+      : null;
   } catch (error) {
     console.error(`Failed to get printer ${name}:`, error);
     return null;

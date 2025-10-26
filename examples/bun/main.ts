@@ -14,7 +14,6 @@ import {
   shutdown,
   type PrinterJob,
 } from "@printers/printers";
-import { CUPSOptions } from "../../src";
 
 async function main() {
   console.log("🥟 Bun Printers Example");
@@ -74,7 +73,7 @@ async function main() {
         // Submit print job
         console.log("📄 Submitting print job...");
 
-        const jobId = await printer.printFile("../sample-image.png", {
+        const jobId = await printer.printFile("../../media/sample-image.png", {
           jobName: "Sample Image",
           simple: {
             copies: 2,

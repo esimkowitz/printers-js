@@ -2,12 +2,14 @@ use printers::common::base::printer::Printer;
 use printers::get_printer_by_name;
 use std::collections::HashMap;
 use std::env;
+use std::io::Write;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime};
+use tempfile::NamedTempFile;
 use uuid::Uuid;
 
 /// Print job options for configuring print jobs
@@ -569,39 +571,38 @@ impl PrinterCore {
             .ok_or_else(|| format!("Printer '{}' not found", printer_name))?;
 
         // Execute the print job with raw bytes - use temp file approach
-        let result = match std::fs::write("/tmp/temp_print_data", data) {
-            Ok(_) => {
+        let mut temp_file = NamedTempFile::new().expect("Unable to create temp file");
+
+        let result = match temp_file.write_all(data) {
+            Ok(()) => {
                 // Convert HashMap to upstream PrinterJobOptions
                 use printers::common::base::job::PrinterJobOptions as PrinterJobOpts;
-                // Execute print with proper lifetime management
-                let print_result = if job_options.is_empty() {
-                    let job_opts = PrinterJobOpts::none();
-                    match printer.print_file("/tmp/temp_print_data", job_opts) {
-                        Ok(_) => Ok(()),
-                        Err(e) => Err(format!("Byte print failed: {}", e)),
-                    }
-                } else {
-                    // Convert HashMap to slice of tuple references with proper lifetime
-                    let properties: Vec<(&str, &str)> = job_options
-                        .iter()
-                        .map(|(k, v)| (k.as_str(), v.as_str()))
-                        .collect();
+                let properties: Vec<(&str, &str)>;
+                let job_opts = match job_options.is_empty() {
+                    true => PrinterJobOpts::none(),
+                    false => {
+                        // Convert HashMap to slice of tuple references with proper lifetime
+                        properties = job_options
+                            .iter()
+                            .map(|(k, v)| (k.as_str(), v.as_str()))
+                            .collect();
 
-                    let job_opts = PrinterJobOpts {
-                        name: job_options.get("job-name").map(|s| s.as_str()),
-                        raw_properties: &properties,
-                    };
-
-                    match printer.print_file("/tmp/temp_print_data", job_opts) {
-                        Ok(_) => Ok(()),
-                        Err(e) => Err(format!("Byte print failed: {}", e)),
+                        PrinterJobOpts {
+                            name: job_options.get("job-name").map(|s| s.as_str()),
+                            raw_properties: &properties,
+                        }
                     }
                 };
-
-                // Clean up temp file regardless of result
-                let _ = std::fs::remove_file("/tmp/temp_print_data");
-
-                print_result
+                match printer.print_file(
+                    temp_file
+                        .into_temp_path()
+                        .to_str()
+                        .expect("Unable to resolve temp file path"),
+                    job_opts,
+                ) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Byte print failed: {}", e)),
+                }
             }
             Err(e) => Err(format!("Failed to write temp file: {}", e)),
         };

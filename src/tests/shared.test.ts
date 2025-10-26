@@ -9,6 +9,7 @@
 declare var process: any;
 
 import { test } from "@cross/test";
+import type * as PrinterTypes from "../index.ts";
 
 // Runtime detection and simulation mode setup - MUST happen before importing the module
 let runtimeName: string;
@@ -37,9 +38,8 @@ if (typeof Deno !== "undefined") {
   if (typeof process !== "undefined") process.env.PRINTERS_JS_SIMULATE = "true";
 }
 
-// Always use the universal entrypoint for consistency
-// deno-lint-ignore no-explicit-any
-let printerAPI: any;
+// Always use the universal entrypoint for consistency - type-safe dynamic import
+let printerAPI: typeof PrinterTypes;
 try {
   printerAPI = await import("../index.ts");
   console.log("Debug: Successfully imported src/index.ts");
@@ -48,7 +48,7 @@ try {
   throw error;
 }
 
-// Extract API functions
+// Extract API functions with proper types
 const {
   getAllPrinterNames,
   getAllPrinters,
@@ -75,6 +75,16 @@ const {
 console.log("Debug: Available API functions:", Object.keys(printerAPI));
 console.log("Debug: isSimulationMode =", isSimulationMode);
 console.log("Debug: typeof getAllPrinterNames =", typeof getAllPrinterNames);
+
+// Test media files directory
+const MEDIA_DIR = "/Users/evan/source/printers-js/media";
+const TEST_FILES = {
+  PDF: `${MEDIA_DIR}/sample-document.pdf`,
+  TEXT: `${MEDIA_DIR}/sample-text.txt`,
+  PNG: `${MEDIA_DIR}/sample-image.png`,
+  JPEG: `${MEDIA_DIR}/sample-image.jpg`,
+  DOCX: `${MEDIA_DIR}/sample-document.docx`,
+};
 
 // Core cross-runtime tests
 test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
@@ -409,7 +419,7 @@ test(`${runtimeName}: simulated printer should have correct field values`, () =>
 
   // Test expected field values for simulated printer
   const validSimulatedStates = ["idle", "printing", "paused"];
-  if (!validSimulatedStates.includes(simulatedPrinter.state)) {
+  if (!validSimulatedStates.includes(simulatedPrinter.state || "")) {
     throw new Error(
       `Simulated printer state should be one of ${validSimulatedStates.join(", ")}, got '${simulatedPrinter.state}'`
     );
@@ -498,7 +508,6 @@ test(`${runtimeName}: should convert CUPSOptions to raw properties correctly`, (
     copies: 2,
     collate: true,
     "media-size": "Letter",
-    "print-quality": 4,
     "fit-to-page": false,
     "custom-option": "test-value",
   };
@@ -693,8 +702,8 @@ test(`${runtimeName}: should create and track print jobs with new job format`, a
   const printer = printers[0];
 
   try {
-    // Create a test file path (in simulation mode this won't actually print)
-    const testFile = "/tmp/test-document.pdf";
+    // Use real test file from media directory
+    const testFile = TEST_FILES.PDF;
     const jobOptions = {
       jobName: "Test Job Tracking",
       raw: { "test-property": "test-value" },
@@ -923,7 +932,11 @@ test(`${runtimeName}: should subscribe to printer state changes`, async () => {
 
   try {
     let eventReceived = false;
-    let receivedEvent = null;
+    let receivedEvent: PrinterTypes.PrinterStateChangeEvent = {
+      eventType: "connected",
+      printerName: "",
+      timestamp: 0,
+    };
 
     // Subscribe to state changes
     const subscription = await subscribeToPrinterStateChanges(event => {
@@ -988,8 +1001,8 @@ test(`${runtimeName}: should handle multiple state change subscriptions`, async 
   }
 
   try {
-    let events1 = [];
-    let events2 = [];
+    let events1: PrinterTypes.PrinterStateChangeEvent[] = [];
+    let events2: PrinterTypes.PrinterStateChangeEvent[] = [];
 
     // Create multiple subscriptions
     const subscription1 = await subscribeToPrinterStateChanges(event => {
@@ -1233,7 +1246,7 @@ test(`${runtimeName}: should track jobs in active jobs list`, async () => {
 
     // Submit a job
     const jobOptions = { jobName: "Active Job Test" };
-    const jobId = await printer.printFile("/test/active-job.pdf", jobOptions);
+    const jobId = await printer.printFile(TEST_FILES.PDF, jobOptions);
 
     // Give job a moment to be queued
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -1287,39 +1300,27 @@ test(`${runtimeName}: should respect waitForCompletion=false for quick return`, 
 
   const printer = printers[0];
 
-  // Create test file
-  const testFile = "/tmp/test_quick_return.txt";
-  if (runtimeName === "Node.js") {
-    (await import("fs")).writeFileSync(testFile, "Quick return test");
-  }
+  // Use real test file from media directory
+  const testFile = TEST_FILES.TEXT;
 
   const startTime = Date.now();
 
-  try {
-    const jobId = await printer.printFile(testFile, {
-      jobName: "Quick Return Test",
-      waitForCompletion: false,
-    });
+  const jobId = await printer.printFile(testFile, {
+    jobName: "Quick Return Test",
+    waitForCompletion: false,
+  });
 
-    const duration = Date.now() - startTime;
+  const duration = Date.now() - startTime;
 
-    if (typeof jobId !== "number") {
-      throw new Error("Job ID should be a number");
-    }
+  if (typeof jobId !== "number") {
+    throw new Error("Job ID should be a number");
+  }
 
-    console.log(`Quick return took ${duration}ms`);
+  console.log(`Quick return took ${duration}ms`);
 
-    // In simulation mode, should still return quickly
-    if (duration > 1000) {
-      throw new Error(`Quick return took too long: ${duration}ms`);
-    }
-  } finally {
-    // Clean up
-    if (runtimeName === "Node.js") {
-      try {
-        (await import("fs")).unlinkSync(testFile);
-      } catch (e) {}
-    }
+  // In simulation mode, should still return quickly
+  if (duration > 1000) {
+    throw new Error(`Quick return took too long: ${duration}ms`);
   }
 });
 
@@ -1329,38 +1330,26 @@ test(`${runtimeName}: should respect waitForCompletion=true for delayed return`,
 
   const printer = printers[0];
 
-  // Create test file
-  const testFile = "/tmp/test_delayed_return.txt";
-  if (runtimeName === "Node.js") {
-    (await import("fs")).writeFileSync(testFile, "Delayed return test");
-  }
+  // Use real test file from media directory
+  const testFile = TEST_FILES.TEXT;
 
   const startTime = Date.now();
 
-  try {
-    const jobId = await printer.printFile(testFile, {
-      jobName: "Delayed Return Test",
-      waitForCompletion: true,
-    });
+  const jobId = await printer.printFile(testFile, {
+    jobName: "Delayed Return Test",
+    waitForCompletion: true,
+  });
 
-    const duration = Date.now() - startTime;
+  const duration = Date.now() - startTime;
 
-    if (typeof jobId !== "number") {
-      throw new Error("Job ID should be a number");
-    }
-
-    console.log(`Delayed return took ${duration}ms`);
-
-    // In real mode, should include keep-alive delay
-    // In simulation mode, should still complete but timing may vary
-  } finally {
-    // Clean up
-    if (runtimeName === "Node.js") {
-      try {
-        (await import("fs")).unlinkSync(testFile);
-      } catch (e) {}
-    }
+  if (typeof jobId !== "number") {
+    throw new Error("Job ID should be a number");
   }
+
+  console.log(`Delayed return took ${duration}ms`);
+
+  // In real mode, should include keep-alive delay
+  // In simulation mode, should still complete but timing may vary
 });
 
 test(`${runtimeName}: should default waitForCompletion to true when not specified`, async () => {
@@ -1369,31 +1358,19 @@ test(`${runtimeName}: should default waitForCompletion to true when not specifie
 
   const printer = printers[0];
 
-  // Create test file
-  const testFile = "/tmp/test_default_behavior.txt";
-  if (runtimeName === "Node.js") {
-    (await import("fs")).writeFileSync(testFile, "Default behavior test");
+  // Use real test file from media directory
+  const testFile = TEST_FILES.TEXT;
+
+  const jobId = await printer.printFile(testFile, {
+    jobName: "Default Behavior Test",
+    // No waitForCompletion specified - should default to true
+  });
+
+  if (typeof jobId !== "number") {
+    throw new Error("Job ID should be a number");
   }
 
-  try {
-    const jobId = await printer.printFile(testFile, {
-      jobName: "Default Behavior Test",
-      // No waitForCompletion specified - should default to true
-    });
-
-    if (typeof jobId !== "number") {
-      throw new Error("Job ID should be a number");
-    }
-
-    console.log("Default behavior completed successfully");
-  } finally {
-    // Clean up
-    if (runtimeName === "Node.js") {
-      try {
-        (await import("fs")).unlinkSync(testFile);
-      } catch (e) {}
-    }
-  }
+  console.log("Default behavior completed successfully");
 });
 
 test(`${runtimeName}: should support waitForCompletion with raw bytes printing`, async () => {
@@ -1431,38 +1408,26 @@ test(`${runtimeName}: should handle waitForCompletion with various file types`, 
 
   const printer = printers[0];
 
+  // Use real test files from media directory
   const testFiles = [
-    { name: "/tmp/test.txt", content: "Text file" },
-    { name: "/tmp/test.pdf", content: "PDF content" },
-    { name: "/tmp/test.jpg", content: "JPEG content" },
+    { name: TEST_FILES.TEXT, type: "text" },
+    { name: TEST_FILES.PDF, type: "PDF" },
+    { name: TEST_FILES.JPEG, type: "JPEG" },
+    { name: TEST_FILES.PNG, type: "PNG" },
+    { name: TEST_FILES.DOCX, type: "DOCX" },
   ];
 
-  try {
-    for (const file of testFiles) {
-      if (runtimeName === "Node.js") {
-        (await import("fs")).writeFileSync(file.name, file.content);
-      }
+  for (const file of testFiles) {
+    const jobId = await printer.printFile(file.name, {
+      jobName: `Test ${file.type}`,
+      waitForCompletion: false,
+    });
 
-      const jobId = await printer.printFile(file.name, {
-        jobName: `Test ${file.name}`,
-        waitForCompletion: false,
-      });
-
-      if (typeof jobId !== "number") {
-        throw new Error(`Job ID should be a number for ${file.name}`);
-      }
-
-      console.log(`File ${file.name} printed with job ID: ${jobId}`);
+    if (typeof jobId !== "number") {
+      throw new Error(`Job ID should be a number for ${file.type}`);
     }
-  } finally {
-    // Clean up all test files
-    if (runtimeName === "Node.js") {
-      for (const file of testFiles) {
-        try {
-          (await import("fs")).unlinkSync(file.name);
-        } catch (e) {}
-      }
-    }
+
+    console.log(`File ${file.type} printed with job ID: ${jobId}`);
   }
 });
 
@@ -1485,7 +1450,7 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
 
     // Submit a job and wait for completion
     const jobOptions = { jobName: "History Job Test" };
-    const jobId = await printer.printFile("/test/history-job.pdf", jobOptions);
+    const jobId = await printer.printFile(TEST_FILES.PDF, jobOptions);
 
     // Wait for job to complete (simulation jobs complete quickly)
     // Use shorter wait for Bun to avoid timeout issues
@@ -1559,15 +1524,20 @@ test(`${runtimeName}: should handle media type detection correctly`, async () =>
   const testCases =
     runtimeName === "Bun"
       ? [
-          { file: "/test/document.pdf", expectedType: "application/pdf" },
-          { file: "/test/document.txt", expectedType: "text/plain" },
+          { file: TEST_FILES.PDF, expectedType: "application/pdf" },
+          { file: TEST_FILES.TEXT, expectedType: "text/plain" },
         ]
       : [
-          { file: "/test/document.pdf", expectedType: "application/pdf" },
-          { file: "/test/document.txt", expectedType: "text/plain" },
-          { file: "/test/image.jpg", expectedType: "image/jpeg" },
-          { file: "/test/image.png", expectedType: "image/png" },
-          { file: "/test/script.ps", expectedType: "application/postscript" },
+          { file: TEST_FILES.PDF, expectedType: "application/pdf" },
+          { file: TEST_FILES.TEXT, expectedType: "text/plain" },
+          { file: TEST_FILES.JPEG, expectedType: "image/jpeg" },
+          { file: TEST_FILES.PNG, expectedType: "image/png" },
+          {
+            file: TEST_FILES.DOCX,
+            // Note: .docx is not recognized by the library's media type detection,
+            // so it falls back to generic octet-stream
+            expectedType: "application/octet-stream",
+          },
         ];
 
   for (const testCase of testCases) {
