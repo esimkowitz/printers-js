@@ -375,55 +375,32 @@ export interface PrinterStateMonitorConfig {
   autoStart?: boolean;
 }
 
-/** N-API native printer interface */
+/**
+ * N-API native printer interface
+ * Represents the raw PrinterInfo struct from Rust - data only, no methods
+ */
 export interface NativePrinter {
   name: string;
-  systemName?: string;
-  driverName?: string;
-  uri?: string;
-  portName?: string;
-  processor?: string;
-  dataType?: string;
-  description?: string;
-  location?: string;
-  isDefault?: boolean;
-  isShared?: boolean;
-  state?: PrinterState;
-  stateReasons?: string[];
-  exists?: () => boolean;
-  printFile?: (
-    filePath: string,
-    jobProperties?: Record<string, string>
-  ) => Promise<number>;
-  printBytes?: (
-    data: Uint8Array | Buffer,
-    jobProperties?: Record<string, string>
-  ) => Promise<number>;
-  toString?: () => string;
-  dispose?: () => void;
-  getInfo?: () => any;
-  equals?: (other: any) => boolean;
+  systemName: string;
+  driverName: string;
+  uri: string;
+  portName: string;
+  processor: string;
+  dataType: string;
+  description: string;
+  location: string;
+  isDefault: boolean;
+  isShared: boolean;
+  state: PrinterState;
+  stateReasons: string[];
 }
 
 // Trick to expose NativePrinter properties on Printer for linting and type checking
 // Properties are readonly - automatically proxied from the underlying NativePrinter
-export interface Printer
-  extends Readonly<
-    Omit<
-      NativePrinter,
-      | "exists"
-      | "toString"
-      | "equals"
-      | "dispose"
-      | "getInfo"
-      | "printFile"
-      | "printBytes"
-    >
-  > {
+export interface Printer extends Readonly<NativePrinter> {
   exists(): boolean;
   toString(): string;
   equals(other: Printer): boolean;
-  dispose?(): void;
   getName(): string;
   printFile(
     filePath: string,
@@ -885,35 +862,28 @@ class PrinterWrapperImpl {
    * @returns True if printer exists
    */
   exists(): boolean {
-    return this._native.exists ? this._native.exists() : true;
+    return printerExists(this._native.name);
   }
 
   /**
    * Get string representation of the printer.
-   * @returns Printer name or custom string representation
+   * @returns Formatted printer information string
    */
   toString(): string {
-    return this._native.toString
-      ? this._native.toString()
-      : this._native.name || "";
+    const status = this._native.isDefault ? " (default)" : "";
+    const state = this._native.state ? ` [${this._native.state}]` : "";
+    return `${this._native.name}${status}${state}`;
   }
 
   /**
    * Compare equality with another printer.
+   * Printers are considered equal if they have the same name.
    * @param other - Printer to compare with
    * @returns True if printers have same name
    */
   equals(other: Printer): boolean {
+    // Since name is guaranteed to exist on NativePrinter, we can directly compare
     return this._native.name === other.name;
-  }
-
-  /**
-   * Clean up printer resources.
-   */
-  dispose(): void {
-    if (this._native.dispose) {
-      this._native.dispose();
-    }
   }
 
   /**
@@ -921,7 +891,7 @@ class PrinterWrapperImpl {
    * @returns Printer name
    */
   getName(): string {
-    return this._native.name || "";
+    return this._native.name;
   }
 
   /**
