@@ -107,7 +107,7 @@ task bump:major    # 0.1.4 -> 1.0.0
 **Node.js Scripts** (ESM JavaScript):
 
 - **`scripts/build-all.js`**: Cross-runtime build orchestration
-- **`scripts/test-all.js`**: Comprehensive test runner with coverage reports
+- **`scripts/test-runtimes.js`**: Comprehensive test runner with coverage reports
 - **`scripts/run-ci-local.js`**: Local CI simulation
 - **`scripts/bump-version.js`**: Version management
 - **`scripts/build-napi.js`**: N-API module building (requires Node.js subprocess environment)
@@ -123,7 +123,7 @@ All utility scripts are Node.js JavaScript files using ESM syntax.
 
 - Always use `PRINTERS_JS_SIMULATE=true` for safe testing
 - Default tests use simulation mode automatically
-- Scripts like `test-all.js` automatically set simulation mode
+- Scripts like `test-runtimes.js` automatically set simulation mode
 - Only disable simulation mode when intentionally testing real printing
 - The devcontainer sets `PRINTERS_JS_SIMULATE=true` by default
 

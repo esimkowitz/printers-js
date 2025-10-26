@@ -23,19 +23,27 @@ tasks:
 
   test:
     desc: Run comprehensive test suite across all runtimes
-    cmd: node scripts/test-all.js
+    cmd: node scripts/test-runtimes.js {{.CLI_ARGS}}
 
   test:real:
     desc: Run comprehensive test suite with real printing (not recommended)
-    cmd: PRINTERS_JS_SIMULATE=false node scripts/test-all.js
+    cmd: PRINTERS_JS_SIMULATE=false task test
+
+  test:rust:
+    desc: Run only Rust tests
+    cmd: task test -- rust
+
+  test:js:
+    desc: Run only JavaScript runtime tests (Deno, Node.js, Bun)
+    cmd: task test -- deno node bun
 
   test:deno:
     desc: Run Deno tests in simulation mode
-    cmd: "{{.SIMULATE}} deno test --allow-env --allow-read --allow-ffi --no-check src/tests/shared.test.ts"
+    cmd: "{{.SIMULATE}} task test:deno:real"
 
   test:deno:real:
     desc: Run Deno tests with real printing
-    cmd: "deno test --allow-env --allow-read --allow-ffi src/tests/shared.test.ts"
+    cmd: task test -- deno
 
   test:doc:
     desc: Run documentation tests
@@ -43,19 +51,19 @@ tasks:
 
   test:node:
     desc: Run Node.js tests in simulation mode
-    cmd: "{{.SIMULATE}} npx tsx src/tests/node-test-runner.ts"
+    cmd: "{{.SIMULATE}} task test:node:real"
 
   test:node:real:
     desc: Run Node.js tests with real printing
-    cmd: npx tsx src/tests/node-test-runner.ts
+    cmd: task test -- node
 
   test:bun:
     desc: Run Bun tests in simulation mode
-    cmd: "{{.SIMULATE}} bun test src/tests/shared.test.ts"
+    cmd: "{{.SIMULATE}} task test:bun:real"
 
   test:bun:real:
     desc: Run Bun tests with real printing
-    cmd: bun test src/tests/shared.test.ts
+    cmd: task test -- bun
 
   lint:
     desc: Lint all code
