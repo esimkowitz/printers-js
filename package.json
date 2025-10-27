@@ -1,6 +1,6 @@
 {
   "name": "@printers/printers",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Cross-platform printer library for Node.js, Deno, and Bun",
   "type": "module",
   "main": "dist/index.js",
@@ -16,7 +16,9 @@
       "x86_64-pc-windows-msvc",
       "aarch64-pc-windows-msvc",
       "x86_64-unknown-linux-gnu",
-      "aarch64-unknown-linux-gnu"
+      "aarch64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-musl"
     ]
   },
   "engines": {

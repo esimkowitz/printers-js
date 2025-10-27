@@ -48,15 +48,15 @@ tasks:
 
   test:direct:deno:
     desc: Run Deno tests directly
-    cmd: "{{.SIMULATE}} deno test --allow-read --allow-write --allow-env --allow-ffi tests/shared.test.ts"
+    cmd: "{{.SIMULATE}} deno test --allow-read --allow-write --allow-env --allow-ffi src/tests/shared.test.ts"
 
   test:direct:node:
     desc: Run Node.js tests directly
-    cmd: "{{.SIMULATE}} node tests/node-test-runner.mjs"
+    cmd: "{{.SIMULATE}} npx tsx src/tests/node-test-runner.ts"
 
   test:direct:bun:
     desc: Run Bun tests directly
-    cmd: "{{.SIMULATE}} bun test tests/shared.test.ts"
+    cmd: "{{.SIMULATE}} bun test src/tests/shared.test.ts"
 
   test:doc:
     desc: Run documentation tests

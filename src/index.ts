@@ -432,14 +432,22 @@ export interface RuntimeInfo {
   version: string;
 }
 
-// Runtime detection
+// Runtime detection interfaces
 interface GlobalWithProcess {
   process?: {
     versions?: { node?: string };
     version?: string;
-    env?: { PRINTERS_JS_SIMULATE?: string };
+    env?: Record<string, string | undefined>;
     platform?: string;
     arch?: string;
+    report?: {
+      getReport?: () => {
+        header?: {
+          glibcVersionRuntime?: string;
+        };
+        sharedObjects?: string[];
+      };
+    };
   };
 }
 
@@ -447,20 +455,25 @@ interface GlobalWithBun {
   Bun?: { version: string };
 }
 
-const isNode =
-  typeof (globalThis as GlobalWithProcess).process !== "undefined" &&
-  !!(globalThis as GlobalWithProcess).process?.versions?.node;
-const isBun = typeof (globalThis as GlobalWithBun).Bun !== "undefined";
-const isDeno = typeof (globalThis as any).Deno !== "undefined";
+interface GlobalWithDeno {
+  Deno?: {
+    version?: { deno: string };
+    env?: { get(key: string): string | undefined };
+  };
+}
+
+// Type-safe global access
+const g = globalThis as GlobalWithProcess & GlobalWithBun & GlobalWithDeno;
+
+// Simple runtime detection
+const isDeno = typeof g.Deno !== "undefined";
+const isBun = typeof g.Bun !== "undefined";
+const isNode = typeof g.process?.versions?.node !== "undefined";
 
 // Simulation mode detection
 const simValue = isDeno
-  ? typeof (globalThis as any).Deno !== "undefined" &&
-    (globalThis as any).Deno.env &&
-    typeof (globalThis as any).Deno.env.get === "function"
-    ? (globalThis as any).Deno.env.get("PRINTERS_JS_SIMULATE")
-    : undefined
-  : (globalThis as GlobalWithProcess).process?.env?.PRINTERS_JS_SIMULATE;
+  ? g.Deno?.env?.get("PRINTERS_JS_SIMULATE")
+  : g.process?.env?.PRINTERS_JS_SIMULATE;
 
 export const isSimulationMode: boolean =
   simValue === "true" || simValue === "1";
@@ -472,14 +485,11 @@ export const runtimeInfo: RuntimeInfo = {
   isNode,
   isBun,
   version: isDeno
-    ? typeof (globalThis as any).Deno !== "undefined" &&
-      (globalThis as any).Deno.version
-      ? (globalThis as any).Deno.version.deno
-      : "unknown"
+    ? (g.Deno?.version?.deno ?? "unknown")
     : isBun
-      ? ((globalThis as GlobalWithBun).Bun?.version ?? "unknown")
+      ? (g.Bun?.version ?? "unknown")
       : isNode
-        ? ((globalThis as GlobalWithProcess).process?.version ?? "unknown")
+        ? (g.process?.version ?? "unknown")
         : "unknown",
 };
 
@@ -724,14 +734,42 @@ if (isSimulationMode) {
   );
 }
 
+/**
+ * Detect if the system is using musl libc (e.g., Alpine Linux)
+ * Uses process.report API which is available in Node.js without filesystem/shell access
+ */
+function isMuslLibc(): boolean {
+  if (!isNode) return false;
+
+  try {
+    // Check for glibc version in process report (only present on glibc systems)
+    const report = g.process?.report?.getReport?.();
+    if (report?.header?.glibcVersionRuntime) {
+      return false; // Has glibc version, so it's glibc
+    }
+
+    // Check shared objects for musl indicators
+    if (Array.isArray(report?.sharedObjects)) {
+      return report.sharedObjects.some(
+        (obj: string) =>
+          typeof obj === "string" &&
+          (obj.includes("libc.musl-") || obj.includes("ld-musl-"))
+      );
+    }
+  } catch {
+    // If report API fails, assume glibc (safer default)
+  }
+
+  return false;
+}
+
 // Always load the N-API module - let the backend handle simulation mode
 try {
   // Platform detection for N-API module loading
-  let platformString: string;
+  const platform = g.process?.platform;
+  const arch = g.process?.arch;
 
-  // Map to npm package names (not NAPI-RS target names)
-  const platform = (globalThis as GlobalWithProcess).process?.platform;
-  const arch = (globalThis as GlobalWithProcess).process?.arch;
+  let platformString: string;
 
   if (platform === "darwin") {
     if (arch === "x64") {
@@ -750,10 +788,13 @@ try {
       throw new Error(`Unsupported architecture for Windows: ${arch}`);
     }
   } else if (platform === "linux") {
+    // Detect musl vs glibc
+    const isMusl = isMuslLibc();
+
     if (arch === "x64") {
-      platformString = "linux-x64-gnu";
+      platformString = isMusl ? "linux-x64-musl" : "linux-x64-gnu";
     } else if (arch === "arm64") {
-      platformString = "linux-arm64-gnu";
+      platformString = isMusl ? "linux-arm64-musl" : "linux-arm64-gnu";
     } else {
       throw new Error(`Unsupported architecture for Linux: ${arch}`);
     }
@@ -771,21 +812,13 @@ try {
   } catch (localError) {
     // If local path fails, try the published npm package
     try {
-      const packageName = `@printers/printers-${platformString}`;
+      // Dynamic import works for all runtimes (Node.js, Deno with nodeModulesDir, Bun)
+      // Deno uses npm: specifier, Node.js/Bun use bare specifier
+      const packageName = isDeno
+        ? `npm:@printers/printers-${platformString}`
+        : `@printers/printers-${platformString}`;
 
-      // For Deno, we need to use createRequire to load the module
-      // since dynamic imports of bare module specifiers don't work
-      if (isDeno) {
-        // Use Node.js-style module resolution for Deno
-        const { createRequire } = await import("node:module");
-        const require = createRequire(import.meta.url);
-
-        // Require the platform package - this should work with node_modules
-        nativeModule = require(packageName);
-      } else {
-        // For Node.js and Bun, dynamic import should work
-        nativeModule = await import(packageName);
-      }
+      nativeModule = await import(packageName);
     } catch (npmError) {
       throw new Error(
         `Failed to load N-API module for platform ${platformString}. ` +
