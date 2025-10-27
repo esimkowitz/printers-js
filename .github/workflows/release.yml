@@ -185,7 +185,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org/
           package-manager-cache: false
       - name: Install Node.js dependencies
@@ -209,6 +209,8 @@ jobs:
           ls -la npm/ 2>/dev/null || dir npm
       - name: Compile TypeScript for publishing
         run: task compile
+      - name: Clean npm cache before publish
+        run: npm cache clean --force
       - name: Publish to npm
         run: npm publish
       - name: Upload npm logs
