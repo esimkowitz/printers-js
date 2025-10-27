@@ -129,12 +129,14 @@ jobs:
           sudo apt-get install -y libcups2-dev pkg-config clang
       - uses: actions/checkout@v5
       - name: Setup Deno
+        if: matrix.settings.target != 'aarch64-pc-windows-msvc' # Deno does not support Windows ARM yet
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
           cache: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        if: matrix.settings.target != 'aarch64-pc-windows-msvc' # Deno does not support Windows ARM yet
         with:
           bun-version: latest
           no-cache: true
@@ -147,11 +149,8 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache: false
-      - name: Setup Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Task runner
+        uses: go-task/setup-task@v1
       - name: Download all N-API binary artifacts
         uses: actions/download-artifact@v5
         with:
