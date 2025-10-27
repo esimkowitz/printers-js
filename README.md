@@ -20,7 +20,7 @@ Cross-runtime printer library for Node.js, Deno, and Bun with native performance
 
 - **macOS**: x64, arm64
 - **Windows**: x64, arm64
-- **Linux**: x64, arm64
+- **Linux**: x64, arm64 (glibc only)
 
 ## Installation
 
