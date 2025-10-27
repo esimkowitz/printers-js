@@ -440,6 +440,14 @@ interface GlobalWithProcess {
     env?: Record<string, string | undefined>;
     platform?: string;
     arch?: string;
+    report?: {
+      getReport?: () => {
+        header?: {
+          glibcVersionRuntime?: string;
+        };
+        sharedObjects?: string[];
+      };
+    };
   };
 }
 
