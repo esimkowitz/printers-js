@@ -56,7 +56,7 @@ jobs:
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !matrix.settings.alpine
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
@@ -98,7 +98,6 @@ jobs:
           echo "Building for target: ${{ matrix.settings.target }}"
           task build:napi
       - name: Post-build cleanup
-        shell: bash
         run: |
           # Remove all NPM directory contents except the current platform (cross-platform)
           cd npm/
