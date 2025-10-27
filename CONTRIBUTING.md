@@ -177,11 +177,9 @@ The GitHub Actions release workflow handles cross-platform builds and npm publis
 
 **Supported platforms:**
 
-- **Linux**: x64-gnu, arm64-gnu, x64-musl, arm64-musl (both glibc and musl supported)
+- **Linux**: x64-gnu, arm64-gnu
 - **macOS**: x64, arm64
 - **Windows**: x64-msvc, arm64-msvc
-
-**Musl Support:** Alpine Linux, BusyBox-based systems, and other musl-based distributions are fully supported. The library automatically detects musl vs glibc using Node.js's `process.report` API.
 
 ## Publishing Architecture
 

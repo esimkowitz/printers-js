@@ -180,11 +180,8 @@ ALWAYS run these after changes through the taskfile:
    runtime detection and behavior
 10. **Platform limitations**:
     - Android intentionally excluded from N-API builds
-11. **Musl support**: Linux musl (Alpine) fully supported
-    - Detection via `process.report` API (no shell/filesystem access)
-    - Built with Docker using `node:22-alpine` for security
-    - Supports both x64 and arm64 architectures
-12. **Deno N-API support**: Deno requires `"nodeModulesDir": "auto"` in deno.json
+    - Linux musl (Alpine) not currently supported - only glibc-based distributions
+11. **Deno N-API support**: Deno requires `"nodeModulesDir": "auto"` in deno.json
     and `--allow-ffi` flag for N-API modules to work
 
 ## NAPI-RS Publishing and Release Workflow

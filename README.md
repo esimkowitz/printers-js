@@ -9,7 +9,7 @@ Cross-runtime printer library for Node.js, Deno, and Bun with native performance
 ## Features
 
 - 🔄 **Cross-runtime compatibility** - Node.js, Deno, and Bun support
-- 🖨️ **Cross-platform printing** - Windows, macOS, and Linux (glibc and musl)
+- 🖨️ **Cross-platform printing** - Windows, macOS, and Linux
 - 🦀 **Native performance** - Rust backend with Node-API bindings
 - 🔒 **Safe testing** - Simulation mode prevents accidental printing
 - 📊 **Real-time monitoring** - Printer state changes and job tracking
@@ -20,7 +20,7 @@ Cross-runtime printer library for Node.js, Deno, and Bun with native performance
 
 - **macOS**: x64, arm64
 - **Windows**: x64, arm64
-- **Linux**: x64, arm64 (both glibc and musl supported, including Alpine Linux)
+- **Linux**: x64, arm64
 
 ## Installation
 
