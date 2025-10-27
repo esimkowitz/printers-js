@@ -17,31 +17,39 @@ jobs:
           - host: macos-15-intel
             target: x86_64-apple-darwin
             npm_platform: darwin-x64
+            shell: bash
           - host: macos-latest
             target: aarch64-apple-darwin
             npm_platform: darwin-arm64
+            shell: bash
           - host: windows-latest
             target: x86_64-pc-windows-msvc
             npm_platform: win32-x64-msvc
+            shell: bash
           - host: windows-11-arm
             target: aarch64-pc-windows-msvc
             npm_platform: win32-arm64-msvc
+            shell: bash
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             npm_platform: linux-x64-gnu
+            shell: bash
           - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             npm_platform: linux-arm64-gnu
+            shell: bash
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             npm_platform: linux-x64-musl
             alpine: true
             alpine_arch: x86_64
+            shell: alpine.sh {0}
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
             npm_platform: linux-arm64-musl
             alpine: true
             alpine_arch: aarch64
+            shell: alpine.sh {0}
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -79,13 +87,13 @@ jobs:
           sudo apt-get install -y libcups2-dev pkg-config clang
       - name: Prepare Rust toolchain (musl)
         if: matrix.settings.alpine
-        shell: alpine.sh {0}
+        shell: ${{ matrix.settings.shell }}
         run: rustup target add ${{ matrix.settings.target }}
       - name: Install dependencies
-        shell: ${{ matrix.settings.alpine && 'alpine.sh {0}' || 'bash' }}
+        shell: ${{ matrix.settings.shell }}
         run: npm ci
       - name: Build N-API module
-        shell: ${{ matrix.settings.alpine && 'alpine.sh {0}' || 'bash' }}
+        shell: ${{ matrix.settings.shell }}
         run: |
           echo "Building for target: ${{ matrix.settings.target }}"
           task build:napi
@@ -129,25 +137,33 @@ jobs:
         settings:
           - host: macos-13
             target: x86_64-apple-darwin
+            shell: bash
           - host: macos-14
             target: aarch64-apple-darwin
+            shell: bash
           - host: windows-latest
             target: x86_64-pc-windows-msvc
+            shell: bash
           - host: windows-11-arm
             target: aarch64-pc-windows-msvc
             test_runtimes: rust node
+            shell: bash
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            shell: bash
           - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
+            shell: bash
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             alpine: true
             alpine_arch: x86_64
+            shell: alpine.sh {0}
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
             alpine: true
             alpine_arch: aarch64
+            shell: alpine.sh {0}
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update and install deps (glibc)
@@ -208,10 +224,10 @@ jobs:
           done
           ls -la npm/ 2>/dev/null || dir npm
       - name: Install Node.js dependencies
-        shell: ${{ matrix.settings.alpine && 'alpine.sh {0}' || 'bash' }}
+        shell: ${{ matrix.settings.shell }}
         run: npm ci
       - name: Run comprehensive tests (includes compilation)
-        shell: ${{ matrix.settings.alpine && 'alpine.sh {0}' || 'bash' }}
+        shell: ${{ matrix.settings.shell }}
         run: |
           if [ -n "${{ matrix.settings.test_runtimes }}" ]; then
             echo "Running selective runtime tests: ${{ matrix.settings.test_runtimes }}"
