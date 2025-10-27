@@ -178,8 +178,13 @@ ALWAYS run these after changes through the taskfile:
    for cross-platform compatibility
 9. **Universal entrypoint**: Always import from `src/index.ts` for consistent
    runtime detection and behavior
-10. **Android support**: Intentionally excluded from N-API builds
-11. **Deno N-API support**: Deno requires `"nodeModulesDir": "auto"` in deno.json
+10. **Platform limitations**:
+    - Android intentionally excluded from N-API builds
+11. **Musl support**: Linux musl (Alpine) fully supported
+    - Detection via `process.report` API (no shell/filesystem access)
+    - Built with Docker using `node:22-alpine` for security
+    - Supports both x64 and arm64 architectures
+12. **Deno N-API support**: Deno requires `"nodeModulesDir": "auto"` in deno.json
     and `--allow-ffi` flag for N-API modules to work
 
 ## NAPI-RS Publishing and Release Workflow

@@ -726,6 +726,35 @@ if (isSimulationMode) {
   );
 }
 
+/**
+ * Detect if the system is using musl libc (e.g., Alpine Linux)
+ * Uses process.report API which is available in Node.js without filesystem/shell access
+ */
+function isMuslLibc(): boolean {
+  if (!isNode) return false;
+
+  try {
+    // Check for glibc version in process report (only present on glibc systems)
+    const report = g.process?.report?.getReport?.();
+    if (report?.header?.glibcVersionRuntime) {
+      return false; // Has glibc version, so it's glibc
+    }
+
+    // Check shared objects for musl indicators
+    if (Array.isArray(report?.sharedObjects)) {
+      return report.sharedObjects.some(
+        (obj: string) =>
+          typeof obj === "string" &&
+          (obj.includes("libc.musl-") || obj.includes("ld-musl-"))
+      );
+    }
+  } catch {
+    // If report API fails, assume glibc (safer default)
+  }
+
+  return false;
+}
+
 // Always load the N-API module - let the backend handle simulation mode
 try {
   // Platform detection for N-API module loading
@@ -751,10 +780,13 @@ try {
       throw new Error(`Unsupported architecture for Windows: ${arch}`);
     }
   } else if (platform === "linux") {
+    // Detect musl vs glibc
+    const isMusl = isMuslLibc();
+
     if (arch === "x64") {
-      platformString = "linux-x64-gnu";
+      platformString = isMusl ? "linux-x64-musl" : "linux-x64-gnu";
     } else if (arch === "arm64") {
-      platformString = "linux-arm64-gnu";
+      platformString = isMusl ? "linux-arm64-musl" : "linux-arm64-gnu";
     } else {
       throw new Error(`Unsupported architecture for Linux: ${arch}`);
     }

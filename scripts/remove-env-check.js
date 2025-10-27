@@ -8,7 +8,15 @@
  * - Removes shell access (child_process.execSync)
  * - Removes filesystem reads (/usr/bin/ldd)
  * - Removes environment variable checks (NAPI_RS_ENFORCE_VERSION_CHECK)
- * - Removes musl detection (only supporting gnu targets)
+ * - Removes musl detection from platform packages (detection moved to index.ts)
+ *
+ * Platform Support:
+ * - macOS: darwin-x64, darwin-arm64
+ * - Windows: win32-x64-msvc, win32-arm64-msvc
+ * - Linux: linux-x64-gnu, linux-arm64-gnu, linux-x64-musl, linux-arm64-musl
+ *
+ * Note: Musl detection is handled in src/index.ts using process.report API
+ * (no shell/filesystem access), keeping platform packages clean and secure.
  */
 
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "fs";

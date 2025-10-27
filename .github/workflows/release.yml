@@ -32,6 +32,15 @@ jobs:
           - host: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             npm_platform: linux-arm64-gnu
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            npm_platform: linux-x64-musl
+            docker: node:22-alpine
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            npm_platform: linux-arm64-musl
+            docker: node:22-alpine
+            docker_arch: linux/arm64
     steps:
       # Speed up apt-get operations by disabling unnecessary man-db auto-update
       - name: Disable man-db auto-update
@@ -52,19 +61,61 @@ jobs:
       - name: Setup Task runner
         uses: go-task/setup-task@v1
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !matrix.settings.docker
         run: |
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
       - name: Install dependencies
+        if: ${{ !matrix.settings.docker }}
         run: npm ci
-      - name: Build
+      - name: Build (native)
+        if: ${{ !matrix.settings.docker }}
         shell: bash
         run: |
           # Our build script auto-detects the platform and builds for the current target
           echo "Building for target: ${{ matrix.settings.target }}"
           task build:napi
+      - name: Setup QEMU for cross-compilation
+        if: matrix.settings.docker && matrix.settings.docker_arch
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.settings.docker_arch }}
+      - name: Build (Docker/musl)
+        if: matrix.settings.docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ${{ matrix.settings.docker }}
+          options: --user 0:0 --platform ${{ matrix.settings.docker_arch || 'linux/amd64' }} -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build
+          run: |
+            set -e
 
+            # Install build dependencies
+            apk add --no-cache \
+              cups-dev \
+              pkgconf \
+              clang \
+              lld \
+              musl-dev \
+              rust \
+              cargo \
+              git
+
+            # Add Rust target
+            rustup target add ${{ matrix.settings.target }}
+
+            # Enable corepack and install Node.js dependencies
+            corepack enable
+            npm ci
+
+            # Build the N-API module
+            npx napi build --platform --release --target ${{ matrix.settings.target }} --esm --output-dir npm/${{ matrix.settings.npm_platform }}
+
+            # Run post-build scripts
+            node scripts/remove-env-check.js --dir=npm/${{ matrix.settings.npm_platform }}
+            node scripts/fix-platform-packages.js
+      - name: Post-build cleanup
+        shell: bash
+        run: |
           # Remove all NPM directory contents except the current platform (cross-platform)
           cd npm/
           for dir in */; do
