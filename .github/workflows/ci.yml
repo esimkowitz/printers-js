@@ -15,6 +15,9 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     permissions: {}
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -126,6 +129,9 @@ jobs:
       PRINTERS_JS_SIMULATE: true # Force simulation mode for all tests
       CARGO_TERM_COLOR: always
     permissions: {}
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
