@@ -10,6 +10,9 @@ jobs:
     name: Build N-API modules
     runs-on: ${{ matrix.settings.host }}
     permissions: {}
+    defaults:
+      run:
+        shell: ${{ matrix.settings.shell }}
     strategy:
       fail-fast: false
       matrix:
@@ -87,13 +90,10 @@ jobs:
           sudo apt-get install -y libcups2-dev pkg-config clang
       - name: Prepare Rust toolchain (musl)
         if: matrix.settings.alpine
-        shell: ${{ matrix.settings.shell }}
         run: rustup target add ${{ matrix.settings.target }}
       - name: Install dependencies
-        shell: ${{ matrix.settings.shell }}
         run: npm ci
       - name: Build N-API module
-        shell: ${{ matrix.settings.shell }}
         run: |
           echo "Building for target: ${{ matrix.settings.target }}"
           task build:napi
@@ -131,6 +131,9 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     needs: build-napi
     permissions: {}
+    defaults:
+      run:
+        shell: ${{ matrix.settings.shell }}
     strategy:
       fail-fast: false
       matrix:
@@ -224,10 +227,8 @@ jobs:
           done
           ls -la npm/ 2>/dev/null || dir npm
       - name: Install Node.js dependencies
-        shell: ${{ matrix.settings.shell }}
         run: npm ci
       - name: Run comprehensive tests (includes compilation)
-        shell: ${{ matrix.settings.shell }}
         run: |
           if [ -n "${{ matrix.settings.test_runtimes }}" ]; then
             echo "Running selective runtime tests: ${{ matrix.settings.test_runtimes }}"
