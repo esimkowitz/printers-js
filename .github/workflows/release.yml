@@ -174,7 +174,7 @@ jobs:
         run: |
           if [ -n "${{ matrix.settings.test_runtimes }}" ]; then
             echo "Running selective runtime tests: ${{ matrix.settings.test_runtimes }}"
-            node scripts/test-runtimes.js ${{ matrix.settings.test_runtimes }}
+            task test -- ${{ matrix.settings.test_runtimes }}
           else
             echo "Running all runtime tests"
             task test
