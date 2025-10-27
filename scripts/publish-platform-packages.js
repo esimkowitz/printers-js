@@ -54,8 +54,7 @@ for (const platform of platforms) {
 
   if (!isDryRun) {
     try {
-      // Use npm publish with --access public for scoped packages
-      execSync("npm publish --access public", {
+      execSync("npm publish", {
         cwd: platformDir,
         stdio: "inherit",
       });
