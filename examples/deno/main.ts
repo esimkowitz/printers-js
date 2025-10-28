@@ -1,193 +1,265 @@
 /**
- * Deno example showcasing @printers/printers features
+ * Deno Interactive Printer CLI
  *
- * Run with: deno run --allow-env --allow-read --allow-net main.ts
+ * Run with: deno task start
  */
 
 import {
-  getAllPrinterNames,
   getAllPrinters,
-  getPrinterByName,
   getDefaultPrinter,
   isSimulationMode,
   runtimeInfo,
-  type PrinterJob,
+  type Printer,
 } from "@printers/printers";
+import { Select, Input, Confirm } from "@cliffy/prompt";
+import { join, dirname, fromFileUrl } from "@std/path";
+
+/**
+ * Prompt for file path using Cliffy Input
+ */
+async function promptFilePath(
+  message: string,
+  defaultPath: string
+): Promise<string> {
+  const filePath = await Input.prompt({
+    message: `${message}:`,
+    default: defaultPath,
+  });
+  return filePath;
+}
 
 async function main() {
-  console.log("🦕 Deno Printers Example");
-  console.log("========================");
+  console.clear();
+  console.log("Deno Interactive Printer CLI");
+  console.log("============================");
   console.log(`Runtime: ${runtimeInfo.name} ${runtimeInfo.version}`);
   console.log(
-    `Simulation Mode: ${
-      isSimulationMode ? "ON (safe)" : "OFF (real printing!)"
-    }\n`
+    `Simulation Mode: ${isSimulationMode ? "ON (safe)" : "OFF (real printing!)"}\n`
   );
 
-  try {
-    // Feature 1: Printer Discovery
-    console.log("📋 Available Printers:");
-    const printerNames = getAllPrinterNames();
+  const printers = getAllPrinters();
+  if (printers.length === 0) {
+    console.log("No printers found");
+    return;
+  }
 
-    if (printerNames.length === 0) {
-      console.log("   No printers found");
-      return;
-    }
+  let selectedPrinter = getDefaultPrinter() || printers[0];
 
-    printerNames.forEach((name: string, index: number) => {
-      console.log(`   ${index + 1}. ${name}`);
+  while (true) {
+    console.log(`\nCurrent printer: ${selectedPrinter.name}`);
+
+    const action = await Select.prompt({
+      message: "What would you like to do?",
+      options: [
+        { name: "📋 List all printers", value: "list" },
+        { name: "🔄 Switch printer", value: "switch" },
+        { name: "ℹ️  Show printer details", value: "details" },
+        { name: "🖨️  Print a file", value: "print" },
+        { name: "📊 View active jobs", value: "jobs" },
+        { name: "📚 View job history", value: "history" },
+        { name: "🧹 Cleanup old jobs", value: "cleanup" },
+        { name: "🚪 Exit", value: "exit" },
+      ],
     });
-    console.log("");
 
-    // Feature 2: Detailed Printer Information
-    console.log("🖨️  Printer Details:");
-    const printers = getAllPrinters();
-
-    for (const printer of printers) {
-      console.log(`   Name: ${printer.name}`);
-      console.log(`   System Name: ${printer.systemName || "Unknown"}`);
-      console.log(`   Driver: ${printer.driverName || "Unknown"}`);
-      console.log(`   Description: ${printer.description || "None"}`);
-      console.log(`   Location: ${printer.location || "Not specified"}`);
-      console.log(`   Default: ${printer.isDefault ? "Yes" : "No"}`);
-      console.log(`   Shared: ${printer.isShared ? "Yes" : "No"}`);
-      console.log(`   State: ${printer.state || "Unknown"}`);
-      if (printer.stateReasons && printer.stateReasons.length > 0) {
-        console.log(`   State Reasons: ${printer.stateReasons.join(", ")}`);
-      }
-      console.log(`   Exists: ${printer.exists() ? "Yes" : "No"}`);
-      console.log("   ---");
+    switch (action) {
+      case "list":
+        await listPrinters(printers);
+        break;
+      case "switch":
+        selectedPrinter = await switchPrinter(printers);
+        break;
+      case "details":
+        await showPrinterDetails(selectedPrinter);
+        break;
+      case "print":
+        await printFile(selectedPrinter);
+        break;
+      case "jobs":
+        await viewActiveJobs(selectedPrinter);
+        break;
+      case "history":
+        await viewJobHistory(selectedPrinter);
+        break;
+      case "cleanup":
+        await cleanupJobs(selectedPrinter);
+        break;
+      case "exit":
+        return;
     }
+  }
+}
 
-    // Feature 3: Job Tracking & Management
-    const defaultPrinter = getDefaultPrinter();
-    const printer = defaultPrinter || printers[0];
+async function listPrinters(printers: Printer[]) {
+  console.log("\nAvailable Printers:");
+  printers.forEach((printer, index) => {
+    const defaultMarker = printer.isDefault ? " (default)" : "";
+    const stateInfo = printer.state ? ` [${printer.state}]` : "";
+    console.log(`  ${index + 1}. ${printer.name}${defaultMarker}${stateInfo}`);
+  });
+}
 
-    if (printer) {
-      console.log(
-        `\n🎯 Job Tracking Demo with: ${printer.name}${defaultPrinter ? " (default)" : " (first available)"}`
-      );
+async function switchPrinter(printers: Printer[]): Promise<Printer> {
+  const printerIndex = await Select.prompt({
+    message: "Select a printer:",
+    options: printers.map((printer, index) => ({
+      name: `${printer.name}${printer.isDefault ? " (default)" : ""}`,
+      value: index,
+    })),
+  });
 
-      try {
-        // Submit print job
-        console.log("📄 Submitting print job...");
+  const printer = printers[printerIndex];
+  console.log(`Switched to: ${printer.name}`);
+  return printer;
+}
 
-        const jobId = await printer.printFile("../../media/sample-image.png", {
-          jobName: "Sample Image",
-          simple: {
-            copies: 2,
-            paperSize: "Letter",
-            quality: "high",
-          },
-        });
+async function showPrinterDetails(printer: Printer) {
+  console.log("\nPrinter Details:");
+  console.log(`  Name: ${printer.name}`);
+  console.log(`  System Name: ${printer.systemName || "Unknown"}`);
+  console.log(`  Driver: ${printer.driverName || "Unknown"}`);
+  console.log(`  Description: ${printer.description || "None"}`);
+  console.log(`  Location: ${printer.location || "Not specified"}`);
+  console.log(`  Default: ${printer.isDefault ? "Yes" : "No"}`);
+  console.log(`  Shared: ${printer.isShared ? "Yes" : "No"}`);
+  console.log(`  State: ${printer.state || "Unknown"}`);
+  if (printer.stateReasons && printer.stateReasons.length > 0) {
+    console.log(`  State Reasons: ${printer.stateReasons.join(", ")}`);
+  }
+  console.log(`  Exists: ${printer.exists() ? "Yes" : "No"}`);
+}
 
-        console.log(`   Job ID: ${jobId}`);
+async function printFile(printer: Printer) {
+  const scriptDir = dirname(fromFileUrl(import.meta.url));
+  const mediaDir = join(scriptDir, "..", "..", "media");
 
-        // Feature 4: Individual Job Inspection
-        console.log("\n🔍 Job Details:");
-        const job = printer.getJob(jobId);
+  // List available media files
+  const mediaFiles = [
+    "sample-image.png",
+    "sample-image.jpg",
+    "sample-document.pdf",
+    "sample-document.docx",
+    "sample-text.txt",
+  ];
 
-        if (job) {
-          displayJobInfo(job, "Sample Image Job");
-        }
+  const selectedPath = await Select.prompt({
+    message: "Select file to print:",
+    options: [
+      ...mediaFiles.map((file) => ({
+        name: file,
+        value: join(mediaDir, file),
+      })),
+      { name: "Custom path...", value: "custom" },
+    ],
+  });
 
-        // Feature 5: Active Jobs Monitoring
-        console.log("\n📊 Active Jobs:");
-        const activeJobs = printer.getActiveJobs();
-        console.log(`   Found ${activeJobs.length} active job(s)`);
+  let filePath: string;
+  if (selectedPath === "custom") {
+    const defaultPath = join(mediaDir, "sample-image.png");
+    filePath = await promptFilePath("Enter file path", defaultPath);
+  } else {
+    filePath = selectedPath;
+  }
 
-        activeJobs.forEach((job, index) => {
-          console.log(
-            `   ${index + 1}. ${job.name} (${job.state}) - ${job.mediaType}`
-          );
-        });
+  const jobName = await Input.prompt({
+    message: "Enter job name:",
+    default: "Interactive Print Job",
+  });
 
-        // Feature 6: Job History
-        console.log("\n📚 Job History (last 10):");
-        const jobHistory = printer.getJobHistory(10);
-        console.log(`   Found ${jobHistory.length} job(s) in history`);
+  const copiesStr = await Input.prompt({
+    message: "Number of copies:",
+    default: "1",
+  });
 
-        jobHistory.slice(0, 3).forEach((job, index) => {
-          const age = Math.round(job.ageSeconds);
-          console.log(
-            `   ${index + 1}. ${job.name} (${job.state}) - ${age}s ago`
-          );
-        });
+  try {
+    console.log("\nSubmitting print job...");
+    const jobId = await printer.printFile(filePath, {
+      jobName,
+      simple: {
+        copies: parseInt(copiesStr),
+        paperSize: "Letter",
+        quality: "high",
+      },
+    });
 
-        if (isSimulationMode) {
-          console.log(
-            "\n   ℹ️  All jobs were simulated - no actual printing occurred"
-          );
-        }
-      } catch (error) {
-        console.log(
-          `❌ Print job failed: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
-    }
+    console.log(`Print job submitted successfully!`);
+    console.log(`   Job ID: ${jobId}`);
 
-    // Feature 7: Job Cleanup
-    console.log("\n🧹 Cleanup:");
-    if (printers.length > 0) {
-      const cleaned = printers[0].cleanupOldJobs(3600); // 1 hour
-      console.log(
-        `   Cleaned up ${cleaned} old print job(s) for ${printers[0].name}`
-      );
-    }
-
-    // Feature 8: Printer Comparison & Methods
-    if (printers.length >= 1) {
-      console.log("\n🔄 Printer Interface Demo:");
-      const printer1 = printers[0];
-      const samePrinter = getPrinterByName(printer1.name);
-
-      console.log(`   getName(): ${printer1.getName()}`);
-      console.log(`   toString(): ${printer1.toString()}`);
-      console.log(`   exists(): ${printer1.exists()}`);
-      console.log(
-        `   equals(samePrinter): ${samePrinter?.equals(printer1) ?? false}`
-      );
-
-      if (printers.length >= 2) {
-        const printer2 = printers[1];
-        console.log(
-          `   ${printer1.name} equals ${printer2.name}: ${printer1.equals(printer2)}`
-        );
-      }
+    if (isSimulationMode) {
+      console.log("   Job was simulated - no actual printing occurred");
     }
   } catch (error) {
     console.error(
-      "💥 Error:",
-      error instanceof Error ? error.message : String(error)
+      `\x1b[31mPrint job failed: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
     );
-    Deno.exit(1);
   }
-
-  console.log("\n🎉 Deno example completed!");
 }
 
-function displayJobInfo(job: PrinterJob, label: string) {
-  console.log(`   ${label}:`);
-  console.log(`     Name: ${job.name}`);
-  console.log(`     State: ${job.state}`);
-  console.log(`     Media Type: ${job.mediaType}`);
-  console.log(`     Printer: ${job.printerName}`);
-  console.log(
-    `     Created: ${new Date(job.createdAt * 1000).toLocaleTimeString()}`
-  );
-  if (job.processedAt) {
-    console.log(
-      `     Processed: ${new Date(job.processedAt * 1000).toLocaleTimeString()}`
-    );
+async function viewActiveJobs(printer: Printer) {
+  console.log("\nActive Jobs:");
+  const jobs = printer.getActiveJobs();
+
+  if (jobs.length === 0) {
+    console.log("  No active jobs");
+    return;
   }
-  if (job.completedAt) {
-    console.log(
-      `     Completed: ${new Date(job.completedAt * 1000).toLocaleTimeString()}`
-    );
+
+  jobs.forEach((job, index) => {
+    console.log(`  ${index + 1}. ${job.name}`);
+    console.log(`     State: ${job.state}`);
+    console.log(`     Media: ${job.mediaType}`);
+    console.log(`     Age: ${Math.round(job.ageSeconds)}s`);
+  });
+}
+
+async function viewJobHistory(printer: Printer) {
+  const limitStr = await Input.prompt({
+    message: "How many jobs to show?",
+    default: "10",
+  });
+
+  const limit = parseInt(limitStr);
+  console.log(`\nJob History (last ${limit}):`);
+  const jobs = printer.getJobHistory(limit);
+
+  if (jobs.length === 0) {
+    console.log("  No jobs in history");
+    return;
   }
-  console.log(`     Age: ${Math.round(job.ageSeconds)}s`);
+
+  jobs.forEach((job, index) => {
+    const age = Math.round(job.ageSeconds);
+    console.log(`  ${index + 1}. ${job.name} (${job.state}) - ${age}s ago`);
+  });
+}
+
+async function cleanupJobs(printer: Printer) {
+  const maxAgeStr = await Input.prompt({
+    message: "Maximum age in seconds (jobs older than this will be cleaned up):",
+    default: "3600",
+  });
+
+  const shouldCleanup = await Confirm.prompt({
+    message: "Are you sure you want to cleanup old jobs?",
+    default: true,
+  });
+
+  if (!shouldCleanup) {
+    console.log("Cleanup cancelled");
+    return;
+  }
+
+  const maxAge = parseInt(maxAgeStr);
+  const cleaned = printer.cleanupOldJobs(maxAge);
+  console.log(`Cleaned up ${cleaned} old job(s)`);
 }
 
 if (import.meta.main) {
-  await main();
+  await main().catch((error) => {
+    console.error(
+      "\x1b[31mError:",
+      error instanceof Error ? error.message : String(error) + "\x1b[0m"
+    );
+    Deno.exit(1);
+  });
 }
