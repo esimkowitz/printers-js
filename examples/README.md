@@ -85,11 +85,23 @@ bun start
 
 ## Example Features
 
-Each example demonstrates:
+Each example provides an interactive CLI demonstrating:
 
-- ✅ Basic printer discovery
-- ✅ Printer information display
-- ✅ Simulated printing (safe)
-- ✅ Error handling
-- ✅ Runtime detection
-- ✅ Proper cleanup
+- ✅ Interactive printer selection and switching
+- ✅ Detailed printer information display
+- ✅ File printing with media directory browsing
+- ✅ File path input with native tab completion (Node.js and Bun)
+- ✅ Active job viewing and management
+- ✅ Job history tracking
+- ✅ Old job cleanup
+- ✅ Simulated printing (safe testing mode)
+- ✅ Runtime detection and information
+- ✅ Error handling and validation
+
+### Interactive CLI Details
+
+- **Node.js & Bun**: Use [@inquirer/prompts](https://github.com/SBoudrias/Inquirer.js) for interactive menus with readline tab completion for file paths
+- **Deno**: Uses [@cliffy/prompt](https://cliffy.io/) for interactive menus with standard input for file paths
+- All examples dynamically discover files in the `media/` directory
+- Select lists display up to 20 items without scrolling when possible
+- Custom file path entry available with sensible defaults

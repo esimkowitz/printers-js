@@ -106,6 +106,8 @@ async function main() {
         { name: "🧹 Cleanup old jobs", value: "cleanup" },
         { name: "🚪 Exit", value: "exit" },
       ],
+      pageSize: 20,
+      loop: false,
     });
 
     switch (action) {
@@ -156,6 +158,8 @@ async function switchPrinter(printers: Printer[]): Promise<Printer> {
   const printer = await select({
     message: "Select a printer:",
     choices,
+    pageSize: 20,
+    loop: false,
   });
 
   console.log(`Switched to: ${printer.name}`);
@@ -182,32 +186,35 @@ async function printFile(printer: Printer) {
   const scriptDir = dirname(fileURLToPath(import.meta.url));
   const mediaDir = join(scriptDir, "..", "..", "media");
 
-  // List available media files
-  const mediaFiles = [
-    "sample-image.png",
-    "sample-image.jpg",
-    "sample-document.pdf",
-    "sample-document.docx",
-    "sample-text.txt",
-  ];
+  // List available media files by reading the directory
+  const mediaFiles = readdirSync(mediaDir).filter(file => {
+    const fullPath = join(mediaDir, file);
+    try {
+      return statSync(fullPath).isFile();
+    } catch {
+      return false;
+    }
+  });
 
   const fileChoices = [
     ...mediaFiles.map(file => ({
       name: file,
       value: join(mediaDir, file),
     })),
-    { name: "Custom path (with tab completion)...", value: "custom" },
+    { name: "Custom path...", value: "custom" },
   ];
 
   let filePath = await select({
     message: "Select file to print:",
     choices: fileChoices,
+    pageSize: 20,
+    loop: false,
   });
 
   if (filePath === "custom") {
-    const defaultPath = join(mediaDir, "sample-image.png");
+    const defaultPath = join(mediaDir, mediaFiles[0] || "sample.png");
     filePath = await promptFilePathWithCompletion(
-      "Enter file path (use TAB for completion)",
+      "Enter file path",
       defaultPath
     );
   }

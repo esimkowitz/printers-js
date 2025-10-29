@@ -60,6 +60,7 @@ async function main() {
         { name: "🧹 Cleanup old jobs", value: "cleanup" },
         { name: "🚪 Exit", value: "exit" },
       ],
+      maxRows: 20,
     });
 
     switch (action) {
@@ -106,6 +107,7 @@ async function switchPrinter(printers: Printer[]): Promise<Printer> {
       name: `${printer.name}${printer.isDefault ? " (default)" : ""}`,
       value: index,
     })),
+    maxRows: 20,
   });
 
   const printer = printers[printerIndex];
@@ -133,32 +135,45 @@ async function printFile(printer: Printer) {
   const scriptDir = dirname(fromFileUrl(import.meta.url));
   const mediaDir = join(scriptDir, "..", "..", "media");
 
-  // List available media files
-  const mediaFiles = [
-    "sample-image.png",
-    "sample-image.jpg",
-    "sample-document.pdf",
-    "sample-document.docx",
-    "sample-text.txt",
+  // List available media files by reading the directory
+  const mediaFiles: string[] = [];
+  try {
+    for await (const entry of Deno.readDir(mediaDir)) {
+      if (entry.isFile) {
+        mediaFiles.push(entry.name);
+      }
+    }
+    mediaFiles.sort();
+  } catch {
+    // If media dir doesn't exist, continue with empty list
+  }
+
+  const fileChoices = [
+    ...mediaFiles.map(file => ({
+      name: file,
+      value: join(mediaDir, file),
+    })),
+    { name: "Custom path...", value: "custom" },
   ];
 
-  const selectedPath = await Select.prompt({
-    message: "Select file to print:",
-    options: [
-      ...mediaFiles.map(file => ({
-        name: file,
-        value: join(mediaDir, file),
-      })),
-      { name: "Custom path...", value: "custom" },
-    ],
-  });
-
   let filePath: string;
-  if (selectedPath === "custom") {
-    const defaultPath = join(mediaDir, "sample-image.png");
-    filePath = await promptFilePath("Enter file path", defaultPath);
+  if (fileChoices.length > 1) {
+    const selectedPath = await Select.prompt({
+      message: "Select file to print:",
+      options: fileChoices,
+      maxRows: 20,
+    });
+
+    if (selectedPath === "custom") {
+      const defaultPath = join(mediaDir, mediaFiles[0] || "sample.png");
+      filePath = await promptFilePath("Enter file path", defaultPath);
+    } else {
+      filePath = selectedPath;
+    }
   } else {
-    filePath = selectedPath;
+    // No media files, go straight to custom path
+    const defaultPath = join(mediaDir, "sample.png");
+    filePath = await promptFilePath("Enter file path", defaultPath);
   }
 
   const jobName = await Input.prompt({
