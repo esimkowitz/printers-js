@@ -107,6 +107,7 @@ async function main() {
         { name: "🚪 Exit", value: "exit" },
       ],
       pageSize: 20,
+      loop: true,
     });
 
     switch (action) {
@@ -158,7 +159,7 @@ async function switchPrinter(printers: Printer[]): Promise<Printer> {
     message: "Select a printer:",
     choices,
     pageSize: 20,
-    loop: false,
+    loop: true,
   });
 
   console.log(`Switched to: ${printer.name}`);
@@ -207,7 +208,7 @@ async function printFile(printer: Printer) {
     message: "Select file to print:",
     choices: fileChoices,
     pageSize: 20,
-    loop: false,
+    loop: true,
   });
 
   if (filePath === "custom") {
