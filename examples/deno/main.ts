@@ -13,19 +13,63 @@ import {
 } from "@printers/printers";
 import { Select, Input, Confirm } from "@cliffy/prompt";
 import { join, dirname, fromFileUrl } from "@std/path";
+import { createInterface } from "node:readline";
+import { statSync, readdirSync } from "node:fs";
 
 /**
- * Prompt for file path using Cliffy Input
+ * Prompt for file path with tab completion using Node.js readline
  */
-async function promptFilePath(
+async function promptFilePathWithCompletion(
   message: string,
   defaultPath: string
 ): Promise<string> {
-  const filePath = await Input.prompt({
-    message: `${message}:`,
-    default: defaultPath,
+  return new Promise(resolve => {
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true,
+      completer: (line: string) => {
+        try {
+          // Get the directory and partial filename
+          const lastSlash = Math.max(
+            line.lastIndexOf("/"),
+            line.lastIndexOf("\\")
+          );
+          const dir = lastSlash >= 0 ? line.substring(0, lastSlash + 1) : "./";
+          const partial = lastSlash >= 0 ? line.substring(lastSlash + 1) : line;
+
+          // Read directory contents
+          const files = readdirSync(dir || ".");
+          const completions = files
+            .filter(f => f.startsWith(partial))
+            .map(f => {
+              const fullPath = join(dir, f);
+              try {
+                const isDir = statSync(fullPath).isDirectory();
+                return isDir ? f + "/" : f;
+              } catch {
+                return f;
+              }
+            })
+            .map(f => (dir === "./" ? f : dir + f));
+
+          return [
+            completions.length
+              ? completions
+              : files.map(f => (dir === "./" ? f : dir + f)),
+            line,
+          ];
+        } catch {
+          return [[], line];
+        }
+      },
+    });
+
+    rl.question(`${message} (${defaultPath}): `, answer => {
+      rl.close();
+      resolve(answer.trim() || defaultPath);
+    });
   });
-  return filePath;
 }
 
 async function main() {
@@ -166,14 +210,20 @@ async function printFile(printer: Printer) {
 
     if (selectedPath === "custom") {
       const defaultPath = join(mediaDir, mediaFiles[0] || "sample.png");
-      filePath = await promptFilePath("Enter file path", defaultPath);
+      filePath = await promptFilePathWithCompletion(
+        "Enter file path",
+        defaultPath
+      );
     } else {
       filePath = selectedPath;
     }
   } else {
     // No media files, go straight to custom path
     const defaultPath = join(mediaDir, "sample.png");
-    filePath = await promptFilePath("Enter file path", defaultPath);
+    filePath = await promptFilePathWithCompletion(
+      "Enter file path",
+      defaultPath
+    );
   }
 
   const jobName = await Input.prompt({

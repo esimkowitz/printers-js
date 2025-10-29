@@ -107,7 +107,6 @@ async function main() {
         { name: "🚪 Exit", value: "exit" },
       ],
       pageSize: 20,
-      loop: false,
     });
 
     switch (action) {
