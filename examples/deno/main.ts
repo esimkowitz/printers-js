@@ -145,7 +145,7 @@ async function printFile(printer: Printer) {
   const selectedPath = await Select.prompt({
     message: "Select file to print:",
     options: [
-      ...mediaFiles.map((file) => ({
+      ...mediaFiles.map(file => ({
         name: file,
         value: join(mediaDir, file),
       })),
@@ -235,7 +235,8 @@ async function viewJobHistory(printer: Printer) {
 
 async function cleanupJobs(printer: Printer) {
   const maxAgeStr = await Input.prompt({
-    message: "Maximum age in seconds (jobs older than this will be cleaned up):",
+    message:
+      "Maximum age in seconds (jobs older than this will be cleaned up):",
     default: "3600",
   });
 
@@ -255,7 +256,7 @@ async function cleanupJobs(printer: Printer) {
 }
 
 if (import.meta.main) {
-  await main().catch((error) => {
+  await main().catch(error => {
     console.error(
       "\x1b[31mError:",
       error instanceof Error ? error.message : String(error) + "\x1b[0m"
