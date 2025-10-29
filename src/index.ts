@@ -780,11 +780,20 @@ try {
   } catch (localError) {
     // If local path fails, try the published npm package
     try {
-      // Dynamic import works for all runtimes (Node.js, Deno with nodeModulesDir, Bun)
-      // Deno uses npm: specifier, Node.js/Bun use bare specifier
-      const packageName = isDeno
-        ? `npm:@printers/printers-${platformString}`
-        : `@printers/printers-${platformString}`;
+      // Detect if we're running inside node_modules (either from Node compat or actual Node)
+      // When inside node_modules, we must use bare specifiers because:
+      // - Node.js module resolution expects bare specifiers
+      // - Deno's Node compatibility mode also uses bare specifiers
+      // When NOT in node_modules (e.g., Deno importing from npm: directly without nodeModulesDir),
+      // we need to use npm: specifier
+      const inNodeModules =
+        import.meta.url.includes("/node_modules/") ||
+        import.meta.url.includes("\\node_modules\\");
+
+      const packageName =
+        inNodeModules || !isDeno
+          ? `@printers/printers-${platformString}`
+          : `npm:@printers/printers-${platformString}`;
 
       nativeModule = await import(packageName);
     } catch (npmError) {
