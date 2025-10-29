@@ -1,8 +1,8 @@
 Sample Test Document
 
-This is a sample text file for testing the printers library.
+This is a sample text file for testing the @printers/printers library.
 
-The printers library provides a cross-runtime printer interface for JavaScript,
+The @printers/printers library provides a cross-runtime printer interface for JavaScript,
 supporting Node.js, Deno, and Bun with a unified API.
 
 Key Features:
