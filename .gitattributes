@@ -110,3 +110,9 @@ AUTHORS text
 *.woff binary
 *.pyc binary
 *.pdf binary
+*.docx binary
+*.doc binary
+*.xlsx binary
+*.xls binary
+*.pptx binary
+*.ppt binary

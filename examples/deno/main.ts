@@ -13,19 +13,63 @@ import {
 } from "@printers/printers";
 import { Select, Input, Confirm } from "@cliffy/prompt";
 import { join, dirname, fromFileUrl } from "@std/path";
+import { createInterface } from "node:readline";
+import { statSync, readdirSync } from "node:fs";
 
 /**
- * Prompt for file path using Cliffy Input
+ * Prompt for file path with tab completion using Node.js readline
  */
-async function promptFilePath(
+async function promptFilePathWithCompletion(
   message: string,
   defaultPath: string
 ): Promise<string> {
-  const filePath = await Input.prompt({
-    message: `${message}:`,
-    default: defaultPath,
+  return new Promise(resolve => {
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true,
+      completer: (line: string) => {
+        try {
+          // Get the directory and partial filename
+          const lastSlash = Math.max(
+            line.lastIndexOf("/"),
+            line.lastIndexOf("\\")
+          );
+          const dir = lastSlash >= 0 ? line.substring(0, lastSlash + 1) : "./";
+          const partial = lastSlash >= 0 ? line.substring(lastSlash + 1) : line;
+
+          // Read directory contents
+          const files = readdirSync(dir || ".");
+          const completions = files
+            .filter(f => f.startsWith(partial))
+            .map(f => {
+              const fullPath = join(dir, f);
+              try {
+                const isDir = statSync(fullPath).isDirectory();
+                return isDir ? f + "/" : f;
+              } catch {
+                return f;
+              }
+            })
+            .map(f => (dir === "./" ? f : dir + f));
+
+          return [
+            completions.length
+              ? completions
+              : files.map(f => (dir === "./" ? f : dir + f)),
+            line,
+          ];
+        } catch {
+          return [[], line];
+        }
+      },
+    });
+
+    rl.question(`${message} (${defaultPath}): `, answer => {
+      rl.close();
+      resolve(answer.trim() || defaultPath);
+    });
   });
-  return filePath;
 }
 
 async function main() {
@@ -60,6 +104,7 @@ async function main() {
         { name: "🧹 Cleanup old jobs", value: "cleanup" },
         { name: "🚪 Exit", value: "exit" },
       ],
+      maxRows: 20,
     });
 
     switch (action) {
@@ -106,6 +151,7 @@ async function switchPrinter(printers: Printer[]): Promise<Printer> {
       name: `${printer.name}${printer.isDefault ? " (default)" : ""}`,
       value: index,
     })),
+    maxRows: 20,
   });
 
   const printer = printers[printerIndex];
@@ -133,32 +179,51 @@ async function printFile(printer: Printer) {
   const scriptDir = dirname(fromFileUrl(import.meta.url));
   const mediaDir = join(scriptDir, "..", "..", "media");
 
-  // List available media files
-  const mediaFiles = [
-    "sample-image.png",
-    "sample-image.jpg",
-    "sample-document.pdf",
-    "sample-document.docx",
-    "sample-text.txt",
+  // List available media files by reading the directory
+  const mediaFiles: string[] = [];
+  try {
+    for await (const entry of Deno.readDir(mediaDir)) {
+      if (entry.isFile) {
+        mediaFiles.push(entry.name);
+      }
+    }
+    mediaFiles.sort();
+  } catch {
+    // If media dir doesn't exist, continue with empty list
+  }
+
+  const fileChoices = [
+    ...mediaFiles.map(file => ({
+      name: file,
+      value: join(mediaDir, file),
+    })),
+    { name: "Custom path...", value: "custom" },
   ];
 
-  const selectedPath = await Select.prompt({
-    message: "Select file to print:",
-    options: [
-      ...mediaFiles.map(file => ({
-        name: file,
-        value: join(mediaDir, file),
-      })),
-      { name: "Custom path...", value: "custom" },
-    ],
-  });
-
   let filePath: string;
-  if (selectedPath === "custom") {
-    const defaultPath = join(mediaDir, "sample-image.png");
-    filePath = await promptFilePath("Enter file path", defaultPath);
+  if (fileChoices.length > 1) {
+    const selectedPath = await Select.prompt({
+      message: "Select file to print:",
+      options: fileChoices,
+      maxRows: 20,
+    });
+
+    if (selectedPath === "custom") {
+      const defaultPath = join(mediaDir, mediaFiles[0] || "sample.png");
+      filePath = await promptFilePathWithCompletion(
+        "Enter file path",
+        defaultPath
+      );
+    } else {
+      filePath = selectedPath;
+    }
   } else {
-    filePath = selectedPath;
+    // No media files, go straight to custom path
+    const defaultPath = join(mediaDir, "sample.png");
+    filePath = await promptFilePathWithCompletion(
+      "Enter file path",
+      defaultPath
+    );
   }
 
   const jobName = await Input.prompt({

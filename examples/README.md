@@ -65,11 +65,8 @@ Each example includes the appropriate configuration files for its runtime:
 
 ## Safety Notice
 
-⚠️ **Examples respect environment variable for simulation mode**
-
-- Set `PRINTERS_JS_SIMULATE=true` to use simulated printers (safe testing)
-- Set `PRINTERS_JS_SIMULATE=false` or leave unset to use real printers
-- **Use caution** when testing with real printers as this will send actual print jobs
+> [!WARNING]
+> Examples send real print jobs to physical printers by default. Set `PRINTERS_JS_SIMULATE=true` to use simulated printers for safe testing.
 
 ```bash
 # Safe testing with simulated printers
@@ -85,11 +82,18 @@ bun start
 
 ## Example Features
 
-Each example demonstrates:
+Interactive CLI demonstrating printer operations:
 
-- ✅ Basic printer discovery
-- ✅ Printer information display
-- ✅ Simulated printing (safe)
-- ✅ Error handling
-- ✅ Runtime detection
-- ✅ Proper cleanup
+- Printer selection and switching
+- Printer information display
+- File printing with media directory browsing
+- Tab completion for file paths
+- Job viewing, history, and cleanup
+- Simulation mode support
+- Runtime detection
+
+**Implementation:**
+
+- All runtimes use `node:readline` for tab completion support
+- Node.js & Bun use [@inquirer/prompts](https://github.com/SBoudrias/Inquirer.js) for menus
+- Deno uses [@cliffy/prompt](https://cliffy.io/) for menus
