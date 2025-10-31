@@ -87,7 +87,7 @@ jobs:
           # Ensure there's a second file in the NPM directory to avoid upload-artifact stripping the target directory
           touch npm/ignore.txt
       - name: Upload N-API artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: npm-binaries-${{ matrix.settings.target }}
           path: npm/
@@ -228,7 +228,7 @@ jobs:
         run: npm publish
       - name: Upload npm logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: npm-publish-logs
           path: ~/.npm/_logs/

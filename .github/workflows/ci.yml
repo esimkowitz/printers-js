@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload code quality results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: code-quality-results
           path: code-quality-results/
@@ -195,7 +195,7 @@ jobs:
 
       - name: Upload Test Reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-reports-${{ matrix.name }}
           path: test-results/*.xml
@@ -203,7 +203,7 @@ jobs:
 
       - name: Upload Coverage Reports (Linux only)
         if: ${{ always() && runner.os == 'Linux' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-reports
           path: test-results/coverage/*
