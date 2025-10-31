@@ -152,7 +152,7 @@ jobs:
       - name: Setup Task runner
         uses: go-task/setup-task@v1
       - name: Download all N-API binary artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: npm-binaries-*
           path: npm-temp
@@ -205,7 +205,7 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
       - name: Download all N-API binary artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: npm-binaries-*
           path: npm-temp
