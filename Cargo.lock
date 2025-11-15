@@ -364,7 +364,7 @@ dependencies = [
 
 [[package]]
 name = "printers-js"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "lazy_static",
  "napi",
