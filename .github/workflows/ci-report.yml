@@ -23,7 +23,7 @@ jobs:
     steps:
       # Download artifacts from the CI workflow run
       - name: Download test reports
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
@@ -32,7 +32,7 @@ jobs:
           merge-multiple: true
 
       - name: Download coverage reports
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -42,7 +42,7 @@ jobs:
           merge-multiple: true
 
       - name: Download code quality results
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
