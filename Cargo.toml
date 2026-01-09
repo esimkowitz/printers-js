@@ -17,7 +17,7 @@ napi = { version = "3", optional = true }
 napi-derive = { version = "3", optional = true }
 
 [dev-dependencies]
-serial_test = "3.1"
+serial_test = "3.3"
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }
