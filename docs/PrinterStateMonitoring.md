@@ -87,7 +87,7 @@ await subscription.unsubscribe();
 ```typescript
 import { getPrinterStateSnapshots } from "@printers/printers";
 
-const snapshots = getPrinterStateSnapshots();
+const snapshots = await getPrinterStateSnapshots();
 
 for (const [printerName, snapshot] of snapshots) {
   console.log(`${printerName}:`);
@@ -189,7 +189,7 @@ Subscribes to printer state change events.
 
 - `PrinterStateSubscription`: Object with `id` and `unsubscribe()` method
 
-#### `getPrinterStateSnapshots(): Map<string, PrinterStateSnapshot>`
+#### `getPrinterStateSnapshots(): Promise<Map<string, PrinterStateSnapshot>>`
 
 Gets current state of all printers.
 
@@ -322,8 +322,8 @@ class PrintFarmMonitor {
     }
   }
 
-  private checkAllPrinters() {
-    const snapshots = getPrinterStateSnapshots();
+  private async checkAllPrinters() {
+    const snapshots = await getPrinterStateSnapshots();
 
     for (const [name, snapshot] of snapshots) {
       if (
@@ -393,9 +393,9 @@ class PrinterFailover {
     }
   }
 
-  private switchToBackup() {
+  private async switchToBackup() {
     for (const backupName of this.backupPrinters) {
-      const backup = getPrinterByName(backupName);
+      const backup = await getPrinterByName(backupName);
       if (backup && backup.state === "idle") {
         console.log(`Switched to backup printer: ${backupName}`);
         // Update application configuration to use backup printer

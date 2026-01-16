@@ -252,7 +252,7 @@ await JobStatistics.printReport();
 
 ### Printer Methods
 
-#### `getJob(jobId: number): PrinterJob | null`
+#### `getJob(jobId: number): Promise<PrinterJob | null>`
 
 Gets a specific job by ID if it belongs to this printer.
 
@@ -264,7 +264,7 @@ Gets a specific job by ID if it belongs to this printer.
 
 - `PrinterJob` object if found, `null` otherwise
 
-#### `getActiveJobs(): PrinterJob[]`
+#### `getActiveJobs(): Promise<PrinterJob[]>`
 
 Gets all currently active (pending/processing) jobs for this printer.
 
@@ -272,7 +272,7 @@ Gets all currently active (pending/processing) jobs for this printer.
 
 - Array of active `PrinterJob` objects
 
-#### `getJobHistory(limit?: number): PrinterJob[]`
+#### `getJobHistory(limit?: number): Promise<PrinterJob[]>`
 
 Gets completed/cancelled job history for this printer.
 
@@ -284,7 +284,7 @@ Gets completed/cancelled job history for this printer.
 
 - Array of completed `PrinterJob` objects, sorted by completion time (most recent first)
 
-#### `getAllJobs(): PrinterJob[]`
+#### `getAllJobs(): Promise<PrinterJob[]>`
 
 Gets all jobs (active and completed) for this printer.
 
@@ -292,7 +292,7 @@ Gets all jobs (active and completed) for this printer.
 
 - Array of all `PrinterJob` objects
 
-#### `cleanupOldJobs(maxAgeSeconds: number): number`
+#### `cleanupOldJobs(maxAgeSeconds: number): Promise<number>`
 
 Removes old completed/cancelled jobs that exceed the specified age.
 

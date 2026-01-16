@@ -81,13 +81,13 @@ async function main() {
     `Simulation Mode: ${isSimulationMode ? "ON (safe)" : "OFF (real printing!)"}\n`
   );
 
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     console.log("No printers found");
     return;
   }
 
-  let selectedPrinter = getDefaultPrinter() || printers[0];
+  let selectedPrinter = (await getDefaultPrinter()) || printers[0];
 
   while (true) {
     console.log(`\nCurrent printer: ${selectedPrinter.name}`);
@@ -172,7 +172,7 @@ async function showPrinterDetails(printer: Printer) {
   if (printer.stateReasons && printer.stateReasons.length > 0) {
     console.log(`  State Reasons: ${printer.stateReasons.join(", ")}`);
   }
-  console.log(`  Exists: ${printer.exists() ? "Yes" : "No"}`);
+  console.log(`  Exists: ${(await printer.exists()) ? "Yes" : "No"}`);
 }
 
 async function printFile(printer: Printer) {
@@ -262,7 +262,7 @@ async function printFile(printer: Printer) {
 
 async function viewActiveJobs(printer: Printer) {
   console.log("\nActive Jobs:");
-  const jobs = printer.getActiveJobs();
+  const jobs = await printer.getActiveJobs();
 
   if (jobs.length === 0) {
     console.log("  No active jobs");
@@ -285,7 +285,7 @@ async function viewJobHistory(printer: Printer) {
 
   const limit = parseInt(limitStr);
   console.log(`\nJob History (last ${limit}):`);
-  const jobs = printer.getJobHistory(limit);
+  const jobs = await printer.getJobHistory(limit);
 
   if (jobs.length === 0) {
     console.log("  No jobs in history");
@@ -316,7 +316,7 @@ async function cleanupJobs(printer: Printer) {
   }
 
   const maxAge = parseInt(maxAgeStr);
-  const cleaned = printer.cleanupOldJobs(maxAge);
+  const cleaned = await printer.cleanupOldJobs(maxAge);
   console.log(`Cleaned up ${cleaned} old job(s)`);
 }
 
