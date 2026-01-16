@@ -1588,6 +1588,7 @@ test(`${runtimeName}: should respect limit parameter on getJobHistory`, async ()
     for (let i = 0; i < 3; i++) {
       const jobId = await printer.printFile(TEST_FILES.PDF, {
         jobName: `Limit Test Job ${i + 1}`,
+        waitForCompletion: false, // Quick return to avoid timeout
       });
       jobIds.push(jobId);
     }
