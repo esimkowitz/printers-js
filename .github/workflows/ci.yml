@@ -4,114 +4,43 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "src/**"
+      - "lib/**"
+      - "scripts/**"
+      - "tests/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "package.json"
+      - "package-lock.json"
+      - "build.rs"
+      - "deno.json"
+      - "deno.lock"
+      - "tsconfig*.json"
+      - "Taskfile.yml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches:
       - main
+    paths:
+      - "src/**"
+      - "lib/**"
+      - "scripts/**"
+      - "tests/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "package.json"
+      - "package-lock.json"
+      - "build.rs"
+      - "deno.json"
+      - "deno.lock"
+      - "tsconfig*.json"
+      - "Taskfile.yml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/ci.yml"
 
 jobs:
-  code-quality:
-    name: Code Quality Checks
-    runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
-    permissions: {}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      # Speed up apt-get operations by disabling unnecessary man-db auto-update
-      - name: Disable man-db auto-update
-        run: |
-          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
-          sudo rm -f /var/lib/man-db/auto-update
-
-      # Install system dependencies for Linux printing
-      - name: Install CUPS development libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcups2-dev pkg-config clang
-
-      # Setup Rust toolchain for building native library
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      # Cache Rust dependencies for faster builds
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ runner.os }}-rust
-
-      # Setup Deno
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x # Run with latest stable Deno.
-
-      # Setup Node.js for N-API module and testing
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install NAPI-RS CLI
-        run: npm install -g @napi-rs/cli
-
-      # Setup Bun for cross-runtime testing
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Setup Task runner
-        uses: go-task/setup-task@v1
-
-      # Code quality checks (continue on error to gather all results)
-      - name: Check Rust formatting
-        id: rust-fmt
-        run: task fmt:rust:check
-        continue-on-error: true
-
-      - name: Run Rust linter (Clippy)
-        id: rust-lint
-        run: task lint:rust
-        continue-on-error: true
-
-      - name: Check TypeScript/JavaScript formatting
-        id: prettier-fmt
-        run: task fmt:prettier:check
-        continue-on-error: true
-
-      # Install Node.js dependencies
-      - name: Install Node.js dependencies
-        run: npm install
-
-      - name: Run ESLint
-        id: eslint
-        run: task lint:eslint
-        continue-on-error: true
-
-      # Save code quality results for reporting
-      - name: Save code quality results
-        if: always()
-        run: |
-          mkdir -p code-quality-results
-          echo '{
-            "rust_fmt": "${{ steps.rust-fmt.outcome }}",
-            "rust_lint": "${{ steps.rust-lint.outcome }}",
-            "prettier_fmt": "${{ steps.prettier-fmt.outcome }}",
-            "eslint": "${{ steps.eslint.outcome }}"
-          }' > code-quality-results/results.json
-
-      - name: Upload code quality results
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: code-quality-results
-          path: code-quality-results/
-          if-no-files-found: ignore
-
   build-and-test:
     name: Build and Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

@@ -1,0 +1,65 @@
+name: Formatting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  formatting:
+    name: Check Formatting
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    permissions: {}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Setup Task runner
+        uses: go-task/setup-task@v1
+
+      - name: Check Rust formatting
+        id: rust-fmt
+        run: task fmt:rust:check
+        continue-on-error: true
+
+      - name: Check TypeScript/JavaScript formatting
+        id: prettier-fmt
+        run: task fmt:prettier:check
+        continue-on-error: true
+
+      - name: Save formatting results
+        if: always()
+        run: |
+          mkdir -p formatting-results
+          echo '{
+            "rust_fmt": "${{ steps.rust-fmt.outcome }}",
+            "prettier_fmt": "${{ steps.prettier-fmt.outcome }}"
+          }' > formatting-results/results.json
+
+      - name: Upload formatting results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: formatting-results
+          path: formatting-results/
+          if-no-files-found: ignore
