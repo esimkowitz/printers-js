@@ -215,9 +215,7 @@ async function main() {
 }
 
 // Run main if this is the entry point
-// Use pathToFileURL for cross-platform compatibility
-import { pathToFileURL } from "node:url";
-const scriptPath = pathToFileURL(process.argv[1]).href;
-if (import.meta.url === scriptPath) {
+import { isMainModule } from "./utils.js";
+if (isMainModule(import.meta.url)) {
   await main();
 }

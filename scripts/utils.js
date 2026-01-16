@@ -8,6 +8,7 @@
 import { spawn } from "node:child_process";
 import { stat } from "node:fs/promises";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 // Standard colors for console output
 export const colors = {
@@ -198,4 +199,13 @@ export function runCommandLegacy(command, args, cwd) {
       reject({ code: 1, stdout, stderr: error.message });
     });
   });
+}
+
+/**
+ * Check if the current module is being run as the main entry point.
+ * @param {string} importMetaUrl - Pass import.meta.url from the calling module
+ * @returns {boolean}
+ */
+export function isMainModule(importMetaUrl) {
+  return importMetaUrl === pathToFileURL(process.argv[1]).href;
 }

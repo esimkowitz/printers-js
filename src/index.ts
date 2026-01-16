@@ -478,19 +478,28 @@ const simValue = isDeno
 export const isSimulationMode: boolean =
   simValue === "true" || simValue === "1";
 
+// Runtime detection helpers
+function getRuntimeName(): RuntimeInfo["name"] {
+  if (isDeno) return "deno";
+  if (isBun) return "bun";
+  if (isNode) return "node";
+  return "unknown";
+}
+
+function getRuntimeVersion(): string {
+  if (isDeno) return g.Deno?.version?.deno ?? "unknown";
+  if (isBun) return g.Bun?.version ?? "unknown";
+  if (isNode) return g.process?.version ?? "unknown";
+  return "unknown";
+}
+
 // Runtime information
 export const runtimeInfo: RuntimeInfo = {
-  name: isDeno ? "deno" : isBun ? "bun" : isNode ? "node" : "unknown",
+  name: getRuntimeName(),
   isDeno,
   isNode,
   isBun,
-  version: isDeno
-    ? (g.Deno?.version?.deno ?? "unknown")
-    : isBun
-      ? (g.Bun?.version ?? "unknown")
-      : isNode
-        ? (g.process?.version ?? "unknown")
-        : "unknown",
+  version: getRuntimeVersion(),
 };
 
 // N-API module interface
@@ -512,12 +521,12 @@ interface NativeModule {
     jobProperties?: Record<string, string>,
     waitForCompletion?: boolean
   ): Promise<number>;
-  // Printer-specific job tracking methods
-  printerGetActiveJobs?(printerName: string): PrinterJob[];
-  printerGetJobHistory?(printerName: string, limit?: number): PrinterJob[];
-  printerGetJob?(printerName: string, jobId: number): PrinterJob | null;
-  printerGetAllJobs?(printerName: string): PrinterJob[];
-  printerCleanupOldJobs?(printerName: string, maxAgeSeconds: number): number;
+  // Job tracking methods (all use x_for_printer naming)
+  getActiveJobsForPrinter?(printerName: string): PrinterJob[];
+  getJobHistoryForPrinter?(printerName: string, limit?: number): PrinterJob[];
+  getAllJobsForPrinter?(printerName: string): PrinterJob[];
+  getJobForPrinter?(printerName: string, jobId: number): PrinterJob | null;
+  cleanupOldJobsForPrinter?(printerName: string, maxAgeSeconds: number): number;
   // Printer state monitoring methods
   startStateMonitoring?(): void;
   stopStateMonitoring?(): void;
@@ -1027,8 +1036,8 @@ class PrinterWrapperImpl {
   async getActiveJobs(): Promise<PrinterJob[]> {
     try {
       const nativeModule = await getNativeModule();
-      return nativeModule.printerGetActiveJobs
-        ? nativeModule.printerGetActiveJobs(this._native.name)
+      return nativeModule.getActiveJobsForPrinter
+        ? nativeModule.getActiveJobsForPrinter(this._native.name)
         : [];
     } catch (error) {
       console.error(
@@ -1047,8 +1056,8 @@ class PrinterWrapperImpl {
   async getJobHistory(limit?: number): Promise<PrinterJob[]> {
     try {
       const nativeModule = await getNativeModule();
-      return nativeModule.printerGetJobHistory
-        ? nativeModule.printerGetJobHistory(this._native.name, limit)
+      return nativeModule.getJobHistoryForPrinter
+        ? nativeModule.getJobHistoryForPrinter(this._native.name, limit)
         : [];
     } catch (error) {
       console.error(
@@ -1067,8 +1076,8 @@ class PrinterWrapperImpl {
   async getJob(jobId: number): Promise<PrinterJob | null> {
     try {
       const nativeModule = await getNativeModule();
-      return nativeModule.printerGetJob
-        ? nativeModule.printerGetJob(this._native.name, jobId)
+      return nativeModule.getJobForPrinter
+        ? nativeModule.getJobForPrinter(this._native.name, jobId)
         : null;
     } catch (error) {
       console.error(
@@ -1086,8 +1095,8 @@ class PrinterWrapperImpl {
   async getAllJobs(): Promise<PrinterJob[]> {
     try {
       const nativeModule = await getNativeModule();
-      return nativeModule.printerGetAllJobs
-        ? nativeModule.printerGetAllJobs(this._native.name)
+      return nativeModule.getAllJobsForPrinter
+        ? nativeModule.getAllJobsForPrinter(this._native.name)
         : [];
     } catch (error) {
       console.error(`Failed to get all jobs for ${this._native.name}:`, error);
@@ -1103,8 +1112,11 @@ class PrinterWrapperImpl {
   async cleanupOldJobs(maxAgeSeconds: number): Promise<number> {
     try {
       const nativeModule = await getNativeModule();
-      return nativeModule.printerCleanupOldJobs
-        ? nativeModule.printerCleanupOldJobs(this._native.name, maxAgeSeconds)
+      return nativeModule.cleanupOldJobsForPrinter
+        ? nativeModule.cleanupOldJobsForPrinter(
+            this._native.name,
+            maxAgeSeconds
+          )
         : 0;
     } catch (error) {
       console.error(
