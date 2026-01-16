@@ -76,8 +76,8 @@ console.log("Debug: Available API functions:", Object.keys(printerAPI));
 console.log("Debug: isSimulationMode =", isSimulationMode);
 console.log("Debug: typeof getAllPrinterNames =", typeof getAllPrinterNames);
 
-// Test media files directory
-const MEDIA_DIR = "/Users/evan/source/printers-js/media";
+// Test media files directory - compute relative to this file's location
+const MEDIA_DIR = new URL("../../media", import.meta.url).pathname;
 const TEST_FILES = {
   PDF: `${MEDIA_DIR}/sample-document.pdf`,
   TEXT: `${MEDIA_DIR}/sample-text.txt`,
@@ -1558,6 +1558,69 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
     console.log(
       `Job history validation passed. Found ${jobHistory.length} historical jobs`
     );
+  } catch (error) {
+    if (error.message && error.message.includes("not found")) {
+      console.log("Expected simulation mode error:", error.message);
+      return;
+    }
+    throw error;
+  }
+});
+
+test(`${runtimeName}: should respect limit parameter on getJobHistory`, async () => {
+  if (!isSimulationMode) {
+    console.log(
+      "Skipping job history limit test - only safe in simulation mode"
+    );
+    return;
+  }
+
+  const printers = await getAllPrinters();
+  if (printers.length === 0) {
+    return;
+  }
+
+  const printer = printers[0];
+
+  try {
+    // Submit multiple jobs to ensure we have some history
+    const jobIds: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const jobId = await printer.printFile(TEST_FILES.PDF, {
+        jobName: `Limit Test Job ${i + 1}`,
+        waitForCompletion: false, // Quick return to avoid timeout
+      });
+      jobIds.push(jobId);
+    }
+
+    // Wait for jobs to complete
+    const waitTime = runtimeName === "Bun" ? 500 : 2500;
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+
+    // Get full history
+    const fullHistory = await printer.getJobHistory();
+    console.log(`Full job history has ${fullHistory.length} jobs`);
+
+    // Get limited history (limit to 2)
+    const limitedHistory = await printer.getJobHistory(2);
+    console.log(
+      `Limited job history (limit=2) has ${limitedHistory.length} jobs`
+    );
+
+    // Verify limit is respected
+    if (fullHistory.length >= 2 && limitedHistory.length > 2) {
+      throw new Error(
+        `getJobHistory(2) returned ${limitedHistory.length} jobs, expected at most 2`
+      );
+    }
+
+    if (fullHistory.length >= 2 && limitedHistory.length !== 2) {
+      console.log(
+        `Note: Expected 2 jobs with limit, got ${limitedHistory.length} (full history: ${fullHistory.length})`
+      );
+    }
+
+    console.log("Job history limit test passed");
   } catch (error) {
     if (error.message && error.message.includes("not found")) {
       console.log("Expected simulation mode error:", error.message);
