@@ -2,7 +2,7 @@ name: CI Report
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["CI", "Formatting", "Linting"]
     types:
       - completed
 
@@ -21,9 +21,11 @@ jobs:
       run:
         shell: bash
     steps:
-      # Download artifacts from the CI workflow run
-      - name: Download test reports
+      # Download artifacts based on which workflow triggered this run
+      - name: Download test reports (CI workflow only)
+        if: github.event.workflow_run.name == 'CI'
         uses: actions/download-artifact@v7
+        continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
@@ -31,7 +33,8 @@ jobs:
           pattern: test-reports-*
           merge-multiple: true
 
-      - name: Download coverage reports
+      - name: Download coverage reports (CI workflow only)
+        if: github.event.workflow_run.name == 'CI'
         uses: actions/download-artifact@v7
         continue-on-error: true
         with:
@@ -41,14 +44,26 @@ jobs:
           pattern: coverage-reports
           merge-multiple: true
 
-      - name: Download code quality results
+      - name: Download formatting results (Formatting workflow only)
+        if: github.event.workflow_run.name == 'Formatting'
         uses: actions/download-artifact@v7
         continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
-          path: code-quality-results/
-          pattern: code-quality-results
+          path: formatting-results/
+          pattern: formatting-results
+          merge-multiple: true
+
+      - name: Download linting results (Linting workflow only)
+        if: github.event.workflow_run.name == 'Linting'
+        uses: actions/download-artifact@v7
+        continue-on-error: true
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: linting-results/
+          pattern: linting-results
           merge-multiple: true
 
       # Get PR number from workflow run
@@ -77,10 +92,11 @@ jobs:
               prNumber,
               success,
               conclusion,
-              headSha: workflowRun.head_sha
+              headSha: workflowRun.head_sha,
+              workflowName: workflowRun.name
             };
 
-      # Parse test results and create summary
+      # Create/update PR comment with results
       - name: Create test summary comment
         if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
         uses: actions/github-script@v8
@@ -92,6 +108,9 @@ jobs:
             const prNumber = ${{ fromJSON(steps.pr-info.outputs.result).prNumber }};
             const workflowSuccess = ${{ fromJSON(steps.pr-info.outputs.result).success }};
             const headSha = '${{ fromJSON(steps.pr-info.outputs.result).headSha }}';
+            const workflowName = '${{ fromJSON(steps.pr-info.outputs.result).workflowName }}';
+
+            const COMMENT_IDENTIFIER = '<!-- ci-report-comment -->';
 
             // Function to parse JUnit XML
             function parseJUnit(xmlContent) {
@@ -175,100 +194,218 @@ jobs:
               }
             }
 
-            // Generate summary
-            let summary = `## 🧪 Test Results\n\n`;
+            // Parse existing comment to preserve data from other workflows
+            async function getExistingData() {
+              try {
+                const comments = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                });
 
-            // Process test results
-            const results = {};
-            const runtimes = ['deno', 'bun', 'node', 'cargo'];
+                const existingComment = comments.data.find(comment =>
+                  comment.user.type === 'Bot' &&
+                  comment.body.includes(COMMENT_IDENTIFIER)
+                );
 
-            for (const runtime of runtimes) {
-              results[runtime] = { total: 0, passed: 0, failures: 0, errors: 0 };
+                if (existingComment) {
+                  // Parse existing data from comment
+                  const body = existingComment.body;
+                  const data = {
+                    commentId: existingComment.id,
+                    formatting: null,
+                    linting: null,
+                    tests: null
+                  };
+
+                  // Extract formatting section
+                  const fmtMatch = body.match(/<!-- formatting-data: (.*?) -->/);
+                  if (fmtMatch) data.formatting = JSON.parse(fmtMatch[1]);
+
+                  // Extract linting section
+                  const lintMatch = body.match(/<!-- linting-data: (.*?) -->/);
+                  if (lintMatch) data.linting = JSON.parse(lintMatch[1]);
+
+                  // Extract tests section
+                  const testsMatch = body.match(/<!-- tests-data: (.*?) -->/);
+                  if (testsMatch) data.tests = JSON.parse(testsMatch[1]);
+
+                  return data;
+                }
+              } catch (error) {
+                console.log('Could not get existing comment:', error.message);
+              }
+              return { commentId: null, formatting: null, linting: null, tests: null };
             }
 
-            // Read test result files
-            const reportsPath = 'reports';
-            if (fs.existsSync(reportsPath)) {
-              const files = fs.readdirSync(reportsPath);
-              for (const file of files) {
-                if (file.endsWith('.xml')) {
-                  const content = fs.readFileSync(path.join(reportsPath, file), 'utf8');
-                  const parsed = parseJUnit(content);
+            // Get existing data
+            const existingData = await getExistingData();
 
-                  let runtime = null;
-                  if (file.includes('deno')) runtime = 'deno';
-                  else if (file.includes('bun')) runtime = 'bun';
-                  else if (file.includes('node')) runtime = 'node';
-                  else if (file.includes('cargo')) runtime = 'cargo';
+            // Process current workflow results
+            let formattingData = existingData.formatting;
+            let lintingData = existingData.linting;
+            let testsData = existingData.tests;
 
-                  if (runtime && parsed.total > 0) {
-                    results[runtime] = parsed;
-                  }
+            if (workflowName === 'Formatting') {
+              try {
+                const resultsPath = 'formatting-results/results.json';
+                if (fs.existsSync(resultsPath)) {
+                  const content = fs.readFileSync(resultsPath, 'utf8');
+                  const results = JSON.parse(content);
+                  formattingData = {
+                    rust_fmt: results.rust_fmt,
+                    prettier_fmt: results.prettier_fmt,
+                    success: results.rust_fmt === 'success' && results.prettier_fmt === 'success'
+                  };
                 }
+              } catch (error) {
+                console.log('Could not read formatting results:', error.message);
               }
             }
 
-            // Read coverage files
-            const denoCoverage = parseLCOVCoverage('coverage-reports/deno-lcov.info');
-            const bunCoverage = parseLCOVCoverage('coverage-reports/bun-lcov.info');
-            const nodeCoverage = parseLCOVCoverage('coverage-reports/node-lcov.info');
-            const rustCoverage = parseLCOVCoverage('coverage-reports/rust.lcov');
+            if (workflowName === 'Linting') {
+              try {
+                const resultsPath = 'linting-results/results.json';
+                if (fs.existsSync(resultsPath)) {
+                  const content = fs.readFileSync(resultsPath, 'utf8');
+                  const results = JSON.parse(content);
+                  lintingData = {
+                    rust_lint: results.rust_lint,
+                    eslint: results.eslint,
+                    success: results.rust_lint === 'success' && results.eslint === 'success'
+                  };
+                }
+              } catch (error) {
+                console.log('Could not read linting results:', error.message);
+              }
+            }
 
-            // Format results
-            summary += `### JavaScript Runtime Tests\n`;
-            summary += `| Runtime | Status | Tests | Coverage |\n`;
-            summary += `|---------|--------|-------|----------|\n`;
+            if (workflowName === 'CI') {
+              // Process test results
+              const results = {};
+              const runtimes = ['deno', 'bun', 'node', 'cargo'];
 
-            const formatResult = (result) => {
-              if (result.total === 0) return { status: '➖', text: 'No tests' };
-              const status = result.failures === 0 && result.errors === 0 ? '✅' : '❌';
-              return { status, text: `${result.passed}/${result.total} passed` };
-            };
+              for (const runtime of runtimes) {
+                results[runtime] = { total: 0, passed: 0, failures: 0, errors: 0 };
+              }
 
-            const denoResult = formatResult(results.deno);
-            const bunResult = formatResult(results.bun);
-            const nodeResult = formatResult(results.node);
-            const rustResult = formatResult(results.cargo);
+              const reportsPath = 'reports';
+              if (fs.existsSync(reportsPath)) {
+                const files = fs.readdirSync(reportsPath);
+                for (const file of files) {
+                  if (file.endsWith('.xml')) {
+                    const content = fs.readFileSync(path.join(reportsPath, file), 'utf8');
+                    const parsed = parseJUnit(content);
 
-            summary += `| 🦕 **Deno** | ${denoResult.status} | ${denoResult.text} | ${denoCoverage} |\n`;
-            summary += `| 🥟 **Bun** | ${bunResult.status} | ${bunResult.text} | ${bunCoverage} |\n`;
-            summary += `| 🟢 **Node.js** | ${nodeResult.status} | ${nodeResult.text} | ${nodeCoverage} |\n\n`;
+                    let runtime = null;
+                    if (file.includes('deno')) runtime = 'deno';
+                    else if (file.includes('bun')) runtime = 'bun';
+                    else if (file.includes('node')) runtime = 'node';
+                    else if (file.includes('cargo')) runtime = 'cargo';
 
-            summary += `### Rust Library Tests\n`;
-            summary += `| Component | Status | Tests | Coverage |\n`;
-            summary += `|-----------|--------|-------|----------|\n`;
-            summary += `| 🦀 **Core Library** | ${rustResult.status} | ${rustResult.text} | ${rustCoverage} |\n\n`;
+                    if (runtime && parsed.total > 0) {
+                      results[runtime] = parsed;
+                    }
+                  }
+                }
+              }
 
-            const overallStatus = workflowSuccess ? '✅ All checks passing' : '❌ Some checks failed';
-            summary += `**Overall Status**: ${overallStatus}\n\n`;
+              testsData = {
+                results,
+                denoCoverage: parseLCOVCoverage('coverage-reports/deno-lcov.info'),
+                bunCoverage: parseLCOVCoverage('coverage-reports/bun-lcov.info'),
+                nodeCoverage: parseLCOVCoverage('coverage-reports/node-lcov.info'),
+                rustCoverage: parseLCOVCoverage('coverage-reports/rust.lcov'),
+                success: workflowSuccess
+              };
+            }
+
+            // Build the comment
+            let summary = `${COMMENT_IDENTIFIER}\n## 🧪 CI Results\n\n`;
+
+            // Formatting section
+            summary += `### Formatting\n`;
+            if (formattingData) {
+              const rustFmtStatus = formattingData.rust_fmt === 'success' ? '✅' : '❌';
+              const prettierStatus = formattingData.prettier_fmt === 'success' ? '✅' : '❌';
+              summary += `| Check | Status |\n`;
+              summary += `|-------|--------|\n`;
+              summary += `| Rust fmt | ${rustFmtStatus} |\n`;
+              summary += `| Prettier | ${prettierStatus} |\n\n`;
+              summary += `<!-- formatting-data: ${JSON.stringify(formattingData)} -->\n\n`;
+            } else {
+              summary += `⏳ *Pending...*\n\n`;
+            }
+
+            // Linting section
+            summary += `### Linting\n`;
+            if (lintingData) {
+              const rustLintStatus = lintingData.rust_lint === 'success' ? '✅' : '❌';
+              const eslintStatus = lintingData.eslint === 'success' ? '✅' : '❌';
+              summary += `| Check | Status |\n`;
+              summary += `|-------|--------|\n`;
+              summary += `| Clippy | ${rustLintStatus} |\n`;
+              summary += `| ESLint | ${eslintStatus} |\n\n`;
+              summary += `<!-- linting-data: ${JSON.stringify(lintingData)} -->\n\n`;
+            } else {
+              summary += `⏳ *Pending or skipped (no code changes)...*\n\n`;
+            }
+
+            // Tests section
+            summary += `### Tests\n`;
+            if (testsData) {
+              const formatResult = (result) => {
+                if (result.total === 0) return { status: '➖', text: 'No tests' };
+                const status = result.failures === 0 && result.errors === 0 ? '✅' : '❌';
+                return { status, text: `${result.passed}/${result.total} passed` };
+              };
+
+              const denoResult = formatResult(testsData.results.deno);
+              const bunResult = formatResult(testsData.results.bun);
+              const nodeResult = formatResult(testsData.results.node);
+              const rustResult = formatResult(testsData.results.cargo);
+
+              summary += `#### JavaScript Runtimes\n`;
+              summary += `| Runtime | Status | Tests | Coverage |\n`;
+              summary += `|---------|--------|-------|----------|\n`;
+              summary += `| 🦕 Deno | ${denoResult.status} | ${denoResult.text} | ${testsData.denoCoverage} |\n`;
+              summary += `| 🥟 Bun | ${bunResult.status} | ${bunResult.text} | ${testsData.bunCoverage} |\n`;
+              summary += `| 🟢 Node.js | ${nodeResult.status} | ${nodeResult.text} | ${testsData.nodeCoverage} |\n\n`;
+
+              summary += `#### Rust Library\n`;
+              summary += `| Component | Status | Tests | Coverage |\n`;
+              summary += `|-----------|--------|-------|----------|\n`;
+              summary += `| 🦀 Core | ${rustResult.status} | ${rustResult.text} | ${testsData.rustCoverage} |\n\n`;
+              summary += `<!-- tests-data: ${JSON.stringify(testsData)} -->\n\n`;
+            } else {
+              summary += `⏳ *Pending or skipped (no code changes)...*\n\n`;
+            }
+
+            // Overall status
+            const allComplete = formattingData && (lintingData || true) && (testsData || true);
+            const allSuccess = (!formattingData || formattingData.success) &&
+                              (!lintingData || lintingData.success) &&
+                              (!testsData || testsData.success);
+
+            if (formattingData || lintingData || testsData) {
+              const overallStatus = allSuccess ? '✅ All checks passing' : '❌ Some checks failed';
+              summary += `**Overall Status**: ${overallStatus}\n\n`;
+            }
 
             const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.event.workflow_run.id }}`;
-            summary += `*Last updated: ${timestamp} UTC | [View CI Run](${runUrl})* 🤖`;
+            summary += `*Last updated: ${timestamp} UTC | [View ${workflowName} Run](${runUrl})* 🤖`;
 
-            // Find and update or create comment
-            const COMMENT_IDENTIFIER = '## 🧪 Test Results';
-
+            // Create or update comment
             try {
-              const comments = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-              });
-
-              const existingComment = comments.data.find(comment =>
-                comment.user.type === 'Bot' &&
-                comment.body.includes(COMMENT_IDENTIFIER)
-              );
-
-              if (existingComment) {
+              if (existingData.commentId) {
                 await github.rest.issues.updateComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  comment_id: existingComment.id,
+                  comment_id: existingData.commentId,
                   body: summary
                 });
-                console.log('Updated existing test results comment');
+                console.log('Updated existing CI results comment');
               } else {
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -276,75 +413,66 @@ jobs:
                   issue_number: prNumber,
                   body: summary
                 });
-                console.log('Created new test results comment');
+                console.log('Created new CI results comment');
               }
             } catch (error) {
               console.error('Error managing comment:', error);
             }
 
-      # Create code quality status check
-      - name: Create code quality status check
+      # Create status check for the workflow that triggered this run
+      - name: Create status check
         if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
         uses: actions/github-script@v8
         with:
           script: |
-            const headSha = '${{ fromJSON(steps.pr-info.outputs.result).headSha }}';
-
-            // Read code quality results if available
-            let codeQualityResults = null;
-            try {
-              const fs = require('fs');
-              const resultsPath = 'code-quality-results/results.json';
-              if (fs.existsSync(resultsPath)) {
-                const content = fs.readFileSync(resultsPath, 'utf8');
-                codeQualityResults = JSON.parse(content);
-              }
-            } catch (error) {
-              console.log('Could not read code quality results:', error.message);
-            }
-
-            if (codeQualityResults) {
-              // Check if any code quality checks failed
-              const failedChecks = [];
-              if (codeQualityResults.rust_fmt === 'failure') failedChecks.push('Rust format');
-              if (codeQualityResults.rust_lint === 'failure') failedChecks.push('Rust lint');
-              if (codeQualityResults.prettier_fmt === 'failure') failedChecks.push('Prettier format');
-              if (codeQualityResults.eslint === 'failure') failedChecks.push('ESLint');
-
-              const allPassed = failedChecks.length === 0;
-              const state = allPassed ? 'success' : 'failure';
-              const description = allPassed
-                ? 'All code quality checks passed'
-                : `Code quality issues: ${failedChecks.join(', ')}`;
-
-              try {
-                await github.rest.repos.createCommitStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  sha: headSha,
-                  state: state,
-                  target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.event.workflow_run.id }}`,
-                  description: description.substring(0, 140), // GitHub limits description to 140 chars
-                  context: 'Code Quality'
-                });
-                console.log(`Code quality status check created: ${state} - ${description}`);
-              } catch (error) {
-                console.error('Failed to create code quality status check:', error);
-              }
-            }
-
-      # Create test status check
-      - name: Create test status check
-        if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
-        uses: actions/github-script@v8
-        with:
-          script: |
+            const fs = require('fs');
             const success = ${{ fromJSON(steps.pr-info.outputs.result).success }};
             const conclusion = '${{ fromJSON(steps.pr-info.outputs.result).conclusion }}';
             const headSha = '${{ fromJSON(steps.pr-info.outputs.result).headSha }}';
+            const workflowName = '${{ fromJSON(steps.pr-info.outputs.result).workflowName }}';
 
-            const state = success ? 'success' : 'failure';
-            const description = success ? 'All CI checks passed' : `CI ${conclusion}`;
+            let state = success ? 'success' : 'failure';
+            let description = success ? `${workflowName} passed` : `${workflowName} ${conclusion}`;
+            let contextName = workflowName;
+
+            // For specific workflows, provide more detailed status
+            if (workflowName === 'Formatting') {
+              try {
+                const resultsPath = 'formatting-results/results.json';
+                if (fs.existsSync(resultsPath)) {
+                  const content = fs.readFileSync(resultsPath, 'utf8');
+                  const results = JSON.parse(content);
+                  const failedChecks = [];
+                  if (results.rust_fmt === 'failure') failedChecks.push('Rust fmt');
+                  if (results.prettier_fmt === 'failure') failedChecks.push('Prettier');
+                  if (failedChecks.length > 0) {
+                    state = 'failure';
+                    description = `Failed: ${failedChecks.join(', ')}`;
+                  }
+                }
+              } catch (error) {
+                console.log('Could not read formatting results:', error.message);
+              }
+            }
+
+            if (workflowName === 'Linting') {
+              try {
+                const resultsPath = 'linting-results/results.json';
+                if (fs.existsSync(resultsPath)) {
+                  const content = fs.readFileSync(resultsPath, 'utf8');
+                  const results = JSON.parse(content);
+                  const failedChecks = [];
+                  if (results.rust_lint === 'failure') failedChecks.push('Clippy');
+                  if (results.eslint === 'failure') failedChecks.push('ESLint');
+                  if (failedChecks.length > 0) {
+                    state = 'failure';
+                    description = `Failed: ${failedChecks.join(', ')}`;
+                  }
+                }
+              } catch (error) {
+                console.log('Could not read linting results:', error.message);
+              }
+            }
 
             try {
               await github.rest.repos.createCommitStatus({
@@ -353,10 +481,10 @@ jobs:
                 sha: headSha,
                 state: state,
                 target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.event.workflow_run.id }}`,
-                description: description,
-                context: 'CI / Tests'
+                description: description.substring(0, 140),
+                context: contextName
               });
-              console.log(`Status check created: ${state} - ${description}`);
+              console.log(`Status check created: ${contextName} - ${state} - ${description}`);
             } catch (error) {
               console.error('Failed to create status check:', error);
             }

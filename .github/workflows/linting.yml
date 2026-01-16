@@ -1,0 +1,97 @@
+name: Linting
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "lib/**"
+      - "scripts/**"
+      - "tests/**"
+      - "Cargo.toml"
+      - "eslint.config.js"
+      - ".github/workflows/linting.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "lib/**"
+      - "scripts/**"
+      - "tests/**"
+      - "Cargo.toml"
+      - "eslint.config.js"
+      - ".github/workflows/linting.yml"
+
+jobs:
+  linting:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    permissions: {}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # Speed up apt-get operations by disabling unnecessary man-db auto-update
+      - name: Disable man-db auto-update
+        run: |
+          echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+
+      # Install system dependencies for Linux printing (required for Clippy)
+      - name: Install CUPS development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev pkg-config clang
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ runner.os }}-rust
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Setup Task runner
+        uses: go-task/setup-task@v1
+
+      - name: Run Rust linter (Clippy)
+        id: rust-lint
+        run: task lint:rust
+        continue-on-error: true
+
+      - name: Run ESLint
+        id: eslint
+        run: task lint:eslint
+        continue-on-error: true
+
+      - name: Save linting results
+        if: always()
+        run: |
+          mkdir -p linting-results
+          echo '{
+            "rust_lint": "${{ steps.rust-lint.outcome }}",
+            "eslint": "${{ steps.eslint.outcome }}"
+          }' > linting-results/results.json
+
+      - name: Upload linting results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: linting-results
+          path: linting-results/
+          if-no-files-found: ignore
