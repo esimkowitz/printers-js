@@ -76,14 +76,14 @@ bun add @printers/printers
 import { getAllPrinters, getPrinterByName } from "@printers/printers";
 
 // List all available printers
-const printers = getAllPrinters();
+const printers = await getAllPrinters();
 console.log(
   "Available printers:",
   printers.map(p => p.name)
 );
 
 // Print a document
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 if (printer) {
   const jobId = await printer.printFile("document.pdf", {
     simple: {
@@ -100,21 +100,28 @@ if (printer) {
 
 ### Core Functions
 
-#### `getAllPrinters(): Printer[]`
+All core functions are async and return Promises. This enables lazy loading of the native module,
+avoiding top-level await issues in CommonJS interop and bundlers.
+
+#### `getAllPrinters(): Promise<Printer[]>`
 
 Returns an array of all available system printers.
 
-#### `getPrinterByName(name: string): Printer | null`
+#### `getPrinterByName(name: string): Promise<Printer | null>`
 
 Find a printer by its exact name.
 
-#### `getAllPrinterNames(): string[]`
+#### `getAllPrinterNames(): Promise<string[]>`
 
 Returns an array of printer names.
 
-#### `printerExists(name: string): boolean`
+#### `printerExists(name: string): Promise<boolean>`
 
 Check if a printer exists on the system.
+
+#### `getDefaultPrinter(): Promise<Printer | null>`
+
+Get the default system printer.
 
 ### Printer Class
 
@@ -131,10 +138,12 @@ Check if a printer exists on the system.
 
 - `printFile(filePath: string, options?: PrintJobOptions): Promise<number>` - Print a file and return job ID
 - `printBytes(data: Uint8Array, options?: PrintJobOptions): Promise<number>` - Print raw bytes and return job ID
-- `getActiveJobs(): PrinterJob[]` - Get currently active/pending jobs
-- `getJobHistory(limit?: number): PrinterJob[]` - Get completed job history
-- `getJob(jobId: number): PrinterJob | null` - Get specific job details
-- `cleanupOldJobs(maxAgeSeconds: number): number` - Remove old jobs
+- `exists(): Promise<boolean>` - Check if the printer exists on the system
+- `getActiveJobs(): Promise<PrinterJob[]>` - Get currently active/pending jobs
+- `getJobHistory(limit?: number): Promise<PrinterJob[]>` - Get completed job history
+- `getJob(jobId: number): Promise<PrinterJob | null>` - Get specific job details
+- `getAllJobs(): Promise<PrinterJob[]>` - Get all jobs (active and completed)
+- `cleanupOldJobs(maxAgeSeconds: number): Promise<number>` - Remove old jobs
 
 ### State Monitoring
 
@@ -151,7 +160,7 @@ const subscription = await subscribeToPrinterStateChanges(event => {
 await subscription.unsubscribe();
 ```
 
-#### `getPrinterStateSnapshots(): Map<string, PrinterStateSnapshot>`
+#### `getPrinterStateSnapshots(): Promise<Map<string, PrinterStateSnapshot>>`
 
 Get current state of all printers.
 
@@ -192,7 +201,7 @@ interface SimplePrintOptions {
 ### Basic Printing
 
 ```typescript
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Simple printing
 await printer.printFile("document.pdf", {
@@ -204,7 +213,7 @@ const jobId = await printer.printFile("document.pdf", {
   waitForCompletion: false,
 });
 
-const job = printer.getJob(jobId);
+const job = await printer.getJob(jobId);
 console.log(`Job ${jobId}: ${job?.state}`);
 ```
 

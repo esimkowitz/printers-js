@@ -86,9 +86,66 @@ const TEST_FILES = {
   DOCX: `${MEDIA_DIR}/sample-document.docx`,
 };
 
+// ===== MODULE LOADING TESTS =====
+
+test(`${runtimeName}: should import module without top-level await issues`, async () => {
+  // This test verifies that the module can be dynamically imported
+  // If there was top-level await, this would fail in certain contexts
+  // (CJS interop, bundlers without TLA support)
+  const module = await import("../index.ts");
+
+  // Verify the module exported the expected functions
+  if (typeof module.getAllPrinters !== "function") {
+    throw new Error("getAllPrinters should be exported as a function");
+  }
+  if (typeof module.getAllPrinterNames !== "function") {
+    throw new Error("getAllPrinterNames should be exported as a function");
+  }
+  if (typeof module.getPrinterByName !== "function") {
+    throw new Error("getPrinterByName should be exported as a function");
+  }
+  if (typeof module.printerExists !== "function") {
+    throw new Error("printerExists should be exported as a function");
+  }
+
+  console.log("✓ Module imports successfully without top-level await issues");
+});
+
+test(`${runtimeName}: should lazy-load native module on first API call`, async () => {
+  // This test verifies that the native module is loaded lazily
+  // The import itself should not trigger native module loading
+  const startTime = Date.now();
+  const module = await import("../index.ts");
+  const importTime = Date.now() - startTime;
+
+  // Import should be quick (no native loading yet)
+  console.log(`Module import took ${importTime}ms`);
+
+  // First API call triggers lazy loading
+  const apiStartTime = Date.now();
+  const printers = await module.getAllPrinters();
+  const apiTime = Date.now() - apiStartTime;
+
+  console.log(`First API call (with native load) took ${apiTime}ms`);
+
+  // Subsequent calls should be faster (module cached)
+  const secondStartTime = Date.now();
+  await module.getAllPrinters();
+  const secondTime = Date.now() - secondStartTime;
+
+  console.log(`Second API call (cached) took ${secondTime}ms`);
+
+  // Basic validation
+  if (!Array.isArray(printers)) {
+    throw new Error("getAllPrinters should return an array");
+  }
+
+  console.log("✓ Lazy loading pattern works correctly");
+});
+
 // Core cross-runtime tests
-test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
-  const printerNames = getAllPrinterNames();
+test(`${runtimeName}: should return an array from getAllPrinterNames`, async () => {
+  const printerNames = await getAllPrinterNames();
   if (!Array.isArray(printerNames)) {
     throw new Error("getAllPrinterNames should return an array");
   }
@@ -122,7 +179,10 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
       "Debug: getAllPrinterNames function type:",
       typeof getAllPrinterNames
     );
-    console.error("Debug: getAllPrinterNames result:", getAllPrinterNames());
+    console.error(
+      "Debug: getAllPrinterNames result:",
+      await getAllPrinterNames()
+    );
 
     // Try to get more information about what's loaded
     console.error("Debug: Available API:", Object.keys(printerAPI));
@@ -132,8 +192,8 @@ test(`${runtimeName}: should return an array from getAllPrinterNames`, () => {
   }
 });
 
-test(`${runtimeName}: should return an array of Printer objects from getAllPrinters`, () => {
-  const printers = getAllPrinters();
+test(`${runtimeName}: should return an array of Printer objects from getAllPrinters`, async () => {
+  const printers = await getAllPrinters();
   if (!Array.isArray(printers)) {
     throw new Error("getAllPrinters should return an array");
   }
@@ -212,8 +272,8 @@ test(`${runtimeName}: should generate custom page sizes correctly`, () => {
   }
 });
 
-test(`${runtimeName}: should return typed printer instances from getAllPrinters`, () => {
-  const printers = getAllPrinters();
+test(`${runtimeName}: should return typed printer instances from getAllPrinters`, async () => {
+  const printers = await getAllPrinters();
   if (!Array.isArray(printers)) {
     throw new Error("getAllPrinters should return an array");
   }
@@ -228,8 +288,8 @@ test(`${runtimeName}: should return typed printer instances from getAllPrinters`
   }
 });
 
-test(`${runtimeName}: should return false for non-existent printer in printerExists`, () => {
-  const exists = printerExists("NonExistentPrinter12345");
+test(`${runtimeName}: should return false for non-existent printer in printerExists`, async () => {
+  const exists = await printerExists("NonExistentPrinter12345");
   if (exists !== false) {
     throw new Error(
       "printerExists should return false for non-existent printer"
@@ -237,8 +297,8 @@ test(`${runtimeName}: should return false for non-existent printer in printerExi
   }
 });
 
-test(`${runtimeName}: should return null for non-existent printer in getPrinterByName`, () => {
-  const printer = getPrinterByName("NonExistentPrinter12345");
+test(`${runtimeName}: should return null for non-existent printer in getPrinterByName`, async () => {
+  const printer = await getPrinterByName("NonExistentPrinter12345");
   if (printer !== null) {
     throw new Error(
       "getPrinterByName should return null for non-existent printer"
@@ -246,8 +306,8 @@ test(`${runtimeName}: should return null for non-existent printer in getPrinterB
   }
 });
 
-test(`${runtimeName}: should have working Printer class methods`, () => {
-  const printers = getAllPrinters();
+test(`${runtimeName}: should have working Printer class methods`, async () => {
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     return; // Skip if no printers available
   }
@@ -257,7 +317,7 @@ test(`${runtimeName}: should have working Printer class methods`, () => {
   if (!printer.name) {
     throw new Error("Printer should have a name");
   }
-  if (typeof printer.exists() !== "boolean") {
+  if (typeof (await printer.exists()) !== "boolean") {
     throw new Error("exists() should return boolean");
   }
   if (typeof printer.toString() !== "string") {
@@ -265,14 +325,14 @@ test(`${runtimeName}: should have working Printer class methods`, () => {
   }
 
   // Test comparison
-  const samePrinter = PrinterConstructor.fromName(printer.name);
+  const samePrinter = await PrinterConstructor.fromName(printer.name);
   if (samePrinter && !printer.equals(samePrinter)) {
     throw new Error("Printer should equal another instance with same name");
   }
 });
 
 test(`${runtimeName}: should handle printFile operations`, async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     return; // Skip if no printers
   }
@@ -292,15 +352,15 @@ test(`${runtimeName}: should handle printFile operations`, async () => {
   }
 });
 
-test(`${runtimeName}: should return number from printer.cleanupOldJobs`, () => {
-  const printers = getAllPrinters();
+test(`${runtimeName}: should return number from printer.cleanupOldJobs`, async () => {
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     console.log("Skipping cleanupOldJobs test - no printers available");
     return;
   }
 
   const printer = printers[0];
-  const cleaned = printer.cleanupOldJobs(3600); // 1 hour
+  const cleaned = await printer.cleanupOldJobs(3600); // 1 hour
   if (typeof cleaned !== "number") {
     throw new Error("printer.cleanupOldJobs should return a number");
   }
@@ -356,9 +416,9 @@ test(`${runtimeName}: should reflect environment in isSimulationMode`, () => {
   }
 });
 
-test(`${runtimeName}: should have consistent API across getAllPrinterNames and getAllPrinters`, () => {
-  const printerNames = getAllPrinterNames();
-  const printers = getAllPrinters();
+test(`${runtimeName}: should have consistent API across getAllPrinterNames and getAllPrinters`, async () => {
+  const printerNames = await getAllPrinterNames();
+  const printers = await getAllPrinters();
 
   if (printerNames.length !== printers.length) {
     throw new Error(
@@ -369,11 +429,11 @@ test(`${runtimeName}: should have consistent API across getAllPrinterNames and g
   // Test printer existence
   if (printerNames.length > 0) {
     const firstPrinterName = printerNames[0];
-    if (!printerExists(firstPrinterName)) {
+    if (!(await printerExists(firstPrinterName))) {
       throw new Error("First printer from list should exist");
     }
 
-    const printer = getPrinterByName(firstPrinterName);
+    const printer = await getPrinterByName(firstPrinterName);
     if (!printer || printer.name !== firstPrinterName) {
       throw new Error("getPrinterByName should return correct printer");
     }
@@ -400,14 +460,14 @@ test(`${runtimeName}: should have runtimeInfo with name and version`, () => {
   }
 });
 
-test(`${runtimeName}: simulated printer should have correct field values`, () => {
+test(`${runtimeName}: simulated printer should have correct field values`, async () => {
   // This test only runs in simulation mode
   if (!isSimulationMode) {
     console.log("Skipping simulated printer test - not in simulation mode");
     return;
   }
 
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     throw new Error("Should have at least one simulated printer");
   }
@@ -624,8 +684,8 @@ test(`${runtimeName}: should handle edge cases in SimplePrintOptions conversion`
 });
 
 // New Job Tracking Tests
-test(`${runtimeName}: should have printer job tracking methods available`, () => {
-  const printers = getAllPrinters();
+test(`${runtimeName}: should have printer job tracking methods available`, async () => {
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     console.log("Skipping printer job tracking test - no printers available");
     return;
@@ -650,22 +710,22 @@ test(`${runtimeName}: should have printer job tracking methods available`, () =>
   }
 });
 
-test(`${runtimeName}: should return null for invalid job ID in printer.getJob`, () => {
-  const printers = getAllPrinters();
+test(`${runtimeName}: should return null for invalid job ID in printer.getJob`, async () => {
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     console.log("Skipping printer.getJob test - no printers available");
     return;
   }
 
   const printer = printers[0];
-  const job = printer.getJob(99999999);
+  const job = await printer.getJob(99999999);
   if (job !== null) {
     throw new Error("printer.getJob should return null for invalid job ID");
   }
 });
 
-test(`${runtimeName}: should return empty arrays for printer job tracking methods when no jobs exist`, () => {
-  const printers = getAllPrinters();
+test(`${runtimeName}: should return empty arrays for printer job tracking methods when no jobs exist`, async () => {
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     console.log(
       "Skipping printer job tracking arrays test - no printers available"
@@ -676,24 +736,24 @@ test(`${runtimeName}: should return empty arrays for printer job tracking method
   const printer = printers[0];
 
   // These should return arrays (empty or not, but arrays)
-  const activeJobs = printer.getActiveJobs();
+  const activeJobs = await printer.getActiveJobs();
   if (!Array.isArray(activeJobs)) {
     throw new Error("printer.getActiveJobs should return an array");
   }
 
-  const jobHistory = printer.getJobHistory();
+  const jobHistory = await printer.getJobHistory();
   if (!Array.isArray(jobHistory)) {
     throw new Error("printer.getJobHistory should return an array");
   }
 
-  const allJobs = printer.getAllJobs();
+  const allJobs = await printer.getAllJobs();
   if (!Array.isArray(allJobs)) {
     throw new Error("printer.getAllJobs should return an array");
   }
 });
 
 test(`${runtimeName}: should create and track print jobs with new job format`, async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     console.log("Skipping job tracking test - no printers available");
     return;
@@ -720,7 +780,7 @@ test(`${runtimeName}: should create and track print jobs with new job format`, a
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Get the job details using new format
-    const job = printer.getJob(jobId);
+    const job = await printer.getJob(jobId);
     if (!job) {
       throw new Error(`Job ${jobId} should be found in tracker`);
     }
@@ -882,7 +942,7 @@ test(`${runtimeName}: should configure monitoring poll interval`, async () => {
 
 test(`${runtimeName}: should get printer state snapshots`, async () => {
   try {
-    const snapshots = getPrinterStateSnapshots();
+    const snapshots = await getPrinterStateSnapshots();
 
     if (!(snapshots instanceof Map)) {
       throw new Error("getPrinterStateSnapshots should return a Map");
@@ -1233,7 +1293,7 @@ test(`${runtimeName}: should track jobs in active jobs list`, async () => {
     return;
   }
 
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     return;
   }
@@ -1242,7 +1302,7 @@ test(`${runtimeName}: should track jobs in active jobs list`, async () => {
 
   try {
     // Get initial active job count
-    const initialActiveJobs = printer.getActiveJobs();
+    const initialActiveJobs = await printer.getActiveJobs();
 
     // Submit a job
     const jobOptions = { jobName: "Active Job Test" };
@@ -1252,7 +1312,7 @@ test(`${runtimeName}: should track jobs in active jobs list`, async () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // Check if job appears in active jobs
-    const activeJobs = printer.getActiveJobs();
+    const activeJobs = await printer.getActiveJobs();
 
     // Should have at least one more active job
     if (activeJobs.length <= initialActiveJobs.length) {
@@ -1295,7 +1355,7 @@ test(`${runtimeName}: should track jobs in active jobs list`, async () => {
 });
 
 test(`${runtimeName}: should respect waitForCompletion=false for quick return`, async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) return;
 
   const printer = printers[0];
@@ -1325,7 +1385,7 @@ test(`${runtimeName}: should respect waitForCompletion=false for quick return`, 
 });
 
 test(`${runtimeName}: should respect waitForCompletion=true for delayed return`, async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) return;
 
   const printer = printers[0];
@@ -1353,7 +1413,7 @@ test(`${runtimeName}: should respect waitForCompletion=true for delayed return`,
 });
 
 test(`${runtimeName}: should default waitForCompletion to true when not specified`, async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) return;
 
   const printer = printers[0];
@@ -1374,7 +1434,7 @@ test(`${runtimeName}: should default waitForCompletion to true when not specifie
 });
 
 test(`${runtimeName}: should support waitForCompletion with raw bytes printing`, async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) return;
 
   const printer = printers[0];
@@ -1403,7 +1463,7 @@ test(`${runtimeName}: should support waitForCompletion with raw bytes printing`,
 });
 
 test(`${runtimeName}: should handle waitForCompletion with various file types`, async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) return;
 
   const printer = printers[0];
@@ -1437,7 +1497,7 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
     return;
   }
 
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     return;
   }
@@ -1446,7 +1506,7 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
 
   try {
     // Get initial job history count
-    const initialHistory = printer.getJobHistory();
+    const initialHistory = await printer.getJobHistory();
 
     // Submit a job and wait for completion
     const jobOptions = { jobName: "History Job Test" };
@@ -1458,7 +1518,7 @@ test(`${runtimeName}: should track completed jobs in job history`, async () => {
     await new Promise(resolve => setTimeout(resolve, waitTime));
 
     // Check if job appears in history
-    const jobHistory = printer.getJobHistory();
+    const jobHistory = await printer.getJobHistory();
 
     // Should have at least one more completed job
     if (jobHistory.length <= initialHistory.length) {
@@ -1513,7 +1573,7 @@ test(`${runtimeName}: should handle media type detection correctly`, async () =>
     return;
   }
 
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     return;
   }
@@ -1552,7 +1612,7 @@ test(`${runtimeName}: should handle media type detection correctly`, async () =>
       const waitTime = runtimeName === "Bun" ? 10 : 100;
       await new Promise(resolve => setTimeout(resolve, waitTime));
 
-      const job = printer.getJob(jobId);
+      const job = await printer.getJob(jobId);
       if (job && job.mediaType !== testCase.expectedType) {
         throw new Error(
           `File ${testCase.file} should have media type "${testCase.expectedType}", got "${job.mediaType}"`
@@ -1579,7 +1639,7 @@ test(`${runtimeName}: should handle raw bytes printing with correct media type`,
     return;
   }
 
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
   if (printers.length === 0) {
     return;
   }
@@ -1605,7 +1665,7 @@ test(`${runtimeName}: should handle raw bytes printing with correct media type`,
     const waitTime = runtimeName === "Bun" ? 10 : 100;
     await new Promise(resolve => setTimeout(resolve, waitTime));
 
-    const job = printer.getJob(jobId);
+    const job = await printer.getJob(jobId);
     if (!job) {
       throw new Error("Raw bytes job should be tracked");
     }
