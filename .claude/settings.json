@@ -1,5 +1,10 @@
 {
   "enabledPlugins": {
-    "task-discovery@esimkowitz-plugins": true
+    "task-discovery@esimkowitz-plugins": true,
+    "feature-dev@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "explanatory-output-style@claude-plugins-official": true
   }
 }
