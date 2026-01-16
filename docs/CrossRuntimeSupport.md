@@ -79,7 +79,7 @@ import { getPrinterByName } from "npm:@printers/printers";
 // Set simulation mode using Deno API
 Deno.env.set("PRINTERS_JS_SIMULATE", "true");
 
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 await printer.printFile("document.pdf");
 ```
 
@@ -133,7 +133,7 @@ task test:direct:bun           # bun test (verbose)
 ```typescript
 // Test that works across all runtimes
 test("should work in all runtimes", async () => {
-  const printers = getAllPrinters();
+  const printers = await getAllPrinters();
 
   // Runtime detection works everywhere
   const { name } = runtimeInfo;
@@ -147,7 +147,7 @@ test("should work in all runtimes", async () => {
     });
 
     // Job tracking works everywhere
-    const job = printer.getJob(jobId);
+    const job = await printer.getJob(jobId);
     assert(typeof job?.id === "number");
   }
 });

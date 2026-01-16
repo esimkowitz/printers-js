@@ -46,10 +46,10 @@ type PrinterJobState =
 ```typescript
 import { getPrinterByName } from "@printers/printers";
 
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Get a specific job by ID
-const job = printer.getJob(12345);
+const job = await printer.getJob(12345);
 if (job) {
   console.log(`Job ${job.id}: ${job.name} - ${job.state}`);
   console.log(`Created: ${new Date(job.createdAt)}`);
@@ -59,15 +59,15 @@ if (job) {
 }
 
 // Get all active (running/pending) jobs
-const activeJobs = printer.getActiveJobs();
+const activeJobs = await printer.getActiveJobs();
 console.log(`${activeJobs.length} active jobs`);
 
 // Get completed job history (last 10 jobs)
-const history = printer.getJobHistory(10);
+const history = await printer.getJobHistory(10);
 console.log(`Last ${history.length} completed jobs`);
 
 // Get all jobs (active + completed)
-const allJobs = printer.getAllJobs();
+const allJobs = await printer.getAllJobs();
 console.log(`Total ${allJobs.length} jobs tracked`);
 ```
 
@@ -76,7 +76,7 @@ console.log(`Total ${allJobs.length} jobs tracked`);
 ```typescript
 import { getPrinterByName } from "@printers/printers";
 
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Submit a job and get its ID
 const jobId = await printer.printFile("document.pdf", {
@@ -87,8 +87,8 @@ const jobId = await printer.printFile("document.pdf", {
 console.log(`Job submitted with ID: ${jobId}`);
 
 // Monitor job progress
-const checkJobStatus = () => {
-  const job = printer.getJob(jobId);
+const checkJobStatus = async () => {
+  const job = await printer.getJob(jobId);
   if (job) {
     console.log(`Job ${jobId}: ${job.state}`);
 
@@ -124,10 +124,10 @@ checkJobStatus();
 ```typescript
 import { getPrinterByName } from "@printers/printers";
 
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Get recent job history with details
-const recentJobs = printer.getJobHistory(20);
+const recentJobs = await printer.getJobHistory(20);
 
 console.log("Recent Job History:");
 for (const job of recentJobs) {
@@ -148,7 +148,7 @@ for (const job of recentJobs) {
 
 // Clean up old jobs (older than 1 hour)
 const oneHour = 60 * 60; // seconds
-const removedCount = printer.cleanupOldJobs(oneHour);
+const removedCount = await printer.cleanupOldJobs(oneHour);
 console.log(`Removed ${removedCount} old jobs`);
 ```
 
@@ -158,11 +158,11 @@ console.log(`Removed ${removedCount} old jobs`);
 import { getAllPrinters } from "@printers/printers";
 
 // Monitor jobs across all printers
-const monitorAllJobs = () => {
-  const printers = getAllPrinters();
+const monitorAllJobs = async () => {
+  const printers = await getAllPrinters();
 
   for (const printer of printers) {
-    const activeJobs = printer.getActiveJobs();
+    const activeJobs = await printer.getActiveJobs();
 
     if (activeJobs.length > 0) {
       console.log(`\n${printer.name} (${activeJobs.length} active jobs):`);
@@ -185,8 +185,8 @@ setInterval(monitorAllJobs, 5000);
 import { getAllPrinters } from "@printers/printers";
 
 class JobStatistics {
-  static getStats() {
-    const printers = getAllPrinters();
+  static async getStats() {
+    const printers = await getAllPrinters();
     const stats = {
       totalJobs: 0,
       activeJobs: 0,
@@ -196,9 +196,9 @@ class JobStatistics {
     };
 
     for (const printer of printers) {
-      const allJobs = printer.getAllJobs();
-      const activeJobs = printer.getActiveJobs();
-      const history = printer.getJobHistory();
+      const allJobs = await printer.getAllJobs();
+      const activeJobs = await printer.getActiveJobs();
+      const history = await printer.getJobHistory();
 
       const printerStats = {
         total: allJobs.length,
@@ -222,8 +222,8 @@ class JobStatistics {
     return stats;
   }
 
-  static printReport() {
-    const stats = this.getStats();
+  static async printReport() {
+    const stats = await this.getStats();
 
     console.log("=== Job Statistics ===");
     console.log(`Total Jobs: ${stats.totalJobs}`);
@@ -245,7 +245,7 @@ class JobStatistics {
 }
 
 // Usage
-JobStatistics.printReport();
+await JobStatistics.printReport();
 ```
 
 ## API Reference
@@ -375,8 +375,8 @@ const jobId = await printer.printFile("nonexistent.pdf", {
 });
 
 // Check for errors
-setTimeout(() => {
-  const job = printer.getJob(jobId);
+setTimeout(async () => {
+  const job = await printer.getJob(jobId);
   if (job && job.state === "cancelled" && job.errorMessage) {
     console.log(`Job failed: ${job.errorMessage}`);
 
@@ -399,7 +399,7 @@ process.env.PRINTERS_JS_SIMULATE = "true";
 
 import { getPrinterByName } from "@printers/printers";
 
-const printer = getPrinterByName("Simulated Printer");
+const printer = await getPrinterByName("Simulated Printer");
 
 // Submit test jobs
 const jobId = await printer.printFile("/test/document.pdf", {
@@ -408,7 +408,7 @@ const jobId = await printer.printFile("/test/document.pdf", {
 });
 
 // Jobs will complete quickly in simulation mode
-const job = printer.getJob(jobId);
+const job = await printer.getJob(jobId);
 console.log(`Simulated job state: ${job?.state}`);
 ```
 
@@ -443,7 +443,7 @@ const jobId = await printer.printFile("document.pdf", {
 console.log(`Print job ${jobId} submitted`);
 
 // Monitor progress
-const job = printer.getJob(jobId);
+const job = await printer.getJob(jobId);
 if (job) {
   console.log(`Job state: ${job.state}`);
 }
