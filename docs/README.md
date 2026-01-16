@@ -8,14 +8,14 @@ Welcome to the comprehensive documentation for the `@printers/printers` library 
 import { getAllPrinters, getPrinterByName } from "@printers/printers";
 
 // Get all available printers
-const printers = getAllPrinters();
+const printers = await getAllPrinters();
 console.log(
   "Available printers:",
   printers.map(p => p.name)
 );
 
 // Print a document
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 if (printer) {
   const jobId = await printer.printFile("document.pdf", {
     simple: {
@@ -45,7 +45,7 @@ if (printer) {
 import { getAllPrinters, getDefaultPrinter } from "@printers/printers";
 
 // List all printers
-const printers = getAllPrinters();
+const printers = await getAllPrinters();
 for (const printer of printers) {
   console.log(`${printer.name}: ${printer.state}`);
   console.log(`  Location: ${printer.location}`);
@@ -53,7 +53,7 @@ for (const printer of printers) {
 }
 
 // Get default printer
-const defaultPrinter = getDefaultPrinter();
+const defaultPrinter = await getDefaultPrinter();
 if (defaultPrinter) {
   console.log("Default printer:", defaultPrinter.name);
 }
@@ -64,7 +64,7 @@ if (defaultPrinter) {
 ```typescript
 import { getPrinterByName } from "@printers/printers";
 
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Print with simple options
 await printer.printFile("document.pdf", {
@@ -109,7 +109,7 @@ await subscription.unsubscribe();
 ### Job Tracking
 
 ```typescript
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Submit job without waiting
 const jobId = await printer.printFile("large-document.pdf", {
@@ -118,8 +118,8 @@ const jobId = await printer.printFile("large-document.pdf", {
 });
 
 // Monitor job progress
-const checkJob = () => {
-  const job = printer.getJob(jobId);
+const checkJob = async () => {
+  const job = await printer.getJob(jobId);
   if (job) {
     console.log(`Job ${jobId}: ${job.state} (${job.ageSeconds}s old)`);
 
@@ -186,7 +186,7 @@ task test:direct:bun           # bun test (verbose)
 import { getPrinterByName, PrintError } from "@printers/printers";
 
 try {
-  const printer = getPrinterByName("NonExistent Printer");
+  const printer = await getPrinterByName("NonExistent Printer");
   if (!printer) {
     throw new Error("Printer not found");
   }

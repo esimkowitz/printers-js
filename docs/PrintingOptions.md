@@ -34,7 +34,7 @@ interface SimplePrintOptions {
 ```typescript
 import { getPrinterByName } from "@printers/printers";
 
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Simple printing with common options
 await printer.printFile("document.pdf", {
@@ -123,7 +123,7 @@ interface CUPSOptions {
 ```typescript
 import { getPrinterByName } from "@printers/printers";
 
-const printer = getPrinterByName("My Printer");
+const printer = await getPrinterByName("My Printer");
 
 // Advanced CUPS options
 await printer.printFile("document.pdf", {
