@@ -9,7 +9,7 @@
     "dev": "node --watch main.js"
   },
   "dependencies": {
-    "@printers/printers": "^0.8"
+    "@printers/printers": "^1.1"
   },
   "engines": {
     "node": ">= 20"
