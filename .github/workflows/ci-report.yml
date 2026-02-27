@@ -24,7 +24,7 @@ jobs:
       # Download artifacts based on which workflow triggered this run
       - name: Download test reports (CI workflow only)
         if: github.event.workflow_run.name == 'CI'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -35,7 +35,7 @@ jobs:
 
       - name: Download coverage reports (CI workflow only)
         if: github.event.workflow_run.name == 'CI'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -46,7 +46,7 @@ jobs:
 
       - name: Download formatting results (Formatting workflow only)
         if: github.event.workflow_run.name == 'Formatting'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
@@ -57,7 +57,7 @@ jobs:
 
       - name: Download linting results (Linting workflow only)
         if: github.event.workflow_run.name == 'Linting'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           run-id: ${{ github.event.workflow_run.id }}
