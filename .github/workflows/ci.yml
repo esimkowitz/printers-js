@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload Test Reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports-${{ matrix.name }}
           path: test-results/*.xml
@@ -132,7 +132,7 @@ jobs:
 
       - name: Upload Coverage Reports (Linux only)
         if: ${{ always() && runner.os == 'Linux' }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-reports
           path: test-results/coverage/*
