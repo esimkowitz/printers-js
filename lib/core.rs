@@ -524,7 +524,7 @@ impl PrinterCore {
             let job_opts = PrinterJobOpts::none();
             match printer.print_file(file_path, job_opts) {
                 Ok(_) => Ok(()),
-                Err(e) => Err(format!("Print failed: {}", e)),
+                Err(e) => Err(format!("Print failed: {:?}", e)),
             }
         } else {
             // Convert HashMap to slice of tuple references with proper lifetime
@@ -536,11 +536,12 @@ impl PrinterCore {
             let job_opts = PrinterJobOpts {
                 name: job_options.get("job-name").map(|s| s.as_str()),
                 raw_properties: &properties,
+                converter: printers::common::converters::Converter::None,
             };
 
             match printer.print_file(file_path, job_opts) {
                 Ok(_) => Ok(()),
-                Err(e) => Err(format!("Print failed: {}", e)),
+                Err(e) => Err(format!("Print failed: {:?}", e)),
             }
         };
 
@@ -577,6 +578,7 @@ impl PrinterCore {
                         PrinterJobOpts {
                             name: job_options.get("job-name").map(|s| s.as_str()),
                             raw_properties: &properties,
+                            converter: printers::common::converters::Converter::None,
                         }
                     }
                 };
@@ -588,7 +590,7 @@ impl PrinterCore {
                     job_opts,
                 ) {
                     Ok(_) => Ok(()),
-                    Err(e) => Err(format!("Byte print failed: {}", e)),
+                    Err(e) => Err(format!("Byte print failed: {:?}", e)),
                 }
             }
             Err(e) => Err(format!("Failed to write temp file: {}", e)),
