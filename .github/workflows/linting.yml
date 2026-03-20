@@ -67,7 +67,7 @@ jobs:
         run: npm install
 
       - name: Setup Task runner
-        uses: go-task/setup-task@v1
+        uses: go-task/setup-task@v2
 
       - name: Run Rust linter (Clippy)
         id: rust-lint

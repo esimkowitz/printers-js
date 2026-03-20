@@ -100,7 +100,7 @@ jobs:
           bun-version: latest
 
       - name: Setup Task runner
-        uses: go-task/setup-task@v1
+        uses: go-task/setup-task@v2
 
       # Setup Node.js
       - name: Setup Node
