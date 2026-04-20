@@ -69,7 +69,7 @@ jobs:
       # Get PR number from workflow run
       - name: Get PR information
         id: pr-info
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             // Get the PR number from the workflow run
@@ -99,7 +99,7 @@ jobs:
       # Create/update PR comment with results
       - name: Create test summary comment
         if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -422,7 +422,7 @@ jobs:
       # Create status check for the workflow that triggered this run
       - name: Create status check
         if: steps.pr-info.outputs.result && fromJSON(steps.pr-info.outputs.result).prNumber
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
