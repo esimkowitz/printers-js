@@ -12,6 +12,13 @@ updates:
       day: "friday"
       time: "09:00"
       timezone: "America/Los_Angeles"
+    groups:
+      napi:
+        patterns:
+          - "napi"
+          - "napi-derive"
+          - "napi-build"
+          - "napi-sys"
   - package-ecosystem: "devcontainers" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
