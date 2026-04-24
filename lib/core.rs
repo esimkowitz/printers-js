@@ -837,7 +837,7 @@ impl PrinterJobTracking for Printer {
             .collect();
 
         // Sort by creation time (most recent first)
-        jobs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        jobs.sort_by_key(|job| std::cmp::Reverse(job.created_at));
 
         if let Some(limit) = limit {
             jobs.truncate(limit);
