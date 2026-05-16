@@ -78,9 +78,10 @@ target/                # Rust build artifacts
    go install github.com/go-task/task/v3/cmd/task@latest
    ```
 
-3. **Node.js 20+** - Build scripts and N-API builds. Run `corepack enable` once
-   to activate pnpm 11 (the version is pinned via the `packageManager` field in
-   `package.json`).
+3. **Node.js 22.13+** - Build scripts and N-API builds. Run `corepack enable`
+   once to activate pnpm 11 (the version is pinned via the `packageManager`
+   field in `package.json`). pnpm 11 itself requires Node 22.13+ (consumers of
+   the published package only need Node 20+, per the `engines` field).
 
 **Optional (for testing specific runtimes):**
 
