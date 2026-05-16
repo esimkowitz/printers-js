@@ -39,7 +39,7 @@
   "license": "MIT",
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^10.0.1",
     "@napi-rs/cli": "^3.1.5",
     "@std/assert": "npm:@jsr/std__assert@^1.0.14",
     "@types/bun": "^1.2.21",
