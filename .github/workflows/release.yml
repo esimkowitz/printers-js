@@ -43,11 +43,13 @@ jobs:
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
       - uses: actions/checkout@v6
+      - name: Enable Corepack
+        run: corepack enable
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
-          package-manager-cache: false
+          node-version: 22
+          cache: pnpm
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -60,7 +62,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Build N-API module
         run: |
           echo "Building for target: ${{ matrix.settings.target }}"
@@ -140,11 +142,13 @@ jobs:
         with:
           bun-version: latest
           no-cache: true
+      - name: Enable Corepack
+        run: corepack enable
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
-          package-manager-cache: false
+          node-version: 22
+          cache: pnpm
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -168,7 +172,7 @@ jobs:
           done
           ls -la npm/ 2>/dev/null || dir npm
       - name: Install Node.js dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Run comprehensive tests (includes compilation)
         run: |
           if [ -n "${{ matrix.settings.test_runtimes }}" ]; then
@@ -196,14 +200,16 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Enable Corepack
+        run: corepack enable
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org/
-          package-manager-cache: false
+          cache: pnpm
       - name: Install Node.js dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Download all N-API binary artifacts
         uses: actions/download-artifact@v8
         with:
@@ -222,14 +228,5 @@ jobs:
           ls -la npm/ 2>/dev/null || dir npm
       - name: Compile TypeScript for publishing
         run: task compile
-      - name: Clean npm cache before publish
-        run: npm cache clean --force
       - name: Publish to npm
-        run: npm publish
-      - name: Upload npm logs
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: npm-publish-logs
-          path: ~/.npm/_logs/
-          if-no-files-found: warn
+        run: pnpm publish --no-git-checks

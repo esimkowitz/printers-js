@@ -57,14 +57,17 @@ jobs:
         with:
           prefix-key: ${{ runner.os }}-rust
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+          cache: pnpm
 
       - name: Install Node.js dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Setup Task runner
         uses: go-task/setup-task@v2

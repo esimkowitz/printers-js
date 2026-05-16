@@ -100,7 +100,7 @@ async function main() {
       console.log("\nFiles that would be updated:");
       console.log("  - package.json");
       console.log("  - Cargo.toml");
-      console.log("  - package-lock.json (via npm install)");
+      console.log("  - pnpm-lock.yaml (via pnpm install)");
       console.log("  - Cargo.lock (via cargo check)");
       console.log(
         `\n✅ Would bump ${bumpType} version from ${currentVersionString} to ${newVersionString}`
@@ -113,13 +113,16 @@ async function main() {
       console.log("Updating Cargo.toml...");
       updateCargoToml(newVersionString);
 
-      console.log("Updating package-lock.json...");
-      const npmResult = await runCommand(["npm", "install"], {
-        showOutput: false,
-      });
-      if (!npmResult.success) {
+      console.log("Updating pnpm-lock.yaml...");
+      const pnpmResult = await runCommand(
+        ["pnpm", "install", "--lockfile-only"],
+        {
+          showOutput: false,
+        }
+      );
+      if (!pnpmResult.success) {
         console.warn(
-          "⚠️ npm install failed, package-lock.json may be out of sync"
+          "⚠️ pnpm install failed, pnpm-lock.yaml may be out of sync"
         );
       }
 

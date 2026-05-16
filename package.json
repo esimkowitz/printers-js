@@ -39,6 +39,7 @@
   "license": "MIT",
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
+    "@eslint/js": "^9.39.4",
     "@napi-rs/cli": "^3.1.5",
     "@std/assert": "npm:@jsr/std__assert@^1.0.14",
     "@types/bun": "^1.2.21",
@@ -54,12 +55,12 @@
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
-  "packageManager": "npm@10.0.0",
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "compile": "node scripts/compile.js",
     "build": "node scripts/build-all.js",
     "format": "prettier --write .",
     "lint": "eslint . --fix",
-    "prepublishOnly": "npm run compile && task prepublish"
+    "prepublishOnly": "pnpm run compile && task prepublish"
   }
 }
