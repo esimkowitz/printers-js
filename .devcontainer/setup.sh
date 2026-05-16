@@ -23,9 +23,13 @@ cargo install cargo-llvm-cov cargo2junit
 echo "📋 Installing Task runner..."
 sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
-# Install npm dependencies
-echo "📦 Installing npm dependencies..."
-npm install
+# Enable Corepack so pnpm (pinned in package.json) is available
+echo "📦 Enabling Corepack for pnpm..."
+corepack enable
+
+# Install dependencies with pnpm
+echo "📦 Installing dependencies with pnpm..."
+pnpm install --frozen-lockfile
 
 # Build all runtimes
 echo "🔨 Building all runtimes..."

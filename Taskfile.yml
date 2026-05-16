@@ -52,7 +52,7 @@ tasks:
 
   test:direct:node:
     desc: Run Node.js tests directly
-    cmd: "{{.SIMULATE}} npx tsx src/tests/node-test-runner.ts"
+    cmd: "{{.SIMULATE}} pnpm exec tsx src/tests/node-test-runner.ts"
 
   test:direct:bun:
     desc: Run Bun tests directly
@@ -68,7 +68,7 @@ tasks:
 
   lint:eslint:
     desc: Lint TypeScript/JavaScript files
-    cmd: npx eslint .
+    cmd: pnpm exec eslint .
 
   lint:rust:
     desc: Lint Rust code with Clippy
@@ -76,7 +76,7 @@ tasks:
 
   lint:fix:
     desc: Fix linting issues in all code
-    cmd: npx eslint . --fix
+    cmd: pnpm exec eslint . --fix
 
   remove-env-check:
     desc: Remove NAPI_RS_NATIVE_LIBRARY_PATH check from generated N-API files
@@ -86,13 +86,13 @@ tasks:
     desc: Prepare and publish packages
     cmds:
       # Update main package.json with optionalDependencies but don't publish platform packages
-      - npx napi prepublish -t npm --no-gh-release --skip-optional-publish
+      - pnpm exec napi prepublish -t npm --no-gh-release --skip-optional-publish
       # Now publish platform packages with our custom script that preserves ESM files
       - node scripts/publish-platform-packages.js
 
   prepublish:dry:
     desc: Prepare package for publishing (dry run)
-    cmd: npx napi prepublish -t npm --dry-run
+    cmd: pnpm exec napi prepublish -t npm --dry-run
 
   fmt:
     desc: Format all code
@@ -104,11 +104,11 @@ tasks:
 
   fmt:prettier:
     desc: Format TypeScript/JavaScript with Prettier
-    cmd: npx prettier --write .
+    cmd: pnpm exec prettier --write .
 
   fmt:prettier:check:
     desc: Check TypeScript/JavaScript formatting with Prettier
-    cmd: npx prettier --check .
+    cmd: pnpm exec prettier --check .
 
   fmt:rust:
     desc: Format Rust code
@@ -124,7 +124,7 @@ tasks:
 
   check:typescript:
     desc: Type check TypeScript code
-    cmd: npx tsc --noEmit
+    cmd: pnpm exec tsc --noEmit
 
   check:node:
     desc: Type check Node.js code (via build)

@@ -5,8 +5,11 @@ This document provides technical documentation for contributing to the cross-run
 ## Quick Start
 
 ```bash
+# Enable Corepack so pnpm (pinned in package.json) is available
+corepack enable
+
 # Install dependencies
-npm install
+pnpm install
 
 # Build everything
 task build
@@ -75,7 +78,9 @@ target/                # Rust build artifacts
    go install github.com/go-task/task/v3/cmd/task@latest
    ```
 
-3. **Node.js 20+** - Build scripts and N-API builds
+3. **Node.js 20+** - Build scripts and N-API builds. Run `corepack enable` once
+   to activate pnpm 11 (the version is pinned via the `packageManager` field in
+   `package.json`).
 
 **Optional (for testing specific runtimes):**
 
@@ -259,7 +264,7 @@ If encountering symlink errors on Windows:
 ```bash
 # Clean build
 rm -rf npm/ target/ node_modules/
-npm install
+pnpm install
 task build
 ```
 

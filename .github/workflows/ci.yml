@@ -12,7 +12,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "package.json"
-      - "package-lock.json"
+      - "pnpm-lock.yaml"
       - "build.rs"
       - "deno.json"
       - "deno.lock"
@@ -31,7 +31,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "package.json"
-      - "package-lock.json"
+      - "pnpm-lock.yaml"
       - "build.rs"
       - "deno.json"
       - "deno.lock"
@@ -102,15 +102,20 @@ jobs:
       - name: Setup Task runner
         uses: go-task/setup-task@v2
 
+      # Enable Corepack for pnpm (version pinned in package.json packageManager field)
+      - name: Enable Corepack
+        run: corepack enable
+
       # Setup Node.js
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 20
+          cache: pnpm
 
       # Install Node.js dependencies
       - name: Install Node.js dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       # Build all runtime libraries (includes compilation)
       - name: Build all runtime libraries
