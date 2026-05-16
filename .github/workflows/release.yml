@@ -230,10 +230,3 @@ jobs:
         run: task compile
       - name: Publish to npm
         run: pnpm publish --no-git-checks
-      - name: Upload npm logs
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: npm-publish-logs
-          path: ~/.npm/_logs/
-          if-no-files-found: warn
