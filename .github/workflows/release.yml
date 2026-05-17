@@ -251,7 +251,7 @@ jobs:
           done
           ls -la release-assets/
       - name: Publish GitHub release with native binaries
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: release-assets/*.node
           fail_on_unmatched_files: true
