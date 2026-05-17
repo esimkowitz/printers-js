@@ -1752,3 +1752,241 @@ test(`${runtimeName}: should handle raw bytes printing with correct media type`,
     throw error;
   }
 });
+
+// ===== setNativeModulePath / PRINTERS_JS_NATIVE_MODULE_PATH TESTS =====
+//
+// These tests verify the custom-native-module-path override
+// (issue esimkowitz/printers-js#272). The override sets a module-scoped
+// variable that can only be read once per process, so most cases require
+// a fresh module graph. We spawn a subprocess for those.
+
+test(`${runtimeName}: setNativeModulePath throws if native module is already loaded`, () => {
+  // By this point in the suite, earlier tests have already triggered native
+  // module loading via getAllPrinters() etc., so the cache is populated.
+  if (typeof printerAPI.setNativeModulePath !== "function") {
+    throw new Error("setNativeModulePath should be exported");
+  }
+
+  let threw = false;
+  let message = "";
+  try {
+    printerAPI.setNativeModulePath("/tmp/should-not-be-used.node");
+  } catch (err) {
+    threw = true;
+    message = err instanceof Error ? err.message : String(err);
+  }
+
+  if (!threw) {
+    throw new Error(
+      "setNativeModulePath should throw when called after the native module is loaded"
+    );
+  }
+  if (!message.toLowerCase().includes("before")) {
+    throw new Error(
+      `Error message should mention calling before other APIs, got: ${message}`
+    );
+  }
+  console.log("✓ setNativeModulePath rejects late calls:", message);
+});
+
+// --- Subprocess helpers for fresh-module-graph cases ---
+
+interface RunResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+// Read the parent process env in whichever runtime we're in. We must inherit
+// at least PATH so the spawned subprocess can locate its own runtime binary.
+function getParentEnv(): Record<string, string> {
+  // @ts-ignore - Deno may not be defined elsewhere
+  if (typeof Deno !== "undefined") {
+    // @ts-ignore - Deno only
+    return Deno.env.toObject() as Record<string, string>;
+  }
+  // @ts-ignore - process may not be defined
+  if (typeof process !== "undefined" && process.env) {
+    const out: Record<string, string> = {};
+    // @ts-ignore - process.env values are strings or undefined
+    for (const [k, v] of Object.entries(process.env)) {
+      if (typeof v === "string") out[k] = v;
+    }
+    return out;
+  }
+  return {};
+}
+
+// Wrap user-supplied script body so it runs in a TLA-free context. tsx --eval
+// transpiles to CJS, which forbids top-level await; an async IIFE is portable
+// across all three runtimes.
+function wrapAsync(script: string): string {
+  return `(async () => {\n${script}\n})().catch((err) => { console.error(err && err.stack ? err.stack : err); process.exit(1); });`;
+}
+
+// Cross-runtime subprocess runner. Spawns the same runtime we're testing in.
+async function runInSubprocess(
+  script: string,
+  envOverrides: Record<string, string>
+): Promise<RunResult> {
+  const env = { ...getParentEnv(), ...envOverrides };
+  const wrapped = wrapAsync(script);
+
+  // @ts-ignore - Deno may not be defined in Node.js or Bun
+  if (typeof Deno !== "undefined") {
+    // `deno eval` has implicit access to all permissions, so --allow-* flags
+    // aren't accepted on this subcommand.
+    // @ts-ignore - Deno only path
+    const cmd = new Deno.Command("deno", {
+      args: ["eval", "--ext=ts", wrapped],
+      env,
+      stdout: "piped",
+      stderr: "piped",
+    });
+    const out = await cmd.output();
+    return {
+      exitCode: out.code,
+      stdout: new TextDecoder().decode(out.stdout),
+      stderr: new TextDecoder().decode(out.stderr),
+    };
+  }
+  // @ts-ignore - Bun provides Bun global
+  if (typeof Bun !== "undefined") {
+    // @ts-ignore - Bun only path
+    const proc = Bun.spawn(["bun", "-e", wrapped], {
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const exitCode = await proc.exited;
+    return {
+      exitCode,
+      stdout: await new Response(proc.stdout).text(),
+      stderr: await new Response(proc.stderr).text(),
+    };
+  }
+  // Node.js
+  const { spawn } = await import("node:child_process");
+  return await new Promise<RunResult>((resolve, reject) => {
+    const child = spawn("npx", ["tsx", "--eval", wrapped, "--no-warnings"], {
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", chunk => (stdout += chunk.toString()));
+    child.stderr?.on("data", chunk => (stderr += chunk.toString()));
+    child.on("error", reject);
+    child.on("close", code => resolve({ exitCode: code ?? 0, stdout, stderr }));
+  });
+}
+
+// Compute the path to the local platform .node binary, mirroring the resolution
+// logic in src/index.ts so tests work on whatever platform they run on.
+function getLocalNativeBinaryPath(): string {
+  const platform = runtimeInfo.isDeno
+    ? // @ts-ignore - Deno only
+      Deno.build.os
+    : // @ts-ignore - Node/Bun
+      (globalThis as any).process?.platform;
+  const arch = runtimeInfo.isDeno
+    ? // @ts-ignore - Deno only
+      Deno.build.arch === "aarch64"
+      ? "arm64"
+      : "x64"
+    : // @ts-ignore - Node/Bun
+      (globalThis as any).process?.arch;
+
+  let platformString: string;
+  if (platform === "darwin") {
+    platformString = arch === "arm64" ? "darwin-arm64" : "darwin-x64";
+  } else if (platform === "linux") {
+    platformString = arch === "arm64" ? "linux-arm64-gnu" : "linux-x64-gnu";
+  } else if (platform === "win32" || platform === "windows") {
+    platformString = arch === "arm64" ? "win32-arm64-msvc" : "win32-x64-msvc";
+  } else {
+    throw new Error(`Unsupported test platform: ${platform}`);
+  }
+
+  // Project root is two levels up from src/tests/
+  const root = new URL("../../", import.meta.url).pathname;
+  return `${root}npm/${platformString}/printers.${platformString}.node`;
+}
+
+test(`${runtimeName}: setNativeModulePath loads a valid binary in a fresh process`, async () => {
+  const binaryPath = getLocalNativeBinaryPath();
+
+  const script = `
+    const printers = await import("${new URL("../index.ts", import.meta.url).href}");
+    printers.setNativeModulePath(${JSON.stringify(binaryPath)});
+    const names = await printers.getAllPrinterNames();
+    if (!Array.isArray(names)) {
+      console.error("FAIL: expected array, got", typeof names);
+      process.exit(1);
+    }
+    console.log("OK names.length=" + names.length);
+  `;
+
+  const result = await runInSubprocess(script, {
+    PRINTERS_JS_SIMULATE: "true",
+  });
+
+  if (result.exitCode !== 0 || !result.stdout.includes("OK names.length=")) {
+    throw new Error(
+      `Subprocess failed (exit ${result.exitCode}).\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
+    );
+  }
+  console.log("✓ Custom path loaded successfully:", result.stdout.trim());
+});
+
+test(`${runtimeName}: setNativeModulePath surfaces a clear error for a missing binary`, async () => {
+  const bogus = "/tmp/printers-js-does-not-exist.node";
+
+  // The public APIs swallow load errors and log to stderr (see
+  // getAllPrinterNames in src/index.ts), so we assert that the bogus path
+  // appears in stderr after a failed lookup instead of expecting a thrown
+  // rejection from the API.
+  const script = `
+    const printers = await import("${new URL("../index.ts", import.meta.url).href}");
+    printers.setNativeModulePath(${JSON.stringify(bogus)});
+    await printers.getAllPrinterNames();
+  `;
+
+  const result = await runInSubprocess(script, {
+    PRINTERS_JS_SIMULATE: "true",
+  });
+
+  // The override branch fails loudly, so stderr must mention the supplied path.
+  if (!result.stderr.includes(bogus)) {
+    throw new Error(
+      `Expected stderr to mention "${bogus}".\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
+    );
+  }
+  console.log("✓ Missing-binary error includes the supplied path");
+});
+
+test(`${runtimeName}: PRINTERS_JS_NATIVE_MODULE_PATH env var loads the binary`, async () => {
+  const binaryPath = getLocalNativeBinaryPath();
+
+  const script = `
+    const printers = await import("${new URL("../index.ts", import.meta.url).href}");
+    const names = await printers.getAllPrinterNames();
+    if (!Array.isArray(names)) {
+      console.error("FAIL: expected array, got", typeof names);
+      process.exit(1);
+    }
+    console.log("OK names.length=" + names.length);
+  `;
+
+  const result = await runInSubprocess(script, {
+    PRINTERS_JS_SIMULATE: "true",
+    PRINTERS_JS_NATIVE_MODULE_PATH: binaryPath,
+  });
+
+  if (result.exitCode !== 0 || !result.stdout.includes("OK names.length=")) {
+    throw new Error(
+      `Subprocess failed (exit ${result.exitCode}).\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
+    );
+  }
+  console.log("✓ Env var override loaded successfully:", result.stdout.trim());
+});

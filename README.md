@@ -123,6 +123,31 @@ Check if a printer exists on the system.
 
 Get the default system printer.
 
+#### `setNativeModulePath(path: string): void`
+
+Override the path used to load the native N-API binary. Useful when shipping
+the library inside a bundler (Electron, pkg, esbuild single-file builds) or in
+sandboxed environments where the platform-specific npm package
+(`@printers/printers-<platform>`) is not present.
+
+```ts
+import { setNativeModulePath, getAllPrinters } from "@printers/printers";
+
+// MUST be called before any other @printers/printers API.
+setNativeModulePath("/absolute/path/to/printers.darwin-arm64.node");
+
+const printers = await getAllPrinters();
+```
+
+The same override is also available via the `PRINTERS_JS_NATIVE_MODULE_PATH`
+environment variable, which is convenient for CI, Docker, and deployment
+scenarios. An explicit `setNativeModulePath()` call takes precedence over the
+environment variable.
+
+Per-platform `.node` binaries are attached as assets to each GitHub release in
+addition to being published via the platform npm packages, so they can be
+downloaded and bundled directly.
+
 ### Printer Class
 
 #### Properties
