@@ -9,6 +9,7 @@
     "@std/path": "jsr:@std/path@^1.1.2"
   },
   "nodeModulesDir": "auto",
+  "minimumDependencyAge": "P2D",
   "compilerOptions": {
     "strict": true
   }
