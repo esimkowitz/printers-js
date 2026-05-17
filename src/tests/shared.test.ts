@@ -1918,7 +1918,12 @@ function getLocalNativeBinaryPath(): string {
 
   // Project root is two levels up from src/tests/
   const root = fileURLToPath(new URL("../..", import.meta.url));
-  return joinPath(root, "npm", platformString, `printers.${platformString}.node`);
+  return joinPath(
+    root,
+    "npm",
+    platformString,
+    `printers.${platformString}.node`
+  );
 }
 
 test(`${runtimeName}: setNativeModulePath loads a valid binary in a fresh process`, async () => {

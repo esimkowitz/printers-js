@@ -10,7 +10,7 @@ on:
       - "scripts/**"
       - "tests/**"
       - "Cargo.toml"
-      - "eslint.config.js"
+      - ".oxlintrc.json"
       - ".github/workflows/linting.yml"
   pull_request:
     branches:
@@ -21,7 +21,7 @@ on:
       - "scripts/**"
       - "tests/**"
       - "Cargo.toml"
-      - "eslint.config.js"
+      - ".oxlintrc.json"
       - ".github/workflows/linting.yml"
 
 jobs:
@@ -77,9 +77,9 @@ jobs:
         run: task lint:rust
         continue-on-error: true
 
-      - name: Run ESLint
-        id: eslint
-        run: task lint:eslint
+      - name: Run oxlint
+        id: oxlint
+        run: task lint:oxlint
         continue-on-error: true
 
       - name: Save linting results
@@ -88,7 +88,7 @@ jobs:
           mkdir -p linting-results
           echo '{
             "rust_lint": "${{ steps.rust-lint.outcome }}",
-            "eslint": "${{ steps.eslint.outcome }}"
+            "oxlint": "${{ steps.oxlint.outcome }}"
           }' > linting-results/results.json
 
       - name: Upload linting results

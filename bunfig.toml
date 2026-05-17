@@ -1,0 +1,5 @@
+[install]
+# Match pnpm's minimumReleaseAge=2880 minutes (.npmrc) and Deno's
+# minimumDependencyAge=P2D (deno.json). Honored by `bun install` / `bun add`
+# / `bun update`. Bun uses seconds; 2880 min = 172800 s.
+minimumReleaseAge = 172800

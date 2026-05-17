@@ -95,7 +95,7 @@ for (const file of filesToProcess) {
         );
       }
 
-      // Also fix any remaining export var to export const for ESLint compliance
+      // Also fix any remaining export var to export const for linter compliance
       content = content.replace(/export var (\w+);/g, "export const $1 = {};");
 
       // Fix import.meta.url for createRequire in ESM
@@ -105,7 +105,7 @@ for (const file of filesToProcess) {
         'createRequire(typeof __filename !== "undefined" ? __filename : import.meta.url)'
       );
 
-      // Fix export var to export const for ESLint compliance
+      // Fix export var to export const for linter compliance
       content = content.replace(/export var/g, "export const");
 
       writeFileSync(filePath, content, "utf8");

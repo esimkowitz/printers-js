@@ -3,11 +3,10 @@
     "denoland.vscode-deno",
     "editorconfig.editorconfig",
     "oven.bun-vscode",
-    "esbenp.prettier-vscode",
+    "oxc.oxc-vscode",
     "swellaby.vscode-rust-test-adapter",
     "rust-lang.rust-analyzer",
     "ms-vscode.test-adapter-converter",
-    "dbaeumer.vscode-eslint",
     "task.vscode-task"
   ]
 }
