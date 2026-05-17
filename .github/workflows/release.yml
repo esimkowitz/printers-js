@@ -191,9 +191,6 @@ jobs:
           if [ "${{ matrix.node }}" != "${{ needs.setup.outputs.primary-node }}" ]; then
             echo "Running Node-only tests for Node ${{ matrix.node }}"
             task test -- node
-          elif [ -n "${{ matrix.settings.test_runtimes }}" ]; then
-            echo "Running selective runtime tests: ${{ matrix.settings.test_runtimes }}"
-            task test -- ${{ matrix.settings.test_runtimes }}
           else
             echo "Running all runtime tests"
             task test
