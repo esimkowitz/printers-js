@@ -4,20 +4,20 @@
   "editor.formatOnSaveMode": "modifications",
   "editor.autoIndentOnPaste": true,
 
-  // Default formatter is Prettier
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // Default formatter is oxc (oxfmt + oxlint)
+  "editor.defaultFormatter": "oxc.oxc-vscode",
 
-  // TypeScript/JavaScript files use Prettier with ESLint
+  // TypeScript/JavaScript files use oxfmt with oxlint
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
+      "source.fixAll.oxc": "explicit"
     }
   },
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
+      "source.fixAll.oxc": "explicit"
     }
   },
 
@@ -43,11 +43,6 @@
   "rust-analyzer.lens.enable": true,
   "rust-analyzer.lens.run.enable": true,
   "rust-analyzer.lens.debug.enable": true,
-
-  // ESLint configuration
-  "eslint.enable": true,
-  "eslint.workingDirectories": ["."],
-  "eslint.validate": ["javascript", "typescript"],
 
   // TypeScript configuration
   "typescript.suggest.autoImports": true,

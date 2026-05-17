@@ -1,11 +1,5 @@
 {
   "lsp": {
-    "eslint": {
-      "settings": {
-        "workingDirectories": ["."],
-        "validate": ["javascript", "typescript"]
-      }
-    },
     "typescript-language-server": {
       "settings": {
         "suggest": {
@@ -20,50 +14,76 @@
     "TypeScript": {
       "language_servers": [
         "typescript-language-server",
-        "eslint",
+        "oxc",
         "!deno",
         "!vtsls"
       ],
-      "formatter": "prettier",
-      "code_actions_on_format": {
-        "source.fixAll.eslint": true
+      "formatter": {
+        "external": {
+          "command": "pnpm",
+          "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
+        }
       }
     },
     "TSX": {
       "language_servers": [
         "typescript-language-server",
-        "eslint",
+        "oxc",
         "!deno",
         "!vtsls"
       ],
-      "formatter": "prettier",
-      "code_actions_on_format": {
-        "source.fixAll.eslint": true
+      "formatter": {
+        "external": {
+          "command": "pnpm",
+          "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
+        }
       }
     },
     "JavaScript": {
       "language_servers": [
         "typescript-language-server",
-        "eslint",
+        "oxc",
         "!deno",
         "!vtsls"
       ],
-      "formatter": "prettier",
-      "code_actions_on_format": {
-        "source.fixAll.eslint": true
+      "formatter": {
+        "external": {
+          "command": "pnpm",
+          "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
+        }
       }
     },
     "JSON": {
-      "formatter": "prettier"
+      "formatter": {
+        "external": {
+          "command": "pnpm",
+          "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
+        }
+      }
     },
     "JSONC": {
-      "formatter": "prettier"
+      "formatter": {
+        "external": {
+          "command": "pnpm",
+          "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
+        }
+      }
     },
     "Markdown": {
-      "formatter": "prettier"
+      "formatter": {
+        "external": {
+          "command": "pnpm",
+          "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
+        }
+      }
     },
     "YAML": {
-      "formatter": "prettier"
+      "formatter": {
+        "external": {
+          "command": "pnpm",
+          "arguments": ["exec", "oxfmt", "--stdin-filepath", "{buffer_path}"]
+        }
+      }
     }
   },
   "auto_indent_on_paste": true,

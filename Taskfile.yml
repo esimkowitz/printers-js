@@ -64,11 +64,11 @@ tasks:
 
   lint:
     desc: Lint all code
-    deps: [lint:eslint, lint:rust]
+    deps: [lint:oxlint, lint:rust]
 
-  lint:eslint:
-    desc: Lint TypeScript/JavaScript files
-    cmd: pnpm exec eslint .
+  lint:oxlint:
+    desc: Lint TypeScript/JavaScript files with oxlint
+    cmd: pnpm exec oxlint
 
   lint:rust:
     desc: Lint Rust code with Clippy
@@ -76,7 +76,7 @@ tasks:
 
   lint:fix:
     desc: Fix linting issues in all code
-    cmd: pnpm exec eslint . --fix
+    cmd: pnpm exec oxlint --fix
 
   remove-env-check:
     desc: Remove NAPI_RS_NATIVE_LIBRARY_PATH check from generated N-API files
@@ -96,19 +96,19 @@ tasks:
 
   fmt:
     desc: Format all code
-    deps: [fmt:prettier, fmt:rust]
+    deps: [fmt:oxfmt, fmt:rust]
 
   fmt:check:
     desc: Check formatting for all code
-    deps: [fmt:prettier:check, fmt:rust:check]
+    deps: [fmt:oxfmt:check, fmt:rust:check]
 
-  fmt:prettier:
-    desc: Format TypeScript/JavaScript with Prettier
-    cmd: pnpm exec prettier --write .
+  fmt:oxfmt:
+    desc: Format TypeScript/JavaScript with oxfmt
+    cmd: pnpm exec oxfmt
 
-  fmt:prettier:check:
-    desc: Check TypeScript/JavaScript formatting with Prettier
-    cmd: pnpm exec prettier --check .
+  fmt:oxfmt:check:
+    desc: Check TypeScript/JavaScript formatting with oxfmt
+    cmd: pnpm exec oxfmt --check
 
   fmt:rust:
     desc: Format Rust code

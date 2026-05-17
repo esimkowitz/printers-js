@@ -138,8 +138,8 @@ task test:real                 # All runtimes with actual printing
 **Run these commands before committing:**
 
 ```bash
-task fmt                # Format all code (Prettier + Rust)
-task lint               # Lint all code (ESLint + Clippy)
+task fmt                # Format all code (oxfmt + Rust)
+task lint               # Lint all code (oxlint + Clippy)
 task check              # Type check everything
 ```
 
@@ -147,11 +147,11 @@ task check              # Type check everything
 
 ```bash
 # Formatting
-task fmt:prettier:check # Check TypeScript/JavaScript
+task fmt:oxfmt:check    # Check TypeScript/JavaScript
 task fmt:rust:check     # Check Rust
 
 # Linting
-task lint:eslint        # Lint TypeScript/JavaScript
+task lint:oxlint        # Lint TypeScript/JavaScript
 task lint:rust          # Lint Rust with Clippy
 
 # Type checking
@@ -241,7 +241,7 @@ The Rust backend automatically cleans up background threads on process exit. Man
 **Core dependencies:**
 
 - **Rust**: `printers = "2.2.0"`, `napi = "3"`
-- **Node.js**: `@napi-rs/cli`, `prettier`, `eslint`, `typescript`
+- **Node.js**: `@napi-rs/cli`, `oxlint`, `oxfmt`, `typescript`
 
 ## Troubleshooting
 

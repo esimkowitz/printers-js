@@ -129,22 +129,22 @@ All utility scripts are Node.js JavaScript files using ESM syntax.
 
 ALWAYS run these after changes through the taskfile:
 
-- `task fmt` - Format all code with **Prettier** (TypeScript/JavaScript) and cargo fmt (Rust)
-- `task lint` - Lint all code with **ESLint** (TypeScript/JavaScript) and cargo clippy (Rust)
+- `task fmt` - Format all code with **oxfmt** (TypeScript/JavaScript) and cargo fmt (Rust)
+- `task lint` - Lint all code with **oxlint** (TypeScript/JavaScript) and cargo clippy (Rust)
 - `task check:all` - Type check all entry points
 
 **DO NOT run formatters/linters directly** - always use the taskfile to ensure consistency:
 
-- ❌ Never run `prettier` directly
-- ❌ Never run `eslint` directly
+- ❌ Never run `oxfmt` directly
+- ❌ Never run `oxlint` directly
 - ❌ Never run `deno fmt` or `deno lint`
 - ✅ Always use `task fmt` for formatting
 - ✅ Always use `task lint` for linting
 
 **Formatting and Linting Tools:**
 
-- **Prettier** - Primary formatter for all TypeScript/JavaScript code
-- **ESLint** - Primary linter for all TypeScript/JavaScript code
+- **oxfmt** - Primary formatter for all TypeScript/JavaScript code
+- **oxlint** - Primary linter for all TypeScript/JavaScript code
 - **cargo fmt** - Formatter for Rust code
 - **cargo clippy** - Linter for Rust code
 

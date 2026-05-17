@@ -254,8 +254,8 @@ jobs:
                   const results = JSON.parse(content);
                   formattingData = {
                     rust_fmt: results.rust_fmt,
-                    prettier_fmt: results.prettier_fmt,
-                    success: results.rust_fmt === 'success' && results.prettier_fmt === 'success'
+                    oxfmt: results.oxfmt,
+                    success: results.rust_fmt === 'success' && results.oxfmt === 'success'
                   };
                 }
               } catch (error) {
@@ -271,8 +271,8 @@ jobs:
                   const results = JSON.parse(content);
                   lintingData = {
                     rust_lint: results.rust_lint,
-                    eslint: results.eslint,
-                    success: results.rust_lint === 'success' && results.eslint === 'success'
+                    oxlint: results.oxlint,
+                    success: results.rust_lint === 'success' && results.oxlint === 'success'
                   };
                 }
               } catch (error) {
@@ -327,11 +327,11 @@ jobs:
             summary += `### Formatting\n`;
             if (formattingData) {
               const rustFmtStatus = formattingData.rust_fmt === 'success' ? '✅' : '❌';
-              const prettierStatus = formattingData.prettier_fmt === 'success' ? '✅' : '❌';
+              const oxfmtStatus = formattingData.oxfmt === 'success' ? '✅' : '❌';
               summary += `| Check | Status |\n`;
               summary += `|-------|--------|\n`;
               summary += `| Rust fmt | ${rustFmtStatus} |\n`;
-              summary += `| Prettier | ${prettierStatus} |\n\n`;
+              summary += `| oxfmt | ${oxfmtStatus} |\n\n`;
               summary += `<!-- formatting-data: ${JSON.stringify(formattingData)} -->\n\n`;
             } else {
               summary += `⏳ *Pending...*\n\n`;
@@ -341,11 +341,11 @@ jobs:
             summary += `### Linting\n`;
             if (lintingData) {
               const rustLintStatus = lintingData.rust_lint === 'success' ? '✅' : '❌';
-              const eslintStatus = lintingData.eslint === 'success' ? '✅' : '❌';
+              const oxlintStatus = lintingData.oxlint === 'success' ? '✅' : '❌';
               summary += `| Check | Status |\n`;
               summary += `|-------|--------|\n`;
               summary += `| Clippy | ${rustLintStatus} |\n`;
-              summary += `| ESLint | ${eslintStatus} |\n\n`;
+              summary += `| oxlint | ${oxlintStatus} |\n\n`;
               summary += `<!-- linting-data: ${JSON.stringify(lintingData)} -->\n\n`;
             } else {
               summary += `⏳ *Pending or skipped (no code changes)...*\n\n`;
@@ -444,7 +444,7 @@ jobs:
                   const results = JSON.parse(content);
                   const failedChecks = [];
                   if (results.rust_fmt === 'failure') failedChecks.push('Rust fmt');
-                  if (results.prettier_fmt === 'failure') failedChecks.push('Prettier');
+                  if (results.oxfmt === 'failure') failedChecks.push('oxfmt');
                   if (failedChecks.length > 0) {
                     state = 'failure';
                     description = `Failed: ${failedChecks.join(', ')}`;
@@ -463,7 +463,7 @@ jobs:
                   const results = JSON.parse(content);
                   const failedChecks = [];
                   if (results.rust_lint === 'failure') failedChecks.push('Clippy');
-                  if (results.eslint === 'failure') failedChecks.push('ESLint');
+                  if (results.oxlint === 'failure') failedChecks.push('oxlint');
                   if (failedChecks.length > 0) {
                     state = 'failure';
                     description = `Failed: ${failedChecks.join(', ')}`;

@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true,
+    "node": true,
+    "es2024": true
+  },
+  "globals": {
+    "Deno": "readonly",
+    "Bun": "readonly"
+  },
+  "ignorePatterns": [
+    "src/deno.ts",
+    "src/tests/shared.test.ts",
+    "scripts/**",
+    "examples/**",
+    "dist/**",
+    "target/**",
+    "npm/**",
+    "node_modules/**",
+    "test-results/**",
+    ".claude/**",
+    "deno.json",
+    "deno.lock",
+    "Cargo.toml",
+    "Cargo.lock"
+  ],
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": "error",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-require-imports": "off",
+    "typescript/explicit-function-return-type": "off",
+    "typescript/explicit-module-boundary-types": "off",
+    "typescript/no-non-null-assertion": "warn",
+    "typescript/ban-ts-comment": "off"
+  }
+}

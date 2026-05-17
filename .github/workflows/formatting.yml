@@ -45,9 +45,9 @@ jobs:
         run: task fmt:rust:check
         continue-on-error: true
 
-      - name: Check TypeScript/JavaScript formatting
-        id: prettier-fmt
-        run: task fmt:prettier:check
+      - name: Check TypeScript/JavaScript formatting (oxfmt)
+        id: oxfmt
+        run: task fmt:oxfmt:check
         continue-on-error: true
 
       - name: Save formatting results
@@ -56,7 +56,7 @@ jobs:
           mkdir -p formatting-results
           echo '{
             "rust_fmt": "${{ steps.rust-fmt.outcome }}",
-            "prettier_fmt": "${{ steps.prettier-fmt.outcome }}"
+            "oxfmt": "${{ steps.oxfmt.outcome }}"
           }' > formatting-results/results.json
 
       - name: Upload formatting results

@@ -41,18 +41,14 @@
   "license": "MIT",
   "devDependencies": {
     "@cross/test": "npm:@jsr/cross__test@^0.0.10",
-    "@eslint/js": "^9.39.4",
     "@napi-rs/cli": "^3.1.5",
     "@std/assert": "npm:@jsr/std__assert@^1.0.14",
     "@types/bun": "^1.2.21",
-    "@types/node": "^24.3.1",
-    "@types/prettier": "^2.7.3",
+    "@types/node": "^22.19.19",
     "@types/semver": "^7.7.1",
-    "@typescript-eslint/eslint-plugin": "^8.42.0",
-    "@typescript-eslint/parser": "^8.42.0",
-    "c8": "^10.1.2",
-    "eslint": "^9.35.0",
-    "prettier": "^3.6.2",
+    "c8": "^11.0.0",
+    "oxfmt": "^0.49.0",
+    "oxlint": "^1.64.0",
     "semver": "^7.7.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
@@ -61,8 +57,8 @@
   "scripts": {
     "compile": "node scripts/compile.js",
     "build": "node scripts/build-all.js",
-    "format": "prettier --write .",
-    "lint": "eslint . --fix",
+    "format": "oxfmt",
+    "lint": "oxlint --fix",
     "prepublishOnly": "pnpm run compile && task prepublish"
   }
 }
