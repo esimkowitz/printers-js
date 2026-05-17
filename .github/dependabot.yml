@@ -48,6 +48,9 @@ updates:
       timezone: "America/Los_Angeles"
     cooldown:
       default-days: 2
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "rust-toolchain" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
