@@ -51,7 +51,7 @@
     "oxlint": "^1.64.0",
     "semver": "^7.7.2",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "typescript": "^6.0.3"
   },
   "packageManager": "pnpm@11.1.2",
   "scripts": {
