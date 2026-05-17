@@ -127,7 +127,6 @@ jobs:
             target: x86_64-pc-windows-msvc
           - host: windows-11-arm
             target: aarch64-pc-windows-msvc
-            test_runtimes: rust node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
           - host: ubuntu-24.04-arm
@@ -143,14 +142,12 @@ jobs:
           sudo apt-get install -y libcups2-dev pkg-config clang
       - uses: actions/checkout@v6
       - name: Setup Deno
-        if: matrix.settings.target != 'aarch64-pc-windows-msvc' # Deno does not support Windows ARM yet
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
           cache: false
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        if: matrix.settings.target != 'aarch64-pc-windows-msvc' # Deno does not support Windows ARM yet
         with:
           bun-version: latest
           no-cache: true

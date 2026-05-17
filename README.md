@@ -307,7 +307,7 @@ console.log("Simulation mode:", isSimulationMode);
 | OS      | Architecture | Node.js | Deno | Bun |
 | ------- | ------------ | ------- | ---- | --- |
 | Windows | x64          | ✅      | ✅   | ✅  |
-| Windows | ARM64        | ✅      | ❌   | ❌  |
+| Windows | ARM64        | ✅      | ✅   | ✅  |
 | macOS   | x64          | ✅      | ✅   | ✅  |
 | macOS   | ARM64        | ✅      | ✅   | ✅  |
 | Linux   | x64          | ✅      | ✅   | ✅  |
