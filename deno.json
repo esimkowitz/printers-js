@@ -54,6 +54,7 @@
     "scripts/*.js"
   ],
   "nodeModulesDir": "auto",
+  "minimumDependencyAge": "P2D",
   "compilerOptions": {
     "lib": ["deno.window"],
     "strict": true
