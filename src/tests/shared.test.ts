@@ -1865,13 +1865,19 @@ async function runInSubprocess(
       stderr: await new Response(proc.stderr).text(),
     };
   }
-  // Node.js
+  // Node.js: spawn the running Node binary with tsx's CLI directly. Avoids
+  // Windows quirks where `spawn("npx", ...)` fails with ENOENT because npx is
+  // a .cmd shim that isn't resolved without shell:true.
   const { spawn } = await import("node:child_process");
+  const { createRequire } = await import("node:module");
+  const nodeRequire = createRequire(import.meta.url);
+  const tsxCli = nodeRequire.resolve("tsx/cli");
   return await new Promise<RunResult>((resolve, reject) => {
-    const child = spawn("npx", ["tsx", "--eval", wrapped, "--no-warnings"], {
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(
+      process.execPath,
+      [tsxCli, "--eval", wrapped, "--no-warnings"],
+      { env, stdio: ["ignore", "pipe", "pipe"] }
+    );
     let stdout = "";
     let stderr = "";
     child.stdout?.on("data", chunk => (stdout += chunk.toString()));
