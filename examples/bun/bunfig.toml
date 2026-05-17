@@ -2,6 +2,7 @@
 # Configure Bun package manager behavior
 cache = true
 exact = false
+minimumReleaseAge = 172800
 
 [run]
 # Environment variables for running scripts

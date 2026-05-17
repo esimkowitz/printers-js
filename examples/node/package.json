@@ -9,10 +9,10 @@
     "dev": "node --watch main.js"
   },
   "dependencies": {
-    "@printers/printers": "^1.1"
+    "@printers/printers": "^2.0.0"
   },
   "engines": {
-    "node": ">= 20"
+    "node": ">= 22"
   },
   "license": "MIT"
 }
