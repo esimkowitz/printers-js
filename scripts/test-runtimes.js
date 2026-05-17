@@ -245,7 +245,7 @@ async function runTests(runtimesToTest = ["rust", "deno", "node", "bun"]) {
     console.log(colorize("yellow", "🟢 Testing with Node.js..."));
     console.log("--------------------");
     const nodeResult = await runCommand(
-      ["npx", "tsx", "src/tests/node-test-runner.ts"],
+      ["pnpm", "exec", "tsx", "src/tests/node-test-runner.ts"],
       { simulate: true }
     );
 

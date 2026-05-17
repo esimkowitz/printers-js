@@ -106,11 +106,11 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      # Setup Node.js
+      # Setup Node.js (version pinned in .node-version)
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
 
       # Install Node.js dependencies
