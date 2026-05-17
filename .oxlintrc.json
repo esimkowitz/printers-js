@@ -24,6 +24,7 @@
     "node_modules/**",
     "test-results/**",
     ".claude/**",
+    ".worktrees/**",
     "deno.json",
     "deno.lock",
     "Cargo.toml",

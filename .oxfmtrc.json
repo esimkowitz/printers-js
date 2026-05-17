@@ -21,6 +21,7 @@
     "reports/",
     "test-results/",
     ".claude/",
+    ".worktrees/",
     "dist/",
     "node_modules/",
     "*.lock",
