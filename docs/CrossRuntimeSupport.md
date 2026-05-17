@@ -22,8 +22,8 @@ The library automatically detects the current runtime and loads appropriate modu
 import { runtimeInfo } from "@printers/printers";
 
 console.log(runtimeInfo);
-// Node.js: { name: "node", isDeno: false, isNode: true, isBun: false, version: "20.x.x" }
-// Deno:    { name: "deno", isDeno: true, isNode: false, isBun: false, version: "1.x.x" }
+// Node.js: { name: "node", isDeno: false, isNode: true, isBun: false, version: "22.x.x" }
+// Deno:    { name: "deno", isDeno: true, isNode: false, isBun: false, version: "2.x.x" }
 // Bun:     { name: "bun", isDeno: false, isNode: false, isBun: true, version: "1.x.x" }
 ```
 
