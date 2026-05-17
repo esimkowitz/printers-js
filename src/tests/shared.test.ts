@@ -10,6 +10,8 @@ declare var process: any;
 
 import { test } from "@cross/test";
 import type * as PrinterTypes from "../index.ts";
+import { fileURLToPath } from "node:url";
+import { join as joinPath } from "node:path";
 
 // Runtime detection and simulation mode setup - MUST happen before importing the module
 let runtimeName: string;
@@ -77,7 +79,7 @@ console.log("Debug: isSimulationMode =", isSimulationMode);
 console.log("Debug: typeof getAllPrinterNames =", typeof getAllPrinterNames);
 
 // Test media files directory - compute relative to this file's location
-const MEDIA_DIR = new URL("../../media", import.meta.url).pathname;
+const MEDIA_DIR = fileURLToPath(new URL("../../media", import.meta.url));
 const TEST_FILES = {
   PDF: `${MEDIA_DIR}/sample-document.pdf`,
   TEXT: `${MEDIA_DIR}/sample-text.txt`,
@@ -1915,8 +1917,8 @@ function getLocalNativeBinaryPath(): string {
   }
 
   // Project root is two levels up from src/tests/
-  const root = new URL("../../", import.meta.url).pathname;
-  return `${root}npm/${platformString}/printers.${platformString}.node`;
+  const root = fileURLToPath(new URL("../..", import.meta.url));
+  return joinPath(root, "npm", platformString, `printers.${platformString}.node`);
 }
 
 test(`${runtimeName}: setNativeModulePath loads a valid binary in a fresh process`, async () => {
