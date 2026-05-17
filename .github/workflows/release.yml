@@ -247,5 +247,19 @@ jobs:
           ls -la npm/ 2>/dev/null || dir npm
       - name: Compile TypeScript for publishing
         run: task compile
+      - name: Collect native binaries for release
+        run: |
+          mkdir -p release-assets
+          for binary in npm/*/printers.*.node; do
+            if [ -f "$binary" ]; then
+              cp "$binary" release-assets/
+            fi
+          done
+          ls -la release-assets/
+      - name: Publish GitHub release with native binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*.node
+          fail_on_unmatched_files: true
       - name: Publish to npm
         run: pnpm publish --no-git-checks

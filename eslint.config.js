@@ -20,6 +20,10 @@ export default [
       "examples/**/*",
       "examples/**",
 
+      // Git worktrees (each worktree has its own checkout; let it lint itself)
+      ".worktrees/**/*",
+      ".worktrees/**",
+
       // Build artifacts and dependencies
       "dist/**/*",
       "dist/**",

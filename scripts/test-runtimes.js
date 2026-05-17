@@ -196,6 +196,7 @@ async function runTests(runtimesToTest = ["rust", "deno", "node", "bun"]) {
         "--allow-env",
         "--allow-read",
         "--allow-ffi",
+        "--allow-run",
         "--no-check",
         "--coverage=test-results/coverage/deno-temp",
         "src/tests/shared.test.ts",

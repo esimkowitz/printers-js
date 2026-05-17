@@ -65,7 +65,12 @@ async function runTests() {
 
       // Run the shared test suite with c8 coverage and capture output
       const result = execSync(
-        "npx c8 --reporter=lcov --reporter=text --temp-directory=test-results/coverage/node-temp --report-dir=test-results/coverage/node --exclude=scripts/** --exclude=examples/** npx tsx src/tests/shared.test.ts",
+        // Use `lcovonly` instead of `lcov` so c8 emits only lcov.info (consumed
+        // downstream) and skips the HTML report. tsx synthesizes virtual
+        // modules like <define:import.meta>, and the HTML reporter writes
+        // those names verbatim to disk — `<` and `:` are invalid filename
+        // chars on Windows/NTFS and rejected by actions/upload-artifact.
+        "npx c8 --reporter=lcovonly --reporter=text --temp-directory=test-results/coverage/node-temp --report-dir=test-results/coverage/node --exclude=scripts/** --exclude=examples/** npx tsx src/tests/shared.test.ts",
         {
           stdio: "pipe",
           env: {

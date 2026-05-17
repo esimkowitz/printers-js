@@ -738,6 +738,27 @@ export function createCustomPageSize(
 let nativeModulePromise: Promise<NativeModule> | null = null;
 let nativeModuleCache: NativeModule | null = null;
 let simulationModeLogged = false;
+let customNativeModulePath: string | null = null;
+
+/**
+ * Override the path used to load the native N-API binary.
+ *
+ * Must be called before any other `@printers/printers` API. Useful for
+ * bundlers (Electron, pkg) and sandboxed runtimes where the standard
+ * platform-package resolution cannot find the binary.
+ *
+ * @param path Absolute path to the `.node` binary file.
+ * @throws If the native module has already been loaded.
+ */
+export function setNativeModulePath(path: string): void {
+  if (nativeModuleCache !== null || nativeModulePromise !== null) {
+    throw new Error(
+      "Native module already loaded. setNativeModulePath() must be called " +
+        "before any other @printers/printers API."
+    );
+  }
+  customNativeModulePath = path;
+}
 
 /**
  * Get the platform string for the current runtime environment.
@@ -779,6 +800,31 @@ async function loadNativeModule(): Promise<NativeModule> {
     console.log(
       `[SIMULATION] ${runtimeInfo.name} running in simulation mode - no actual printing will occur`
     );
+  }
+
+  // Custom override: explicit setNativeModulePath() call takes precedence over the env var.
+  const envOverride = isDeno
+    ? g.Deno?.env?.get("PRINTERS_JS_NATIVE_MODULE_PATH")
+    : g.process?.env?.PRINTERS_JS_NATIVE_MODULE_PATH;
+  const overridePath = customNativeModulePath ?? envOverride;
+
+  if (overridePath) {
+    try {
+      // .node binaries aren't portably loadable via dynamic import() across
+      // Node, Deno, and Bun, so use createRequire — the same shape that the
+      // generated per-platform loaders in npm/<platform>/index.js use.
+      const { createRequire } = await import("node:module");
+      const require = createRequire(import.meta.url);
+      return require(overridePath) as NativeModule;
+    } catch (overrideError) {
+      throw new Error(
+        `Failed to load native module from custom path "${overridePath}": ${
+          overrideError instanceof Error
+            ? overrideError.message
+            : String(overrideError)
+        }`
+      );
+    }
   }
 
   const platformString = getPlatformString();
