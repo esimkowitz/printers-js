@@ -6,6 +6,17 @@ on:
       - "v*.*.*" # Trigger on version tags like v1.2.3
 
 jobs:
+  setup:
+    name: Resolve primary Node version
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      primary-node: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: read
+        run: echo "version=$(cat .node-version)" >> "$GITHUB_OUTPUT"
+
   build-napi:
     name: Build N-API modules
     runs-on: ${{ matrix.settings.host }}
@@ -98,7 +109,7 @@ jobs:
   test-targets:
     name: Cross-runtime test on ${{ matrix.settings.target }} (Node ${{ matrix.node }})
     runs-on: ${{ matrix.settings.host }}
-    needs: build-napi
+    needs: [build-napi, setup]
     permissions: {}
     defaults:
       run:
@@ -176,10 +187,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run comprehensive tests (includes compilation)
         run: |
-          # Only the primary Node version (matches .node-version) runs the full
-          # cross-runtime suite. Other Node versions only re-run the Node runtime
-          # tests, since Rust/Deno/Bun results don't depend on the installed Node.
-          if [ "${{ matrix.node }}" != "22" ]; then
+          # Only the primary Node version (sourced from .node-version via the
+          # setup job) runs the full cross-runtime suite. Other Node versions
+          # only re-run the Node runtime tests, since Rust/Deno/Bun results
+          # don't depend on the installed Node.
+          if [ "${{ matrix.node }}" != "${{ needs.setup.outputs.primary-node }}" ]; then
             echo "Running Node-only tests for Node ${{ matrix.node }}"
             task test -- node
           elif [ -n "${{ matrix.settings.test_runtimes }}" ]; then
