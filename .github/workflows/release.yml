@@ -13,7 +13,7 @@ jobs:
     outputs:
       primary-node: ${{ steps.read.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - id: read
         run: echo "version=$(cat .node-version)" >> "$GITHUB_OUTPUT"
 
@@ -53,7 +53,7 @@ jobs:
         run: |
           echo "man-db man-db/auto-update boolean false" | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Enable Corepack
         run: corepack enable
       - name: Setup Node
@@ -140,7 +140,7 @@ jobs:
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get update
           sudo apt-get install -y libcups2-dev pkg-config clang
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
@@ -207,7 +207,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup Task
         uses: arduino/setup-task@v2
         with:
