@@ -62,7 +62,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1.16.1
         with:
           cache: false
       - name: Setup Task runner
@@ -159,7 +159,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
       - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1.16.1
         with:
           cache: false
       - name: Setup Task runner
