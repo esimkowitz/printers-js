@@ -90,7 +90,7 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
 
       # Setup Deno
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: v2.x
 
