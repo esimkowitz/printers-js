@@ -76,7 +76,7 @@ jobs:
 
       # Setup Rust toolchain for building native library
       - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1.16.1
+        uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
 
       # Cache Rust dependencies for faster builds
       - uses: Swatinem/rust-cache@v2
