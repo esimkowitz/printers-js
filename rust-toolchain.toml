@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.97"
+channel = "1.98"
 targets = [
   "x86_64-apple-darwin",
   "aarch64-apple-darwin",
