@@ -256,7 +256,14 @@ type PrintQuality = 3 | 4 | 5; // Draft, Normal, High
 type NumberUp = 1 | 2 | 4 | 6 | 9 | 16;
 
 type NumberUpLayout =
-  "lrtb" | "lrbt" | "rltb" | "rlbt" | "tblr" | "tbrl" | "btlr" | "btrl";
+  | "lrtb"
+  | "lrbt"
+  | "rltb"
+  | "rlbt"
+  | "tblr"
+  | "tbrl"
+  | "btlr"
+  | "btrl";
 
 type Sides = "one-sided" | "two-sided-long-edge" | "two-sided-short-edge";
 
