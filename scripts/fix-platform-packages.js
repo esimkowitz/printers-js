@@ -7,7 +7,10 @@
  * 2. Include all necessary files in the "files" array
  * 3. Add "types" field pointing to index.d.ts
  *
- * This must run AFTER napi build but BEFORE napi prepublish
+ * With --native-main, only "main" is reset to the .node binary. @napi-rs/cli
+ * (>= 3.10.12) validates that "main" equals the binary during
+ * `napi prepublish`, so run this mode right before it. Run this script again
+ * without the flag afterwards to restore the ESM entry before `npm publish`.
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
@@ -16,6 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const npmDir = join(__dirname, "..", "npm");
+const nativeMain = process.argv.includes("--native-main");
 
 // Get all platform directories
 const platforms = readdirSync(npmDir).filter(dir => {
@@ -48,6 +52,17 @@ for (const platform of platforms) {
 
   if (!nodeFile) {
     console.log(`⚠️  Warning: No .node file found in ${platform}`);
+  }
+
+  if (nativeMain) {
+    if (!nodeFile) {
+      console.error(`❌ ${platform}: no .node file found`);
+      process.exit(1);
+    }
+    pkg.main = nodeFile;
+    writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+    console.log(`   ${platform}/package.json: main -> "${pkg.main}"`);
+    continue;
   }
 
   // Update package.json for ESM
