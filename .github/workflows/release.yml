@@ -6,6 +6,18 @@ on:
       - "v*.*.*" # Trigger on version tags like v1.2.3
 
 jobs:
+  verify-version:
+    name: Verify tag matches package versions
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: node scripts/verify-version.js "$GITHUB_REF_NAME"
+
   setup:
     name: Resolve primary Node version
     runs-on: ubuntu-latest
@@ -19,6 +31,7 @@ jobs:
 
   build-napi:
     name: Build N-API modules
+    needs: verify-version
     runs-on: ${{ matrix.settings.host }}
     permissions: {}
     defaults:
